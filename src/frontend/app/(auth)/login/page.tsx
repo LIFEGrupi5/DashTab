@@ -1,5 +1,7 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChefHat, Mail, Lock } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/Button';
@@ -13,6 +15,17 @@ const demoAccounts = [
 ] as const;
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [selectedEmail, setSelectedEmail] = useState(demoAccounts[0].email);
+
+  const handleSignIn = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const selectedAccount = demoAccounts.find(account => account.email === selectedEmail) ?? demoAccounts[0];
+    window.localStorage.setItem('restaurantos:role', selectedAccount.role.toLowerCase());
+    window.localStorage.setItem('restaurantos:email', selectedAccount.email);
+    router.push('/dashboard');
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
       <div className="w-full max-w-xl">
@@ -26,11 +39,13 @@ export default function LoginPage() {
 
         <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-8">
           <h2 className="text-2xl font-bold text-neutral-900 mb-6">Sign in to your account</h2>
-          <form className="space-y-5">
+          <form className="space-y-5" onSubmit={handleSignIn}>
             <TextField
               label="Email Address"
               type="email"
               placeholder="you@restaurant.com"
+              value={selectedEmail}
+              onChange={event => setSelectedEmail(event.target.value)}
               leftIcon={<Mail className="w-5 h-5" />}
             />
             <TextField
@@ -60,7 +75,10 @@ export default function LoginPage() {
               <button
                 key={acc.email}
                 type="button"
-                className="w-full text-left flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-50 transition"
+                onClick={() => setSelectedEmail(acc.email)}
+                className={`w-full text-left flex items-center justify-between px-3 py-2 rounded-lg transition ${
+                  selectedEmail === acc.email ? 'bg-orange-50' : 'hover:bg-neutral-50'
+                }`}
               >
                 <span className="text-sm text-neutral-700">{acc.email}</span>
                 <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
