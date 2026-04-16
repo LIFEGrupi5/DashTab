@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(node -e \"const r = require\\('./node_modules/react-resizable-panels'\\); console.log\\(Object.keys\\(r\\).join\\(', '\\)\\)\")",
+      "Bash(node -e \"const r = require\\('./node_modules/react-day-picker'\\); console.log\\(Object.keys\\(r\\).filter\\(k => !k.startsWith\\('_'\\)\\).slice\\(0,20\\).join\\(', '\\)\\)\")"
+    ]
+  }
+}
