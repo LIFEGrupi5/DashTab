@@ -1,4 +1,4 @@
-import { Outlet, NavLink } from 'react-router';
+import { Outlet, NavLink, Link } from 'react-router';
 import {
   ChefHat,
   LayoutDashboard,
@@ -53,10 +53,13 @@ export default function Layout() {
         </nav>
 
         <div className="p-3 border-t border-neutral-100">
-          <button className="flex items-center justify-center sm:justify-start gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition">
+          <Link
+            to="/login"
+            className="flex items-center justify-center sm:justify-start gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 transition"
+          >
             <LogOut className="w-4 h-4 shrink-0" />
             <span className="hidden sm:inline">Sign Out</span>
-          </button>
+          </Link>
         </div>
       </aside>
 

@@ -1,16 +1,9 @@
-import { ChefHat, Mail, Lock } from 'lucide-react';
+import { ChefHat, Mail, Lock, User } from 'lucide-react';
 import { Link } from 'react-router';
 import Button from '../../components/Button';
 import TextField from '../../components/TextField';
 
-const demoAccounts = [
-  { email: 'admin@restaurant.com', role: 'Owner' },
-  { email: 'manager@restaurant.com', role: 'Manager' },
-  { email: 'ana@restaurant.com', role: 'Waiter' },
-  { email: 'petrit@restaurant.com', role: 'Kitchen' },
-] as const;
-
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
       <div className="w-full max-w-xl">
@@ -23,50 +16,34 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-8">
-          <h2 className="text-2xl font-bold text-neutral-900 mb-6">Sign in to your account</h2>
+          <h2 className="text-2xl font-bold text-neutral-900 mb-6">Create your account</h2>
           <form className="space-y-5">
+            <TextField label="Full Name" type="text" placeholder="Jane Doe" leftIcon={<User className="w-5 h-5" />} />
             <TextField
               label="Email Address"
               type="email"
               placeholder="you@restaurant.com"
               leftIcon={<Mail className="w-5 h-5" />}
             />
+            <TextField label="Password" type="password" placeholder="••••••••" leftIcon={<Lock className="w-5 h-5" />} />
             <TextField
-              label="Password"
+              label="Confirm Password"
               type="password"
               placeholder="••••••••"
               leftIcon={<Lock className="w-5 h-5" />}
             />
 
             <Button type="submit" fullWidth className="rounded-xl py-3">
-              Sign In
+              Create Account
             </Button>
 
             <p className="text-sm text-neutral-600 text-center">
-              Don&apos;t have an account?{' '}
-              <Link to="/signup" className="font-semibold text-orange-600 hover:text-orange-700">
-                Sign up
+              Already have an account?{' '}
+              <Link to="/login" className="font-semibold text-orange-600 hover:text-orange-700">
+                Sign in
               </Link>
             </p>
           </form>
-        </div>
-
-        <div className="mt-4 bg-white rounded-2xl border border-neutral-200 p-4">
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Demo accounts</p>
-          <div className="space-y-2">
-            {demoAccounts.map(acc => (
-              <button
-                key={acc.email}
-                type="button"
-                className="w-full text-left flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-50 transition"
-              >
-                <span className="text-sm text-neutral-700">{acc.email}</span>
-                <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
-                  {acc.role}
-                </span>
-              </button>
-            ))}
-          </div>
         </div>
       </div>
     </div>

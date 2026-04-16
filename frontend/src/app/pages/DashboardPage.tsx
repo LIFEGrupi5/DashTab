@@ -9,23 +9,6 @@ const stats = [
   { label: 'Active Staff', value: 4, icon: Users, color: 'bg-purple-50 text-purple-600' },
 ];
 
-const deliverables = [
-  {
-    id: 'm2.1',
-    indexLabel: 'M2.1',
-    deliverable: 'Next.js project scaffolded',
-    owner: 'Frontend Lead',
-    description: 'App Router, TypeScript strict mode, Tailwind configured, ESLint + Prettier',
-  },
-  {
-    id: 'm2.2',
-    indexLabel: 'M2.2',
-    deliverable: 'Core UI components',
-    owner: 'Frontend Lead',
-    description: 'Design system: buttons, inputs, modals, cards, navbars, data tables - all responsive, dark mode',
-  },
-];
-
 export default function DashboardPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -35,38 +18,6 @@ export default function DashboardPage() {
         {stats.map(stat => (
           <StatCard key={stat.label} {...stat} />
         ))}
-      </div>
-
-      <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead className="bg-blue-900 text-white">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-semibold border-r border-blue-800">#</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold border-r border-blue-800">Deliverable</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold border-r border-blue-800">Owner</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold">Description</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-neutral-200">
-              {deliverables.map(row => (
-                <tr key={row.id} className="align-top">
-                  <td className="px-4 py-3.5 text-sm font-semibold text-neutral-900 border-r border-neutral-200 whitespace-nowrap">
-                    {row.indexLabel}
-                  </td>
-                  <td className="px-4 py-3.5 text-sm font-medium text-neutral-900 border-r border-neutral-200 whitespace-normal">
-                    {row.deliverable}
-                  </td>
-                  <td className="px-4 py-3.5 text-sm text-neutral-900 border-r border-neutral-200 whitespace-normal">
-                    {row.owner}
-                  </td>
-                  <td className="px-4 py-3.5 text-sm text-neutral-900 whitespace-normal">{row.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   );
