@@ -77,7 +77,7 @@ const orders = [
       { menuItemName: 'Byrek', quantity: 2, amount: 5.0 },
     ],
   },
-] as const;
+];
 
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]['key']>('all');

@@ -16,7 +16,7 @@ const demoAccounts = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const [selectedEmail, setSelectedEmail] = useState(demoAccounts[0].email);
+  const [selectedEmail, setSelectedEmail] = useState<string>(demoAccounts[0].email);
 
   const handleSignIn = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
