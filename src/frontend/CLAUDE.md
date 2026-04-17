@@ -34,6 +34,9 @@ src/frontend/
   types/                         # Shared TypeScript interfaces
   styles/                        # Additional global stylesheets
   public/                        # Static assets
+  tests/
+    unit/                        # Jest + RTL unit tests
+    e2e/                         # Playwright end-to-end tests
 ```
 
 ## Path Alias
