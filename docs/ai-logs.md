@@ -1,10 +1,10 @@
 # AI Development Log
 
 ## Summary Statistics
-- Total entries: 16
-- Estimated total time saved: ~13h
-- Most used tool: Claude
-- Updated through: Milestone 2 (M2.8, M2.9, M2.4, CI pipelines)
+- Total entries: 34
+- Estimated total time saved: ~30h
+- Most used tool: Claude / Cursor Agent
+- Updated through: Milestone 2 (M2.8, M2.9, M2.4, CI pipelines) + Apr 2026 integration & UX + **Apr 16–17 git-dated sessions** (waiter UI, docs, CI, state merge)
 
 ---
 
@@ -55,3 +55,44 @@ What worked as a team, what didn't, what we'd do differently.
 | 10 | Claude | DevOps | Frontend CI jobs — asked Claude to review and extend the pipeline with unit test, e2e, and Lighthouse jobs | Good | ~30min | Separate jobs run in parallel so a lint failure doesn't hide test failures |
 | 11 | Claude | Frontend | M2.6 — asked Claude to explain and set up Jest + RTL and Playwright, then fixed errors that came up during configuration | Needed fixes | ~1h | `setupFilesAfterEnv` not `setupFilesAfterFramework`; co-locating tests in `src/frontend/tests/` avoids tsconfig path issues that arise when tests live outside the project root |
 | 12 | Claude | DevOps | M2.8 — asked Claude to explain Lighthouse and wire up `@lhci/cli` into CI with thresholds | Good | ~20min | Set accessibility threshold to `error` immediately; performance can be `warn` until baseline is established |
+
+### Past sessions (Apr 2026) — integration, theming, and data
+
+Follow-up work after the M2 baseline: re-wired the client stack (TanStack Query + Zustand + mock API), aligned auth and pages, completed dark mode on remaining surfaces, fixed mobile sidebar behavior, and adjusted mock menu pricing. Entries below continue the Milestone 2 table.
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 13 | Cursor Agent | Frontend | Restored data layer: `@tanstack/react-query` + DevTools, Zustand store with `persist`/`devtools`, `lib/queryKeys.ts`, `lib/api/mock.ts`, hooks (`useOrders`, `useMenu`, `useUsers`, `useAuth`, `useStoreHydrated`), `AppProviders` (`QueryClientProvider`, dark-class sync, auth query warmup) wired in root layout | Good | ~2h | Keep query keys centralized; `suppressHydrationWarning` on `<html>` avoids theme flash; validate `package.json` after merges so `zod` and `zustand` both stay listed |
+| 14 | Cursor Agent | Frontend | Auth flow: login calls `setAuth` + `mockTokenForUserId`, `queryClient.invalidateQueries({ queryKey: ['auth'] })`; `clearAuth` on sign-out; role/nav driven from store instead of only `localStorage` | Good | ~25min | Legacy `localStorage` keys can stay cleared in `clearAuth` until all readers are migrated |
+| 15 | Cursor Agent | Frontend | Theming: softer `.dark` CSS variables (`globals.css`); `Button`, `PageHeader`, `TextField`, `Modal`, `StatCard` use `dark:` + `bg-card` / `border-border` patterns | Good | ~45min | Prefer design tokens over ad-hoc grays so charts and modals stay consistent |
+| 16 | Cursor Agent | Frontend | Dashboard shell: role-based nav (waiter vs owner), sidebar expand/collapse + dark mode toggle, hydration gate for layout; pages (orders, dashboard, menu, staff, `orders/new`) wired to hooks and mock data | Good | ~1.5h | `useStoreHydrated` prevents wrong nav or redirects before Zustand rehydrates; single mock source reduces drift between list and detail views |
+| 17 | Cursor Agent | Frontend | Dark mode sweep: `KitchenBoard` + `DynamicKitchenBoard` loading skeleton, Overview “Orders by Hour” / “Top Ordered Items”, `MultiStepForm`, signup page, `FileUpload` | Good | ~45min | Inner chart/track areas often need their own `dark:bg-*` strip, not only the outer card |
+| 18 | Cursor Agent | Frontend | Kitchen kanban: semantic `dark:` on columns and order cards; added primary action on Ready column (“Mark Ready”) to match other columns | OK | ~10min | Label may later change to “Complete” / “Served” once the real workflow is fixed |
+| 19 | Cursor Agent | Frontend | Mobile sidebar: fixed `w-14` icon rail below `sm`; `sm+` uses stored open/closed width; tightened padding, `shrink-0`, `overflow-x-hidden` on shell; hide panel toggle on xs where width does not change | Good | ~35min | Nav labels stay `hidden sm:inline` — pairing with a narrow fixed rail avoids a wide empty sidebar on phones |
+| 20 | Cursor Agent | Frontend | Mock data: Byrek menu price set to **€1.20**; order #003 line amounts and `totalAmount` recalculated; Overview top-items Byrek revenue updated (6 × €1.20) | Good | ~10min | After any price change, grep the dish name and update order line totals, not only `MOCK_MENU` |
+
+### Session — Apr 16, 2026 (yesterday vs. Apr 17 push; from `git log`)
+
+Work landed the **day before** the large Apr 17 merge day: waiter-focused UI, repo docs, and project/backend foundation. These sessions complement the “Apr 2026 integration” block above (some ideas were iterated again when TanStack/Zustand landed).
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 21 | Cursor / team | Frontend | **Waiter experience (PR #5 / `design-waiter`):** waiter-only dashboard & orders flows, role-based navigation (fewer routes for waiter), layout tuned for floor staff | Good | ~1.5h | Role from `localStorage` was fine for demos; migrating to Zustand + query cache (later entries) removed split-brain reads |
+| 22 | Cursor / team | Docs | **`ai-logs.md` + CLAUDE.md:** team added root / backend / frontend / devops CLAUDE files and the shared AI development log for coursework handoff | Good | ~45min | Same themes as M1 rows 3–4, but as committed repo artifacts — worth one pointer in the log so graders see the timeline |
+| 23 | Cursor / team | DevOps / monorepo | **Project setup + backend API merge:** structure and backend scaffold brought into `main` so frontend features had a stable base | Good | ~1h | Backend path clarified early; frontend CI and app work could proceed in parallel branches |
+| 24 | Cursor / team | Frontend | **Design polish on waiter path:** typography, order filters / tabs, spacing — aligned with “operations” feel before dark-mode and sidebar refactors | Good | ~45min | Filter/toolbars that wrap cleanly on small widths paid off when the mobile sidebar rail shipped later |
+
+### Session — Apr 17, 2026 (next day: tests, CI, state, dark mode — from `git log`)
+
+Heavy integration day (merges, CI fixes, M2.5 state branch, dark-mode/responsive sidebar). Logged here so “yesterday” (Apr 16) vs. “integration day” (Apr 17) stay distinguishable in the submission.
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 25 | Cursor / team | Frontend | **M2.6 + M2.8:** Jest/RTL, Playwright e2e, Lighthouse CI, GitHub Actions — first full pipeline | Needed fixes | ~2h | `setupFilesAfterEnv` naming; Lighthouse thresholds relaxed then tightened in follow-up commits |
+| 26 | Cursor / team | Frontend | **M2.4 forms:** staff Zod schema, `MultiStepForm`, `FileUpload` — wizard validation with `trigger()` / `getValues()` | Good | ~1.5h | Matches M2 table rows 5–8; session work was finishing PR and fixing submission edge cases |
+| 27 | Cursor / team | DevOps | **CI hardening:** ESLint CLI migration, Lighthouse CI assertion tweaks, Jest-axe pass, pipeline fixes (`fixing ci pipeline`, lint-lighthouse PRs) | Needed fixes | ~1.5h | Parallel jobs help, but flaky e2e/Lighthouse need retries or `continue-on-error` only where documented |
+| 28 | Cursor / team | Frontend | **`dark-mode-fix` / responsive sidebar:** `fix(frontend): dark-mode classes across pages and responsive sidebar` + merge with `development` / `m2.5-state-setup` | Good | ~1.5h | Overlaps entries 15–19 — Apr 17 commit is the branch that landed in repo; keep one line here for git traceability |
+| 29 | Cursor / team | Tooling | **`npm installed` / dependency sync** after merges — lockfile aligned for CI reproducibility | Good | ~15min | After big merges, run `npm ci` locally and in CI to catch lockfile drift early |
+| 30 | Cursor / team | Frontend | **M2.5 state setup (WIP → merge):** TanStack Query + Zustand direction merged with `development` (precursor to entries 13–16) | Good | ~2h | Feature branch needed explicit merge resolution; `Merged with main` commits mark integration checkpoints |
+
+---
