@@ -95,4 +95,15 @@ Heavy integration day (merges, CI fixes, M2.5 state branch, dark-mode/responsive
 | 29 | Cursor / team | Tooling | **`npm installed` / dependency sync** after merges — lockfile aligned for CI reproducibility | Good | ~15min | After big merges, run `npm ci` locally and in CI to catch lockfile drift early |
 | 30 | Cursor / team | Frontend | **M2.5 state setup (WIP → merge):** TanStack Query + Zustand direction merged with `development` (precursor to entries 13–16) | Good | ~2h | Feature branch needed explicit merge resolution; `Merged with main` commits mark integration checkpoints |
 
+### Session — M2.7 accessibility + M2.8 Lighthouse run
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 31 | Claude | Frontend | M2.8 — ran `npm run build && npx lhci autorun`, generated Lighthouse reports for `/login` and `/dashboard`, saved results in `.lighthouseci/` | Good | ~20min | Build must succeed before `lhci autorun` — `npm run start` needs a compiled app; run `npm install` after pulling to avoid missing package errors |
+| 32 | Claude | Frontend | M2.7 — identified 2 real violations from Lighthouse output: `color-contrast` on login badge (`text-orange-600 bg-orange-50`, ratio ~2.3:1) and `link-name` on dashboard nav (icon-only links have no text for screen readers) | Good | ~15min | Read the Lighthouse output first before writing any code — it tells you exactly what to fix |
+| 33 | Claude | Frontend | M2.7 — fixed `color-contrast`: login badge changed from `text-orange-600 bg-orange-50` → `text-orange-800 bg-orange-100` (ratio ~4.8:1, passes WCAG AA) | Good | ~5min | WCAG AA requires 4.5:1 for small text — orange-800/100 is the correct Tailwind pairing |
+| 34 | Claude | Frontend | M2.7 — fixed `link-name`: added `aria-label={item.label}` to every nav link in `layout.tsx` so screen readers can read icon-only links on mobile | Good | ~5min | Always pair icon-only interactive elements with `aria-label` — it is invisible on screen but read aloud by screen readers |
+| 35 | Claude | Frontend | M2.7 — wrote `accessibility.test.tsx` using `jest-axe` to automatically catch violations on `Button` and `Modal` in every test run | Good | ~15min | `expect.extend(toHaveNoViolations)` must be called at the top of the file, not inside a `beforeAll` |
+| 36 | Claude | Frontend | M2.7 — fixed CI failure: `jest-axe` was installed locally but not saved to `package.json`; CI runs `npm install` from `package.json` so it could never find the package | Good | ~10min | Always use `npm install -D` — the `-D` flag writes the package to `devDependencies` in `package.json`; without it only your machine has it |
+
 ---
