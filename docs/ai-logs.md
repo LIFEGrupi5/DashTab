@@ -1,10 +1,10 @@
 # AI Development Log
 
 ## Summary Statistics
-- Total entries: 10
-- Estimated total time saved: ~8h
+- Total entries: 16
+- Estimated total time saved: ~13h
 - Most used tool: Claude
-- Updated through: Milestone 2 (M2.8, M2.9)
+- Updated through: Milestone 2 (M2.8, M2.9, M2.4, CI pipelines)
 
 ---
 
@@ -51,3 +51,7 @@ What worked as a team, what didn't, what we'd do differently.
 | 6 | Claude | Frontend | M2.4 — `FileUpload.tsx` with click-to-browse, image-only filter, 5MB limit | Good | ~20min | Keep file state in the parent via `useState` so it can be included in form submission |
 | 7 | Claude | Frontend | M2.4 — `MultiStepForm.tsx` 3-step wizard with per-step validation via `trigger()` | Needed 2 fix rounds | ~1h | Don't wrap multi-step forms in a `<form>` tag — it causes accidental submission on intermediate steps; use a `<div>` and call `trigger()` + `getValues()` manually |
 | 8 | Claude | Frontend | M2.4 — bug fix: role validation failing despite dropdown showing a value | Good | ~10min | Always set `defaultValues` for every field including dropdowns — without it React Hook Form sees `undefined` and Zod enum check fails |
+| 9 | Claude | DevOps | CI pipeline architecture advice — asked Claude where workflows should live in a monorepo and how to split them per service | Good | ~45min | GitHub Actions workflows must live in `.github/workflows/` regardless of monorepo structure; `devops/ci/` is for scripts, not workflow YAMLs |
+| 10 | Claude | DevOps | Frontend CI jobs — asked Claude to review and extend the pipeline with unit test, e2e, and Lighthouse jobs | Good | ~30min | Separate jobs run in parallel so a lint failure doesn't hide test failures |
+| 11 | Claude | Frontend | M2.6 — asked Claude to explain and set up Jest + RTL and Playwright, then fixed errors that came up during configuration | Needed fixes | ~1h | `setupFilesAfterEnv` not `setupFilesAfterFramework`; co-locating tests in `src/frontend/tests/` avoids tsconfig path issues that arise when tests live outside the project root |
+| 12 | Claude | DevOps | M2.8 — asked Claude to explain Lighthouse and wire up `@lhci/cli` into CI with thresholds | Good | ~20min | Set accessibility threshold to `error` immediately; performance can be `warn` until baseline is established |
