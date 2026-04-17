@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "analyze": "ANALYZE=true npm run build",
+    "lighthouse": "npx lighthouse http://localhost:3000 --output html --output-path lighthouse-report.html --chrome-flags='--headless'"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -54,7 +56,9 @@
     "vaul": "^1.1.2"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.3.1",
     "@tailwindcss/container-queries": "^0.1.1",
+    "web-vitals": "^4.2.4",
     "@types/node": "^20.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
