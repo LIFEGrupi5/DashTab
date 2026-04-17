@@ -81,7 +81,7 @@ export default function LoginPage() {
                 }`}
               >
                 <span className="text-sm text-neutral-700">{acc.email}</span>
-                <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+                <span className="text-xs font-medium text-orange-800 bg-orange-100 px-2 py-0.5 rounded-full">
                   {acc.role}
                 </span>
               </button>
