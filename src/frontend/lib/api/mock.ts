@@ -1,0 +1,144 @@
+export type Role = 'owner' | 'manager' | 'waiter' | 'kitchen';
+
+export type AuthUser = { id: string; email: string; name: string; role: Role };
+
+export type OrderStatus = 'new' | 'preparing' | 'ready' | 'completed';
+
+export type OrderLineItem = { menuItemName: string; quantity: number; amount: number };
+
+export type Order = {
+  id: string;
+  orderNumber: string;
+  tableNumber: string;
+  createdAt: string;
+  createdByName: string;
+  status: OrderStatus;
+  totalAmount: number;
+  items: OrderLineItem[];
+};
+
+export type MenuItem = {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  available: boolean;
+};
+
+export type StaffUser = { id: string; name: string; email: string; role: Role; active: boolean };
+
+const MOCK_DELAY_MS = 280;
+const delay = (ms: number = MOCK_DELAY_MS) => new Promise<void>(r => setTimeout(r, ms));
+
+export const MOCK_ORDERS: Order[] = [
+  {
+    id: 'order-4',
+    orderNumber: '004',
+    tableNumber: '1',
+    createdAt: '22:49',
+    createdByName: 'Ana Waiter',
+    status: 'new',
+    totalAmount: 16.0,
+    items: [
+      { menuItemName: 'Pljeskavica', quantity: 1, amount: 5.0 },
+      { menuItemName: 'Fergese', quantity: 2, amount: 11.0 },
+    ],
+  },
+  {
+    id: 'order-1',
+    orderNumber: '001',
+    tableNumber: 'T-5',
+    createdAt: '19:03',
+    createdByName: 'Ana Waiter',
+    status: 'new',
+    totalAmount: 12.0,
+    items: [
+      { menuItemName: 'Qebapa', quantity: 2, amount: 9.0 },
+      { menuItemName: 'Turkish Coffee', quantity: 2, amount: 3.0 },
+    ],
+  },
+  {
+    id: 'order-2',
+    orderNumber: '002',
+    tableNumber: 'T-3',
+    createdAt: '18:53',
+    createdByName: 'Ana Waiter',
+    status: 'preparing',
+    totalAmount: 10.0,
+    items: [
+      { menuItemName: 'Tave Kosi', quantity: 1, amount: 6.5 },
+      { menuItemName: 'Shopska Salad', quantity: 1, amount: 3.5 },
+    ],
+  },
+  {
+    id: 'order-3',
+    orderNumber: '003',
+    tableNumber: 'T-7',
+    createdAt: '18:43',
+    createdByName: 'Ana Waiter',
+    status: 'ready',
+    totalAmount: 20.0,
+    items: [
+      { menuItemName: 'Pljeskavica', quantity: 3, amount: 15.0 },
+      { menuItemName: 'Byrek', quantity: 2, amount: 5.0 },
+    ],
+  },
+];
+
+export const MOCK_MENU: MenuItem[] = [
+  { id: '1', name: 'Qebapa', category: 'Main Course', price: 4.5, available: true, description: 'Traditional grilled meat' },
+  { id: '2', name: 'Pljeskavica', category: 'Main Course', price: 5, available: true, description: 'Grilled patty' },
+  { id: '3', name: 'Tave Kosi', category: 'Main Course', price: 6.5, available: true, description: 'Lamb with yogurt' },
+  { id: '4', name: 'Fergese', category: 'Main Course', price: 5.5, available: true, description: 'Peppers with cheese' },
+  { id: '5', name: 'Byrek', category: 'Appetizer', price: 2.5, available: true, description: 'Cheese or meat pie' },
+  { id: '6', name: 'Shopska Salad', category: 'Salad', price: 3.5, available: true, description: 'Fresh vegetable salad' },
+  { id: '7', name: 'Baklava', category: 'Dessert', price: 2, available: true, description: 'Sweet pastry' },
+  { id: '8', name: 'Turkish Coffee', category: 'Beverage', price: 1.5, available: true, description: '' },
+  { id: '9', name: 'Raki', category: 'Beverage', price: 3, available: true, description: '' },
+  { id: '10', name: 'Ayran', category: 'Beverage', price: 1.5, available: true, description: '' },
+];
+
+export const MOCK_USERS: StaffUser[] = [
+  { id: '1', name: 'Admin User', email: 'admin@restaurant.com', role: 'owner', active: true },
+  { id: '2', name: 'John Manager', email: 'manager@restaurant.com', role: 'manager', active: true },
+  { id: '3', name: 'Ana Waiter', email: 'ana@restaurant.com', role: 'waiter', active: true },
+  { id: '4', name: 'Petrit Chef', email: 'petrit@restaurant.com', role: 'kitchen', active: true },
+];
+
+const EMAIL_TO_AUTH: Record<string, AuthUser> = Object.fromEntries(
+  MOCK_USERS.map(u => [u.email, { id: u.id, email: u.email, name: u.name, role: u.role }])
+);
+
+export async function fetchMockOrders(): Promise<Order[]> {
+  await delay();
+  return [...MOCK_ORDERS];
+}
+
+export async function fetchMockMenu(): Promise<MenuItem[]> {
+  await delay();
+  return [...MOCK_MENU];
+}
+
+export async function fetchMockUsers(): Promise<StaffUser[]> {
+  await delay();
+  return [...MOCK_USERS];
+}
+
+export async function fetchMockMe(token: string | null): Promise<AuthUser | null> {
+  await delay(120);
+  if (!token) return null;
+  const m = /^mock_token_(.+)$/.exec(token);
+  if (!m) return null;
+  const row = MOCK_USERS.find(u => u.id === m[1]);
+  if (!row) return null;
+  return { id: row.id, email: row.email, name: row.name, role: row.role };
+}
+
+export function mockTokenForUserId(userId: string) {
+  return `mock_token_${userId}`;
+}
+
+export function authUserFromEmail(email: string): AuthUser | null {
+  return EMAIL_TO_AUTH[email] ?? null;
+}

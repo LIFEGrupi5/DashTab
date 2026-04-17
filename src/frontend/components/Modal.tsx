@@ -20,13 +20,15 @@ export default function Modal({
   bodyClassName = 'space-y-3',
 }: ModalProps) {
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className={`bg-white rounded-2xl shadow-xl w-full ${maxWidthClassName}`}>
-        <div className="flex items-center justify-between p-5 border-b border-neutral-100">
-          <h2 className="font-semibold text-neutral-900">{title}</h2>
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50 p-4">
+      <div
+        className={`bg-white dark:bg-card rounded-2xl shadow-xl w-full border border-neutral-100 dark:border-border ${maxWidthClassName}`}
+      >
+        <div className="flex items-center justify-between p-5 border-b border-neutral-100 dark:border-border">
+          <h2 className="font-semibold text-neutral-900 dark:text-card-foreground">{title}</h2>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 transition"
+            className="text-neutral-400 dark:text-muted-foreground hover:text-neutral-600 dark:hover:text-foreground transition"
             aria-label="Close modal"
           >
             ×

@@ -13,11 +13,15 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 const VARIANT_STYLES: Record<ButtonVariant, string> = {
-  primary: 'bg-orange-500 text-white hover:bg-orange-600',
-  secondary: 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200',
-  ghost: 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900',
-  success: 'bg-green-50 text-green-700 hover:bg-green-100',
-  warning: 'bg-amber-50 text-amber-700 hover:bg-amber-100',
+  primary: 'bg-orange-500 text-white hover:bg-orange-600 dark:bg-orange-600 dark:hover:bg-orange-500',
+  secondary:
+    'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-secondary dark:text-secondary-foreground dark:hover:bg-muted',
+  ghost:
+    'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-900 dark:text-muted-foreground dark:hover:bg-muted/30 dark:hover:text-foreground',
+  success:
+    'bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-950/40 dark:text-green-200 dark:border dark:border-green-800/50 dark:hover:bg-green-950/60',
+  warning:
+    'bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-950/35 dark:text-amber-200 dark:border dark:border-amber-900/45 dark:hover:bg-amber-950/55',
 };
 
 const SIZE_STYLES: Record<ButtonSize, string> = {
