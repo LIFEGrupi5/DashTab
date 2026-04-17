@@ -1,0 +1,227 @@
+[
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "color-contrast",
+    "level": "error",
+    "url": "http://localhost:3000/login",
+    "auditTitle": "Background and foreground colors do not have a sufficient contrast ratio.",
+    "auditDocumentationLink": "https://dequeuniversity.com/rules/axe/4.10/color-contrast"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "errors-in-console",
+    "level": "error",
+    "url": "http://localhost:3000/login",
+    "auditTitle": "Browser errors were logged to the console",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0.5,
+    "values": [
+      0.5
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "legacy-javascript-insight",
+    "level": "error",
+    "url": "http://localhost:3000/login",
+    "auditTitle": "Legacy JavaScript",
+    "auditDocumentationLink": "https://web.dev/articles/baseline-and-polyfills"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 1,
+    "values": [
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "legacy-javascript",
+    "level": "warn",
+    "url": "http://localhost:3000/login",
+    "auditTitle": "Avoid serving legacy JavaScript to modern browsers",
+    "auditDocumentationLink": "https://web.dev/baseline"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "network-dependency-tree-insight",
+    "level": "error",
+    "url": "http://localhost:3000/login",
+    "auditTitle": "Network dependency tree",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 1,
+    "values": [
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "render-blocking-insight",
+    "level": "warn",
+    "url": "http://localhost:3000/login",
+    "auditTitle": "Render blocking requests",
+    "auditDocumentationLink": "https://web.dev/learn/performance/understanding-the-critical-path#render-blocking_resources"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 1,
+    "values": [
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "render-blocking-resources",
+    "level": "warn",
+    "url": "http://localhost:3000/login",
+    "auditTitle": "Eliminate render-blocking resources",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/render-blocking-resources/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "errors-in-console",
+    "level": "error",
+    "url": "http://localhost:3000/dashboard",
+    "auditTitle": "Browser errors were logged to the console",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/best-practices/errors-in-console/"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0.5,
+    "values": [
+      0.5
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "legacy-javascript-insight",
+    "level": "error",
+    "url": "http://localhost:3000/dashboard",
+    "auditTitle": "Legacy JavaScript",
+    "auditDocumentationLink": "https://web.dev/articles/baseline-and-polyfills"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 1,
+    "values": [
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "legacy-javascript",
+    "level": "warn",
+    "url": "http://localhost:3000/dashboard",
+    "auditTitle": "Avoid serving legacy JavaScript to modern browsers",
+    "auditDocumentationLink": "https://web.dev/baseline"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "link-name",
+    "level": "error",
+    "url": "http://localhost:3000/dashboard",
+    "auditTitle": "Links do not have a discernible name",
+    "auditDocumentationLink": "https://dequeuniversity.com/rules/axe/4.10/link-name"
+  },
+  {
+    "name": "minScore",
+    "expected": 0.9,
+    "actual": 0,
+    "values": [
+      0
+    ],
+    "operator": ">=",
+    "passed": false,
+    "auditId": "network-dependency-tree-insight",
+    "level": "error",
+    "url": "http://localhost:3000/dashboard",
+    "auditTitle": "Network dependency tree",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/critical-request-chains"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 1,
+    "values": [
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "render-blocking-insight",
+    "level": "warn",
+    "url": "http://localhost:3000/dashboard",
+    "auditTitle": "Render blocking requests",
+    "auditDocumentationLink": "https://web.dev/learn/performance/understanding-the-critical-path#render-blocking_resources"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 1,
+    "values": [
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "render-blocking-resources",
+    "level": "warn",
+    "url": "http://localhost:3000/dashboard",
+    "auditTitle": "Eliminate render-blocking resources",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/render-blocking-resources/"
+  },
+  {
+    "name": "maxLength",
+    "expected": 0,
+    "actual": 1,
+    "values": [
+      1
+    ],
+    "operator": "<=",
+    "passed": false,
+    "auditId": "unused-javascript",
+    "level": "error",
+    "url": "http://localhost:3000/dashboard",
+    "auditTitle": "Reduce unused JavaScript",
+    "auditDocumentationLink": "https://developer.chrome.com/docs/lighthouse/performance/unused-javascript/"
+  }
+]

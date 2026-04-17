@@ -118,6 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <Link
                 key={item.href}
                 href={item.href}
+                aria-label={item.label}
                 title={!sidebarOpen ? item.label : undefined}
                 className={`flex items-center justify-center sm:justify-start gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
                   isActive
