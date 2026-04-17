@@ -53,7 +53,7 @@ const topItems = [
   { name: 'Qebapa', count: 12, revenue: 54.0 },
   { name: 'Pljeskavica', count: 9, revenue: 45.0 },
   { name: 'Tave Kosi', count: 7, revenue: 45.5 },
-  { name: 'Byrek', count: 6, revenue: 15.0 },
+  { name: 'Byrek', count: 6, revenue: 7.2 },
   { name: 'Baklava', count: 5, revenue: 10.0 },
 ];
 
