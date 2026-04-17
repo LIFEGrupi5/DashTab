@@ -3,10 +3,9 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import Button from '@/components/Button';
-import Modal from '@/components/Modal';
+import MultiStepForm from '@/components/MultiStepForm';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
-import TextField from '@/components/TextField';
 
 const ROLE_COLORS: Record<string, string> = {
   owner: 'bg-purple-50 text-purple-700',
@@ -67,23 +66,10 @@ export default function StaffPage() {
       </div>
 
       {open && (
-        <Modal
-          title="Add Staff Member"
+        <MultiStepForm
           onClose={() => setOpen(false)}
-          footer={<Button fullWidth>Add Member</Button>}
-        >
-          <TextField label="Full Name" className="py-2" />
-          <TextField label="Email" type="email" className="py-2" />
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 mb-1">Role</label>
-            <select className="w-full px-3 py-2 rounded-lg border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent">
-              <option value="owner">Owner</option>
-              <option value="manager">Manager</option>
-              <option value="waiter">Waiter</option>
-              <option value="kitchen">Kitchen</option>
-            </select>
-          </div>
-        </Modal>
+          onSubmit={data => { console.log('New staff:', data); setOpen(false); }}
+        />
       )}
     </div>
   );
