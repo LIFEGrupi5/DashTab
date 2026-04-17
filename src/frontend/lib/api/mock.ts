@@ -96,7 +96,7 @@ export const MOCK_MENU: MenuItem[] = [
   { id: '7', name: 'Baklava', category: 'Dessert', price: 2, available: true, description: 'Sweet pastry' },
   { id: '8', name: 'Turkish Coffee', category: 'Beverage', price: 1.5, available: true, description: '' },
   { id: '9', name: 'Raki', category: 'Beverage', price: 3, available: true, description: '' },
-  { id: '10', name: 'Ayran', category: 'Beverage', price: 1.5, available: true, description: '' },
+  { id: '10', name: 'Ayran', category: 'Beverage', price: 0.5, available: true, description: '' },
 ];
 
 export const MOCK_USERS: StaffUser[] = [
