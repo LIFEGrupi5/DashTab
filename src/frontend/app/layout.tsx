@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
 import WebVitals from '@/app/_components/WebVitals';
+import { AppProviders } from '@/components/providers/AppProviders';
 
 export const metadata: Metadata = {
   title: 'RestaurantOS',
@@ -9,10 +10,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <WebVitals />
-        {children}
+        <AppProviders>
+          <WebVitals />
+          {children}
+        </AppProviders>
       </body>
     </html>
   );

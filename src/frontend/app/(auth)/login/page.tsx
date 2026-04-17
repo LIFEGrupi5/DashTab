@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { ChefHat, Mail, Lock } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/Button';
 import TextField from '@/components/TextField';
+import { useAppStore } from '@/stores/useAppStore';
+import { authUserFromEmail, mockTokenForUserId } from '@/lib/api/mock';
 
 const demoAccounts = [
   { email: 'admin@restaurant.com', role: 'Owner' },
@@ -16,29 +19,32 @@ const demoAccounts = [
 
 export default function LoginPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const setAuth = useAppStore(s => s.setAuth);
   const [selectedEmail, setSelectedEmail] = useState<string>(demoAccounts[0].email);
 
   const handleSignIn = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const selectedAccount = demoAccounts.find(account => account.email === selectedEmail) ?? demoAccounts[0];
-    window.localStorage.setItem('restaurantos:role', selectedAccount.role.toLowerCase());
-    window.localStorage.setItem('restaurantos:email', selectedAccount.email);
+    const user = authUserFromEmail(selectedEmail);
+    if (!user) return;
+    setAuth(user, mockTokenForUserId(user.id));
+    void queryClient.invalidateQueries({ queryKey: ['auth'] });
     router.push('/dashboard');
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50 dark:bg-background p-4">
       <div className="w-full max-w-xl">
         <div className="flex flex-col items-center mb-10">
           <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center mb-5 shadow-lg">
             <ChefHat className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-neutral-900">RestaurantOS</h1>
-          <p className="text-sm text-neutral-500 mt-2">Operations Management System</p>
+          <h1 className="text-4xl font-extrabold tracking-tight text-neutral-900 dark:text-foreground">RestaurantOS</h1>
+          <p className="text-sm text-neutral-500 dark:text-muted-foreground mt-2">Operations Management System</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-8">
-          <h2 className="text-2xl font-bold text-neutral-900 mb-6">Sign in to your account</h2>
+        <div className="bg-white dark:bg-card rounded-2xl border border-neutral-200 dark:border-border shadow-sm p-8">
+          <h2 className="text-2xl font-bold text-neutral-900 dark:text-card-foreground mb-6">Sign in to your account</h2>
           <form className="space-y-5" onSubmit={handleSignIn}>
             <TextField
               label="Email Address"
@@ -59,7 +65,7 @@ export default function LoginPage() {
               Sign In
             </Button>
 
-            <p className="text-sm text-neutral-600 text-center">
+            <p className="text-sm text-neutral-600 dark:text-muted-foreground text-center">
               Don&apos;t have an account?{' '}
               <Link href="/signup" className="font-semibold text-orange-600 hover:text-orange-700">
                 Sign up
@@ -68,8 +74,10 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <div className="mt-4 bg-white rounded-2xl border border-neutral-200 p-4">
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Demo accounts</p>
+        <div className="mt-4 bg-white dark:bg-card rounded-2xl border border-neutral-200 dark:border-border p-4">
+          <p className="text-xs font-semibold text-neutral-500 dark:text-muted-foreground uppercase tracking-wide mb-3">
+            Demo accounts
+          </p>
           <div className="space-y-2">
             {demoAccounts.map(acc => (
               <button
@@ -77,11 +85,13 @@ export default function LoginPage() {
                 type="button"
                 onClick={() => setSelectedEmail(acc.email)}
                 className={`w-full text-left flex items-center justify-between px-3 py-2 rounded-lg transition ${
-                  selectedEmail === acc.email ? 'bg-orange-50' : 'hover:bg-neutral-50'
+                  selectedEmail === acc.email
+                    ? 'bg-orange-50 dark:bg-orange-950/40'
+                    : 'hover:bg-neutral-50 dark:hover:bg-muted/20'
                 }`}
               >
-                <span className="text-sm text-neutral-700">{acc.email}</span>
-                <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+                <span className="text-sm text-neutral-700 dark:text-foreground">{acc.email}</span>
+                <span className="text-xs font-medium text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/50 px-2 py-0.5 rounded-full">
                   {acc.role}
                 </span>
               </button>
