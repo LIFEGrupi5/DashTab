@@ -40,23 +40,41 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-card rounded-2xl shadow-xl w-full max-w-md border border-neutral-100 dark:border-border">
 
-        <div className="flex items-center justify-between p-5 border-b border-neutral-100">
-          <h2 className="font-semibold text-neutral-900">Add Staff Member</h2>
-          <button onClick={onClose} className="text-neutral-400 hover:text-neutral-600">×</button>
+        <div className="flex items-center justify-between p-5 border-b border-neutral-100 dark:border-border">
+          <h2 className="font-semibold text-neutral-900 dark:text-card-foreground">Add Staff Member</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-neutral-400 dark:text-muted-foreground hover:text-neutral-600 dark:hover:text-foreground"
+          >
+            ×
+          </button>
         </div>
 
         {/* Step indicators */}
         <div className="flex gap-2 px-5 pt-4">
           {STEPS.map((label, i) => (
-            <div key={i} className="flex items-center gap-1 flex-1">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${i <= step ? 'bg-orange-500 text-white' : 'bg-neutral-100 text-neutral-400'}`}>
+            <div key={i} className="flex items-center gap-1 flex-1 min-w-0">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 ${
+                  i <= step
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-neutral-100 dark:bg-muted text-neutral-400 dark:text-muted-foreground'
+                }`}
+              >
                 {i + 1}
               </div>
-              <span className={`text-xs ${i === step ? 'text-orange-600 font-medium' : 'text-neutral-400'}`}>{label}</span>
-              {i < STEPS.length - 1 && <div className={`flex-1 h-px ${i < step ? 'bg-orange-500' : 'bg-neutral-200'}`} />}
+              <span
+                className={`text-xs truncate ${i === step ? 'text-orange-600 dark:text-orange-400 font-medium' : 'text-neutral-400 dark:text-muted-foreground'}`}
+              >
+                {label}
+              </span>
+              {i < STEPS.length - 1 ? (
+                <div className={`flex-1 h-px min-w-[4px] ${i < step ? 'bg-orange-500' : 'bg-neutral-200 dark:bg-muted'}`} />
+              ) : null}
             </div>
           ))}
         </div>
@@ -80,8 +98,11 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
             {step === 1 && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">Role</label>
-                  <select className="w-full px-3 py-3 rounded-lg border border-neutral-200 bg-neutral-50 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" {...register('role')}>
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Role</label>
+                  <select
+                    className="w-full px-3 py-3 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-card text-sm text-neutral-900 dark:text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    {...register('role')}
+                  >
                     <option value="owner">Owner</option>
                     <option value="manager">Manager</option>
                     <option value="waiter">Waiter</option>
@@ -100,8 +121,12 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
               <>
                 <FileUpload value={photo} onChange={setPhoto} />
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1.5">Bio (optional)</label>
-                  <textarea rows={3} className="w-full px-3 py-3 rounded-lg border border-neutral-200 bg-neutral-50 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" {...register('bio')} />
+                  <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Bio (optional)</label>
+                  <textarea
+                    rows={3}
+                    className="w-full px-3 py-3 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-card text-sm text-neutral-900 dark:text-foreground placeholder:text-neutral-400 dark:placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                    {...register('bio')}
+                  />
                 </div>
               </>
             )}

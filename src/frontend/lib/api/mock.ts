@@ -78,10 +78,10 @@ export const MOCK_ORDERS: Order[] = [
     createdAt: '18:43',
     createdByName: 'Ana Waiter',
     status: 'ready',
-    totalAmount: 20.0,
+    totalAmount: 17.4,
     items: [
       { menuItemName: 'Pljeskavica', quantity: 3, amount: 15.0 },
-      { menuItemName: 'Byrek', quantity: 2, amount: 5.0 },
+      { menuItemName: 'Byrek', quantity: 2, amount: 2.4 },
     ],
   },
 ];
@@ -91,7 +91,7 @@ export const MOCK_MENU: MenuItem[] = [
   { id: '2', name: 'Pljeskavica', category: 'Main Course', price: 5, available: true, description: 'Grilled patty' },
   { id: '3', name: 'Tave Kosi', category: 'Main Course', price: 6.5, available: true, description: 'Lamb with yogurt' },
   { id: '4', name: 'Fergese', category: 'Main Course', price: 5.5, available: true, description: 'Peppers with cheese' },
-  { id: '5', name: 'Byrek', category: 'Appetizer', price: 2.5, available: true, description: 'Cheese or meat pie' },
+  { id: '5', name: 'Byrek', category: 'Appetizer', price: 1.2, available: true, description: 'Cheese or meat pie' },
   { id: '6', name: 'Shopska Salad', category: 'Salad', price: 3.5, available: true, description: 'Fresh vegetable salad' },
   { id: '7', name: 'Baklava', category: 'Dessert', price: 2, available: true, description: 'Sweet pastry' },
   { id: '8', name: 'Turkish Coffee', category: 'Beverage', price: 1.5, available: true, description: '' },
