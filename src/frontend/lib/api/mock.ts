@@ -15,6 +15,11 @@ export type Order = {
   status: OrderStatus;
   totalAmount: number;
   items: OrderLineItem[];
+  delayed?: boolean;
+  /** When the customer order was placed (ISO). */
+  placedAtIso?: string;
+  /** When the ticket entered its current kitchen column (ISO). */
+  stageEnteredAtIso?: string;
 };
 
 export type MenuItem = {
@@ -65,6 +70,7 @@ export const MOCK_ORDERS: Order[] = [
     createdAt: '18:53',
     createdByName: 'Ana Waiter',
     status: 'preparing',
+    delayed: true,
     totalAmount: 10.0,
     items: [
       { menuItemName: 'Tave Kosi', quantity: 1, amount: 6.5 },
@@ -110,9 +116,33 @@ const EMAIL_TO_AUTH: Record<string, AuthUser> = Object.fromEntries(
   MOCK_USERS.map(u => [u.email, { id: u.id, email: u.email, name: u.name, role: u.role }])
 );
 
+/** Demo offsets from “now” so wait / stage timers always make sense on first load. */
+export function enrichOrderKitchenTimes(o: Order, nowMs: number): Order {
+  const spec: Record<string, { placedMinAgo: number; stageMinAgo: number }> = {
+    'order-1': { placedMinAgo: 10, stageMinAgo: 10 },
+    'order-2': { placedMinAgo: 32, stageMinAgo: 11 },
+    'order-3': { placedMinAgo: 48, stageMinAgo: 6 },
+    'order-4': { placedMinAgo: 180, stageMinAgo: 45 },
+  };
+  const s = spec[o.id] ?? { placedMinAgo: 5, stageMinAgo: 5 };
+  return {
+    ...o,
+    placedAtIso: new Date(nowMs - s.placedMinAgo * 60_000).toISOString(),
+    stageEnteredAtIso: new Date(nowMs - s.stageMinAgo * 60_000).toISOString(),
+  };
+}
+
+/** Ensures kitchen timers always have ISO fields (e.g. stale query cache or partial merges). */
+export function ensureOrderKitchenTimes(o: Order, nowMs: number = Date.now()): Order {
+  if (o.placedAtIso && o.stageEnteredAtIso) return o;
+  if (!o.placedAtIso) return enrichOrderKitchenTimes(o, nowMs);
+  return { ...o, stageEnteredAtIso: o.stageEnteredAtIso ?? o.placedAtIso };
+}
+
 export async function fetchMockOrders(): Promise<Order[]> {
   await delay();
-  return [...MOCK_ORDERS];
+  const now = Date.now();
+  return MOCK_ORDERS.map(o => enrichOrderKitchenTimes(o, now));
 }
 
 export async function fetchMockMenu(): Promise<MenuItem[]> {

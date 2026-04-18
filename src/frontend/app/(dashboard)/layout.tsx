@@ -24,6 +24,8 @@ const waiterNavItems = [
   { href: '/orders', label: 'Orders', icon: ShoppingBag },
 ] as const;
 
+const kitchenNavItems = [{ href: '/kitchen', label: 'Kitchen', icon: Monitor }] as const;
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -32,6 +34,10 @@ function initials(name: string) {
     .join('')
     .slice(0, 2)
     .toUpperCase();
+}
+
+function roleShowsSidebarProfile(role: string | undefined) {
+  return role === 'waiter' || role === 'kitchen' || role === 'owner' || role === 'manager';
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -45,9 +51,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const setDarkMode = useAppStore(s => s.setDarkMode);
 
   const isWaiter = user?.role === 'waiter';
+  const isKitchenStaff = user?.role === 'kitchen';
+  const hideShellSidebar = isKitchenStaff;
+  const showSidebarProfile = Boolean(user && sidebarOpen && roleShowsSidebarProfile(user.role));
 
   const navItems = useMemo(() => {
     if (isWaiter) return waiterNavItems;
+    if (isKitchenStaff) return kitchenNavItems;
     return [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { href: '/orders', label: 'Orders', icon: ShoppingBag },
@@ -56,7 +66,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href: '/overview', label: 'Overview', icon: BarChart3 },
       { href: '/staff', label: 'Staff', icon: Users },
     ] as const;
-  }, [isWaiter]);
+  }, [isWaiter, isKitchenStaff]);
 
   if (!hydrated) {
     return (
@@ -68,6 +78,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex h-screen min-h-0 w-full max-w-[100vw] overflow-x-hidden bg-neutral-50 dark:bg-background">
+      {!hideShellSidebar ? (
       <aside
         className={`shrink-0 bg-white dark:bg-card border-r border-neutral-200 dark:border-border flex flex-col transition-[width] duration-200 ease-out w-14 ${
           sidebarOpen ? 'sm:w-52 lg:w-60' : 'sm:w-20'
@@ -76,7 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="border-b border-neutral-100 dark:border-border">
           <div className="flex flex-col items-center gap-2 px-1 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-3 sm:py-4 sm:min-h-[56px]">
             <div
-              className={`w-9 h-9 bg-orange-500 ${isWaiter ? 'rounded-lg' : 'rounded-xl'} flex items-center justify-center shrink-0`}
+              className={`w-9 h-9 bg-orange-500 ${isWaiter || isKitchenStaff ? 'rounded-lg' : 'rounded-xl'} flex items-center justify-center shrink-0`}
             >
               <ChefHat className="w-5 h-5 text-white" />
             </div>
@@ -84,7 +95,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div className="hidden sm:block min-w-0 leading-tight text-center sm:text-left">
                 <p className="font-bold text-neutral-900 dark:text-foreground truncate">RestaurantOS</p>
                 <p className="text-[11px] text-neutral-500 dark:text-muted-foreground">
-                  {isWaiter ? 'Operations System' : 'Operations'}
+                  {isWaiter ? 'Operations System' : isKitchenStaff ? 'Kitchen Display' : 'Operations'}
                 </p>
               </div>
             ) : null}
@@ -109,11 +120,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
 
-        <nav className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 py-2 sm:p-3 ${isWaiter ? 'space-y-2' : 'space-y-1'}`}>
+        <nav className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-1 py-2 sm:p-3 ${isWaiter || isKitchenStaff ? 'space-y-2' : 'space-y-1'}`}>
           {navItems.map(item => {
             const Icon = item.icon;
             const isActive =
-              pathname === item.href || (item.href === '/orders' && pathname.startsWith('/orders'));
+              pathname === item.href ||
+              (item.href === '/orders' && pathname.startsWith('/orders')) ||
+              (item.href === '/kitchen' && pathname.startsWith('/kitchen'));
             return (
               <Link
                 key={item.href}
@@ -133,10 +146,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        <div className={`px-1 py-2 sm:p-3 border-t border-neutral-100 dark:border-border ${isWaiter ? 'space-y-3' : ''}`}>
-          {isWaiter && user && sidebarOpen ? (
+        <div className={`px-1 py-2 sm:p-3 border-t border-neutral-100 dark:border-border ${showSidebarProfile ? 'space-y-3' : ''}`}>
+          {showSidebarProfile && user ? (
             <div className="hidden sm:flex items-center gap-2 px-1">
-              <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-950/50 text-orange-700 dark:text-orange-200 flex items-center justify-center text-xs font-semibold">
+              <div
+                className="w-9 h-9 shrink-0 rounded-full bg-orange-50 dark:bg-orange-950/45 text-orange-900 dark:text-orange-200 flex items-center justify-center text-xs font-semibold tracking-tight border border-orange-100/90 dark:border-orange-900/40"
+                aria-hidden
+              >
                 {initials(user.name)}
               </div>
               <div className="min-w-0">
@@ -153,10 +169,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="flex items-center justify-center sm:justify-start gap-0 sm:gap-3 w-full px-0 sm:px-3 py-2.5 rounded-lg text-sm font-medium text-neutral-600 dark:text-muted-foreground hover:bg-neutral-50 dark:hover:bg-muted/25 hover:text-neutral-900 dark:hover:text-foreground transition"
           >
             <LogOut className="w-4 h-4 shrink-0" />
-            {sidebarOpen ? <span className="hidden sm:inline">{isWaiter ? 'Log Out' : 'Sign Out'}</span> : null}
+            {sidebarOpen ? (
+              <span className="hidden sm:inline">{roleShowsSidebarProfile(user?.role) ? 'Log Out' : 'Sign Out'}</span>
+            ) : null}
           </Link>
         </div>
       </aside>
+      ) : null}
 
       <main className="flex-1 min-w-0 overflow-y-auto">{children}</main>
     </div>

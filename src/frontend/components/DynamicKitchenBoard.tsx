@@ -1,19 +1,21 @@
-'use client'
+'use client';
 
-import dynamic from 'next/dynamic'
+import dynamic from 'next/dynamic';
 
 const KitchenBoard = dynamic(() => import('@/components/KitchenBoard'), {
   ssr: false,
   loading: () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {[1, 2, 3].map(i => (
-        <div
-          key={i}
-          className="bg-neutral-50 dark:bg-card rounded-xl border border-neutral-200 dark:border-border h-64 animate-pulse"
-        />
-      ))}
+    <div className="flex flex-col h-full min-h-0 bg-neutral-100 dark:bg-background animate-pulse">
+      <div className="h-20 border-b border-neutral-200 dark:border-border bg-white dark:bg-card" />
+      <div className="flex-1 p-4 w-full max-w-6xl">
+        <div className="flex flex-wrap gap-3">
+          <div className="w-80 max-w-full shrink-0 min-h-[150px] h-40 rounded-xl bg-neutral-200/70 dark:bg-muted/40" />
+          <div className="w-80 max-w-full shrink-0 min-h-[150px] h-40 rounded-xl bg-neutral-200/70 dark:bg-muted/40" />
+          <div className="w-80 max-w-full shrink-0 min-h-[150px] h-40 rounded-xl bg-neutral-200/70 dark:bg-muted/40" />
+        </div>
+      </div>
     </div>
   ),
-})
+});
 
-export default KitchenBoard
+export default KitchenBoard;
