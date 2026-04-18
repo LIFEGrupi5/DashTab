@@ -1,10 +1,10 @@
 # AI Development Log
 
 ## Summary Statistics
-- Total entries: 34
-- Estimated total time saved: ~30h
+- Total entries: **40** (Milestone 1 table: 4 rows; Milestone 2 / session chronicle: **#1–#36**; post–M2.7 Cursor session: **#37–#40**)
+- Estimated total time saved: ~32h
 - Most used tool: Claude / Cursor Agent
-- Updated through: Milestone 2 (M2.8, M2.9, M2.4, CI pipelines) + Apr 2026 integration & UX + **Apr 16–17 git-dated sessions** (waiter UI, docs, CI, state merge)
+- Updated through: Milestone 2 + M2.7 a11y/Lighthouse + **Apr 16–17** git-dated sessions + **Apr 18, 2026** kitchen board & dashboard shell (Cursor)
 
 ---
 
@@ -105,5 +105,14 @@ Heavy integration day (merges, CI fixes, M2.5 state branch, dark-mode/responsive
 | 34 | Claude | Frontend | M2.7 — fixed `link-name`: added `aria-label={item.label}` to every nav link in `layout.tsx` so screen readers can read icon-only links on mobile | Good | ~5min | Always pair icon-only interactive elements with `aria-label` — it is invisible on screen but read aloud by screen readers |
 | 35 | Claude | Frontend | M2.7 — wrote `accessibility.test.tsx` using `jest-axe` to automatically catch violations on `Button` and `Modal` in every test run | Good | ~15min | `expect.extend(toHaveNoViolations)` must be called at the top of the file, not inside a `beforeAll` |
 | 36 | Claude | Frontend | M2.7 — fixed CI failure: `jest-axe` was installed locally but not saved to `package.json`; CI runs `npm install` from `package.json` so it could never find the package | Good | ~10min | Always use `npm install -D` — the `-D` flag writes the package to `devDependencies` in `package.json`; without it only your machine has it |
+
+### Session — Apr 18, 2026 (kitchen board + dashboard shell; Cursor)
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 37 | Cursor Agent | Frontend | **Kitchen board:** `KitchenBoard` cards + timing (`placedAtIso` / `stageEnteredAtIso`), `enrichOrderKitchenTimes` + `ensureOrderKitchenTimes` in `mock.ts`, `useOrders` `select` for stale shapes, `useSetOrderStatus`, `DynamicKitchenBoard` skeleton, relative “ago” + `HH:mm` | Good | ~1h | Keep `Order` fields aligned with API; drop demo enrich when backend returns real timestamps |
+| 38 | Cursor Agent | Frontend | **Layout / roles:** `kitchenNavItems` + sidebar profile for kitchen; login redirect `kitchen` → `/kitchen`; active state for `/kitchen` | Good | ~25min | KDS users land on board; shell nav stays minimal for that role |
+| 39 | Cursor Agent | Frontend | **Sidebar profile:** owner & manager get same avatar + name + role block as waiter/kitchen; “Log Out” label aligned; avatar styling tuned | Good | ~15min | One `roleShowsSidebarProfile` helper avoids drift between footer spacing and label |
+| 40 | Cursor Agent | Docs | **`ai-logs.md`:** summary counts reconciled with numbered tables (#1–#36 + this block); time-saved estimate nudged | Good | ~5min | When tables add rows, bump “Total entries” in the same commit so graders stay aligned |
 
 ---

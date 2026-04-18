@@ -29,7 +29,7 @@ export default function LoginPage() {
     if (!user) return;
     setAuth(user, mockTokenForUserId(user.id));
     void queryClient.invalidateQueries({ queryKey: ['auth'] });
-    router.push('/dashboard');
+    router.push(user.role === 'kitchen' ? '/kitchen' : '/dashboard');
   };
 
   return (
