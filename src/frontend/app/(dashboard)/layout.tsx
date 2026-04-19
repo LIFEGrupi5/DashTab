@@ -85,7 +85,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }`}
       >
         <div className="border-b border-neutral-100 dark:border-border">
-          <div className="flex flex-col items-center gap-2 px-1 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-3 sm:py-4 sm:min-h-[56px]">
+          <div className={`flex flex-col items-center gap-2 px-1 py-3 sm:flex-row sm:items-center sm:gap-3 sm:py-4 sm:min-h-[56px] ${sidebarOpen ? 'sm:px-3' : 'sm:justify-center sm:px-2'}`}>
             <div
               className={`w-9 h-9 bg-orange-500 ${isWaiter || isKitchenStaff ? 'rounded-lg' : 'rounded-xl'} flex items-center justify-center shrink-0`}
             >
@@ -100,7 +100,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             ) : null}
           </div>
-          <div className="flex flex-col items-center gap-1 px-1 pb-2 sm:flex-row sm:justify-end sm:gap-1 sm:px-2">
+          <div className={`flex flex-col items-center gap-1 px-1 pb-2 sm:flex-row sm:gap-1 sm:px-2 ${sidebarOpen ? 'sm:justify-end' : 'sm:justify-center'}`}>
             <button
               type="button"
               onClick={() => toggleSidebar()}
@@ -139,7 +139,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     : 'text-neutral-600 dark:text-muted-foreground hover:bg-neutral-50 dark:hover:bg-muted/25 hover:text-neutral-900 dark:hover:text-foreground'
                 }`}
               >
-                <Icon className="w-4 h-4 shrink-0" />
+                <Icon className="w-5 h-5 shrink-0" />
                 {sidebarOpen ? <span className="hidden sm:inline truncate">{item.label}</span> : null}
               </Link>
             );

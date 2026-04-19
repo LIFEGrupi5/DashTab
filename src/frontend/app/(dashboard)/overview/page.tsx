@@ -59,7 +59,7 @@ const topItems = [
 
 export default function OverviewPage() {
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 w-[95%] mx-auto">
       <PageHeader
         title="Overview"
         subtitle={new Date().toLocaleDateString('en-US', {

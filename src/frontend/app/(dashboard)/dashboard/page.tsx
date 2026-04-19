@@ -105,7 +105,7 @@ export default function DashboardPage() {
     const titleName = user?.name?.split(' ')[0] ?? 'Admin';
     const roleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Owner';
     return (
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="p-6 w-[95%] mx-auto">
         <PageHeader
           title={`Welcome back, ${titleName}`}
           subtitle={`${roleLabel} · RestaurantOS`}
@@ -122,7 +122,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 w-[95%] mx-auto">
       <PageHeader
         title="Dashboard"
         subtitle="Manage orders and serve customers"

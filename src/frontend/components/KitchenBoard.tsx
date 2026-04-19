@@ -9,7 +9,7 @@ import { useAppStore } from '@/stores/useAppStore';
 import type { Order, OrderStatus } from '@/lib/api/mock';
 
 /** Fixed width for flex row + wrap (20rem); no grow so row fills then wraps. */
-const KITCHEN_CARD_WRAP = 'w-80 max-w-full shrink-0 min-h-[150px]';
+const KITCHEN_CARD_WRAP = 'w-full min-h-[150px]';
 
 const KITCHEN_STATUSES: OrderStatus[] = ['new', 'preparing', 'ready'];
 
@@ -114,7 +114,7 @@ export default function KitchenBoard() {
   return (
     <div className="flex flex-col h-full min-h-0 bg-neutral-100 dark:bg-background text-neutral-900 dark:text-foreground">
       <header className="shrink-0 border-b border-neutral-200 dark:border-border bg-white dark:bg-card px-4 py-3 sm:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full max-w-6xl">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full w-[95%] mx-auto">
           <div className="flex items-start gap-3 min-w-0">
             <div className="w-11 h-11 rounded-xl bg-orange-500 flex items-center justify-center shrink-0 shadow-sm">
               <ChefHat className="w-6 h-6 text-white" />
@@ -165,38 +165,38 @@ export default function KitchenBoard() {
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-6">
-        <div className="w-full max-w-6xl space-y-6">
+        <div className="w-[95%] mx-auto">
           {!isKitchenStaff ? (
-            <p className="text-left text-xs text-neutral-500 dark:text-muted-foreground max-w-[20rem]">
+            <p className="text-left text-xs text-neutral-500 dark:text-muted-foreground mb-4">
               Read-only view. Stage changes are available when signed in as kitchen staff.
             </p>
           ) : null}
 
           {isLoading ? (
-            <div className="flex flex-wrap gap-3 animate-pulse">
-              <div className={`${KITCHEN_CARD_WRAP} h-40 rounded-xl bg-neutral-200/80 dark:bg-muted/40`} />
-              <div className={`${KITCHEN_CARD_WRAP} h-40 rounded-xl bg-neutral-200/80 dark:bg-muted/40`} />
-              <div className={`${KITCHEN_CARD_WRAP} h-40 rounded-xl bg-neutral-200/80 dark:bg-muted/40`} />
+            <div className="grid grid-cols-3 gap-4 animate-pulse">
+              <div className="h-40 rounded-xl bg-neutral-200/80 dark:bg-muted/40" />
+              <div className="h-40 rounded-xl bg-neutral-200/80 dark:bg-muted/40" />
+              <div className="h-40 rounded-xl bg-neutral-200/80 dark:bg-muted/40" />
             </div>
           ) : (
-            SECTION_META.map(section => {
-              const list = byStatus(section.status);
-              const Icon = section.Icon;
-              return (
-                <section key={section.status}>
-                  <div className="flex items-center gap-2 mb-3 w-full">
-                    <Icon className="w-5 h-5 shrink-0 text-neutral-600 dark:text-muted-foreground" />
-                    <h2 className="text-sm font-bold text-neutral-800 dark:text-foreground">
-                      {section.title}{' '}
-                      <span className="font-semibold text-neutral-500 dark:text-muted-foreground">
-                        ({list.length})
-                      </span>
-                    </h2>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+              {SECTION_META.map(section => {
+                const list = byStatus(section.status);
+                const Icon = section.Icon;
+                return (
+                  <div key={section.status} className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-5 h-5 shrink-0 text-neutral-600 dark:text-muted-foreground" />
+                      <h2 className="text-sm font-bold text-neutral-800 dark:text-foreground">
+                        {section.title}{' '}
+                        <span className="font-semibold text-neutral-500 dark:text-muted-foreground">
+                          ({list.length})
+                        </span>
+                      </h2>
+                    </div>
 
-                  <div className="flex flex-wrap gap-3 items-stretch content-start w-full">
                     {list.length === 0 ? (
-                      <p className="w-full min-h-[120px] text-sm text-neutral-500 dark:text-muted-foreground py-8 text-left rounded-xl border border-dashed border-neutral-200 dark:border-border bg-white/60 dark:bg-card/40 px-4 flex items-center">
+                      <p className="min-h-[120px] text-sm text-neutral-500 dark:text-muted-foreground py-8 text-left rounded-xl border border-dashed border-neutral-200 dark:border-border bg-white/60 dark:bg-card/40 px-4 flex items-center">
                         No orders in this stage
                       </p>
                     ) : (
@@ -211,9 +211,9 @@ export default function KitchenBoard() {
                       ))
                     )}
                   </div>
-                </section>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
       </div>
@@ -274,7 +274,8 @@ function KitchenOrderCard({
   return (
     <div className={KITCHEN_CARD_WRAP}>
       <div
-        className={`h-full rounded-xl bg-white dark:bg-card p-3 sm:p-4 border-2 ${section.cardBorder} shadow-[0_1px_3px_rgba(15,23,42,0.06)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.25)] flex flex-col`}
+        onClick={interactive ? onAdvance : undefined}
+        className={`h-full rounded-xl bg-white dark:bg-card p-3 sm:p-4 border-2 ${section.cardBorder} shadow-[0_1px_3px_rgba(15,23,42,0.06)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.25)] flex flex-col ${interactive ? 'cursor-pointer hover:brightness-[0.97] active:scale-[0.99] transition-transform' : ''}`}
       >
         <div className="flex items-start justify-between gap-3">
           <div
@@ -316,15 +317,6 @@ function KitchenOrderCard({
           ))}
         </ul>
 
-        {interactive ? (
-          <button
-            type="button"
-            onClick={onAdvance}
-            className={`mt-3 w-full rounded-lg py-2.5 text-xs font-bold shadow-sm transition ${section.actionClass}`}
-          >
-            {section.actionLabel}
-          </button>
-        ) : null}
       </div>
     </div>
   );

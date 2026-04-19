@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { ChefHat, Mail, Lock } from 'lucide-react';
-import Link from 'next/link';
 import Button from '@/components/Button';
 import TextField from '@/components/TextField';
 import { useAppStore } from '@/stores/useAppStore';
@@ -65,12 +64,6 @@ export default function LoginPage() {
               Sign In
             </Button>
 
-            <p className="text-sm text-neutral-600 dark:text-muted-foreground text-center">
-              Don&apos;t have an account?{' '}
-              <Link href="/signup" className="font-semibold text-orange-600 hover:text-orange-700">
-                Sign up
-              </Link>
-            </p>
           </form>
         </div>
 

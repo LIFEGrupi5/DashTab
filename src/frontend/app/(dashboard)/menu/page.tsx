@@ -24,7 +24,7 @@ export default function MenuPage() {
   );
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <div className="p-6 w-[95%] mx-auto">
       <PageHeader
         title="Menu"
         subtitle={isLoading ? 'Loading menu…' : `${menuItems.length} items`}
