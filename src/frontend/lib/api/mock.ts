@@ -38,6 +38,84 @@ const delay = (ms: number = MOCK_DELAY_MS) => new Promise<void>(r => setTimeout(
 
 export const MOCK_ORDERS: Order[] = [
   {
+    id: 'order-5',
+    orderNumber: '005',
+    tableNumber: 'T-2',
+    createdAt: '11:10',
+    createdByName: 'Ana Waiter',
+    status: 'completed',
+    totalAmount: 10.5,
+    items: [
+      { menuItemName: 'Qebapa', quantity: 2, amount: 9.0 },
+      { menuItemName: 'Turkish Coffee', quantity: 1, amount: 1.5 },
+    ],
+  },
+  {
+    id: 'order-6',
+    orderNumber: '006',
+    tableNumber: 'T-4',
+    createdAt: '12:05',
+    createdByName: 'Ana Waiter',
+    status: 'completed',
+    totalAmount: 7.0,
+    items: [
+      { menuItemName: 'Tave Kosi', quantity: 1, amount: 6.5 },
+      { menuItemName: 'Ayran', quantity: 1, amount: 0.5 },
+    ],
+  },
+  {
+    id: 'order-7',
+    orderNumber: '007',
+    tableNumber: 'T-6',
+    createdAt: '13:20',
+    createdByName: 'Ana Waiter',
+    status: 'completed',
+    totalAmount: 8.5,
+    items: [
+      { menuItemName: 'Pljeskavica', quantity: 1, amount: 5.0 },
+      { menuItemName: 'Shopska Salad', quantity: 1, amount: 3.5 },
+    ],
+  },
+  {
+    id: 'order-8',
+    orderNumber: '008',
+    tableNumber: 'T-9',
+    createdAt: '14:45',
+    createdByName: 'Ana Waiter',
+    status: 'completed',
+    totalAmount: 19.5,
+    items: [
+      { menuItemName: 'Qebapa', quantity: 3, amount: 13.5 },
+      { menuItemName: 'Raki', quantity: 2, amount: 6.0 },
+    ],
+  },
+  {
+    id: 'order-9',
+    orderNumber: '009',
+    tableNumber: 'T-1',
+    createdAt: '16:30',
+    createdByName: 'Ana Waiter',
+    status: 'completed',
+    totalAmount: 6.4,
+    items: [
+      { menuItemName: 'Byrek', quantity: 2, amount: 2.4 },
+      { menuItemName: 'Baklava', quantity: 2, amount: 4.0 },
+    ],
+  },
+  {
+    id: 'order-10',
+    orderNumber: '010',
+    tableNumber: 'T-8',
+    createdAt: '17:55',
+    createdByName: 'Ana Waiter',
+    status: 'completed',
+    totalAmount: 14.0,
+    items: [
+      { menuItemName: 'Fergese', quantity: 2, amount: 11.0 },
+      { menuItemName: 'Turkish Coffee', quantity: 2, amount: 3.0 },
+    ],
+  },
+  {
     id: 'order-4',
     orderNumber: '004',
     tableNumber: '1',
@@ -123,6 +201,12 @@ export function enrichOrderKitchenTimes(o: Order, nowMs: number): Order {
     'order-2': { placedMinAgo: 32, stageMinAgo: 11 },
     'order-3': { placedMinAgo: 48, stageMinAgo: 6 },
     'order-4': { placedMinAgo: 180, stageMinAgo: 45 },
+    'order-5': { placedMinAgo: 540, stageMinAgo: 540 },
+    'order-6': { placedMinAgo: 480, stageMinAgo: 480 },
+    'order-7': { placedMinAgo: 420, stageMinAgo: 420 },
+    'order-8': { placedMinAgo: 330, stageMinAgo: 330 },
+    'order-9': { placedMinAgo: 240, stageMinAgo: 240 },
+    'order-10': { placedMinAgo: 150, stageMinAgo: 150 },
   };
   const s = spec[o.id] ?? { placedMinAgo: 5, stageMinAgo: 5 };
   return {
