@@ -65,7 +65,7 @@ export default function OrdersPage() {
 
   if (!isWaiter) {
     return (
-      <div className="p-6 max-w-6xl mx-auto">
+      <div className="p-6 w-[95%] mx-auto">
         <PageHeader
           title="Orders"
           subtitle={isLoading ? 'Loading orders…' : `${orders.length} total orders`}

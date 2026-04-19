@@ -1,10 +1,10 @@
 # AI Development Log
 
 ## Summary Statistics
-- Total entries: **40** (Milestone 1 table: 4 rows; Milestone 2 / session chronicle: **#1–#36**; post–M2.7 Cursor session: **#37–#40**)
-- Estimated total time saved: ~32h
+- Total entries: **49** (Milestone 1 table: 4 rows; Milestone 2 / session chronicle: **#1–#36**; post–M2.7 Cursor session: **#37–#40**; Apr 19 polish session: **#41–#49**)
+- Estimated total time saved: ~34h
 - Most used tool: Claude / Cursor Agent
-- Updated through: Milestone 2 + M2.7 a11y/Lighthouse + **Apr 16–17** git-dated sessions + **Apr 18, 2026** kitchen board & dashboard shell (Cursor)
+- Updated through: Milestone 2 + M2.7 a11y/Lighthouse + **Apr 16–17** git-dated sessions + **Apr 18, 2026** kitchen board & dashboard shell (Cursor) + **Apr 19, 2026** UI polish & kitchen board UX (Claude Code)
 
 ---
 
@@ -114,5 +114,19 @@ Heavy integration day (merges, CI fixes, M2.5 state branch, dark-mode/responsive
 | 38 | Cursor Agent | Frontend | **Layout / roles:** `kitchenNavItems` + sidebar profile for kitchen; login redirect `kitchen` → `/kitchen`; active state for `/kitchen` | Good | ~25min | KDS users land on board; shell nav stays minimal for that role |
 | 39 | Cursor Agent | Frontend | **Sidebar profile:** owner & manager get same avatar + name + role block as waiter/kitchen; “Log Out” label aligned; avatar styling tuned | Good | ~15min | One `roleShowsSidebarProfile` helper avoids drift between footer spacing and label |
 | 40 | Cursor Agent | Docs | **`ai-logs.md`:** summary counts reconciled with numbered tables (#1–#36 + this block); time-saved estimate nudged | Good | ~5min | When tables add rows, bump “Total entries” in the same commit so graders stay aligned |
+
+### Session — Apr 19, 2026 (UI polish & kitchen board UX; Claude Code)
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 41 | Claude Code | Frontend | Removed signup page: stripped “Sign up” link and unused `Next/link` import from `login/page.tsx`, deleted `app/(auth)/signup/` directory | Good | ~5min | Remove unused imports immediately after removing the JSX that references them to keep the build clean |
+| 42 | Claude Code | Frontend | Kitchen board navbar responsiveness: added `mx-auto` to header inner container and content area (`max-w-6xl` was left-anchored, looked off-center) | Good | ~10min | A `max-w-*` container without `mx-auto` is silently left-aligned — always pair them |
+| 43 | Claude Code | Frontend | Click-outside-to-close on all modals: added `onClick={onClose}` on the backdrop div and `onClick={e => e.stopPropagation()}` on the inner panel for both `Modal.tsx` and `MultiStepForm.tsx` | Good | ~10min | `stopPropagation` on the inner panel is required — without it any click inside the modal bubbles up and closes it |
+| 44 | Claude Code | Frontend | Page layout: replaced `max-w-*xl mx-auto` fixed-pixel constraints on dashboard, orders, menu, staff, overview, and kitchen board with `w-[95%] mx-auto` so content scales proportionally with screen width | Good | ~15min | Percentage width feels more “app-like” on large monitors; fixed `max-w` leaves obvious empty side bands above ~1400px |
+| 45 | Claude Code | Frontend | Kitchen board layout: changed from vertically stacked status sections to a 3-column Kanban grid (`grid-cols-3`) with cards flowing downward within each column; updated `KITCHEN_CARD_WRAP` to `w-full` | Good | ~15min | Kanban columns are far more scannable than horizontal card rows that wrap unpredictably |
+| 46 | Claude Code | Frontend | Sidebar collapsed-state symmetry: logo row and button row were misaligned when collapsed (logo had `px-3` left-bias, buttons were `justify-end`); conditionally applied `justify-center` on both rows when `!sidebarOpen` | Good | ~10min | Collapsed icon rails should center everything — expanded state can use `justify-between`; drive both from the same `sidebarOpen` flag |
+| 47 | Claude Code | Frontend | Sidebar nav icons: increased from `w-4 h-4` to `w-5 h-5` for better visibility and touch target size | Good | ~2min | Icon size in a sidebar should match the surrounding padding rhythm — `w-5` fits `px-3 py-2.5` better than `w-4` |
+| 48 | Claude Code | Frontend | Kitchen board card click-to-advance: made the entire order card div clickable (`onClick={onAdvance}`, `cursor-pointer`, subtle `hover:brightness` + `active:scale`) instead of only a button at the bottom; removed the separate action button | Good | ~10min | Touch-friendly KDS boards work best when the whole card is the tap target — small buttons are hard to hit under pressure |
+| 49 | Claude Code | Frontend | Kitchen board interactivity debugging: confirmed click-to-advance only works when logged in as kitchen staff (`petrit@restaurant.com`) — `interactive={isKitchenStaff}` gates the `onClick`; tested by temporarily opening to all roles then reverting | Good | ~5min | When a feature appears broken, check role guards before assuming a UI bug — the logic was correct, just the test account was wrong |
 
 ---

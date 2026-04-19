@@ -20,7 +20,7 @@ export default function StaffPage() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-6 w-[95%] mx-auto">
       <PageHeader
         title="Staff"
         subtitle={isLoading ? 'Loading team…' : `${users.length} members`}

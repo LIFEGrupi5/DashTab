@@ -40,8 +40,8 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-card rounded-2xl shadow-xl w-full max-w-md border border-neutral-100 dark:border-border">
+    <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-card rounded-2xl shadow-xl w-full max-w-md border border-neutral-100 dark:border-border" onClick={e => e.stopPropagation()}>
 
         <div className="flex items-center justify-between p-5 border-b border-neutral-100 dark:border-border">
           <h2 className="font-semibold text-neutral-900 dark:text-card-foreground">Add Staff Member</h2>
