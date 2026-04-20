@@ -7,6 +7,7 @@ import { queryKeys } from '@/lib/queryKeys';
 export function useOrders() {
   return useQuery({
     queryKey: queryKeys.orders.all,
+    // TODO(api): replace fetchMockOrders with → GET /api/orders
     queryFn: fetchMockOrders,
     staleTime: 1000 * 60 * 60 * 24,
     select: data => {

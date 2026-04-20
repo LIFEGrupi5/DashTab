@@ -9,6 +9,7 @@ export function useAuth() {
   const token = useAppStore(s => s.token);
   return useQuery({
     queryKey: queryKeys.auth.me(token),
+    // TODO(api): replace fetchMockMe with → GET /api/auth/me
     queryFn: () => fetchMockMe(token),
     enabled: !!token,
   });
