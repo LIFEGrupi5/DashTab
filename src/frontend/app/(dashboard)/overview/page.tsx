@@ -179,7 +179,7 @@ export default function OverviewPage() {
                   axisLine={false}
                 />
                 <Tooltip
-                  formatter={(v: number) => [`€${v.toFixed(2)}`, 'Revenue']}
+                  formatter={v => [`€${Number(v).toFixed(2)}`, 'Revenue']}
                   labelFormatter={h => `${h}:00`}
                   contentStyle={{
                     fontSize: 12,
@@ -286,7 +286,7 @@ export default function OverviewPage() {
               axisLine={false}
             />
             <Tooltip
-              formatter={(v: number) => [`€${v.toFixed(2)}`, 'Predicted Revenue']}
+              formatter={v => [`€${Number(v).toFixed(2)}`, 'Predicted Revenue']}
               contentStyle={{
                 fontSize: 12,
                 borderRadius: 8,

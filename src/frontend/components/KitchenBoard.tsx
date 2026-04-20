@@ -268,7 +268,7 @@ function KitchenOrderCard({
 
   const showOverdueBell = useMemo(
     () => orderWaitExceedsKitchenSla(order, Date.now()),
-    [order.placedAtIso, order.id, slaTick]
+    [order, slaTick]
   );
 
   return (
