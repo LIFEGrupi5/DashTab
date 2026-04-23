@@ -4,26 +4,39 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
+    /* Warm cream palette */
+    --background: 38 30% 92%;
+    --foreground: 26 10% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    --card-foreground: 26 10% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
+    --popover-foreground: 26 10% 10%;
     --primary: 24 95% 53%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220.9 39.3% 11%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 220 14.3% 95.9%;
-    --accent-foreground: 220.9 39.3% 11%;
+    --secondary: 38 20% 87%;
+    --secondary-foreground: 26 10% 18%;
+    --muted: 38 18% 88%;
+    --muted-foreground: 30 10% 46%;
+    --accent: 38 20% 87%;
+    --accent-foreground: 26 10% 18%;
     --destructive: 0 72.2% 50.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 38 16% 82%;
+    --input: 38 16% 82%;
     --ring: 24 95% 53%;
     --radius: 0.5rem;
+
+    /* Module brand colors */
+    --c-pos:    #e8a23a;
+    --c-pos-d:  #b77a20;
+    --c-menu:   #2f78c4;
+    --c-menu-d: #1f4f85;
+    --c-staff:  #c14b7b;
+    --c-staff-d:#8a2f55;
+    --c-mgmt:   #269271;
+    --c-mgmt-d: #1a6a52;
+    --c-anlx:   #c74a2d;
+    --c-anlx-d: #8a2f1c;
   }
 
   .dark {
@@ -55,5 +68,316 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans, 'Space Grotesk'), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-mono, code, kbd, pre {
+    font-family: var(--font-mono, 'JetBrains Mono'), ui-monospace, monospace;
+  }
+}
+
+/* ---- Isometric launcher ---- */
+@layer components {
+  .iso-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 560px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: visible;
+  }
+
+  .iso-hint {
+    font-family: var(--font-mono, 'JetBrains Mono'), ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    color: hsl(var(--muted-foreground));
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .iso-stage-wrap {
+    flex: 1;
+    display: grid;
+    place-items: center;
+    width: 100%;
+  }
+
+  .iso-stage {
+    position: relative;
+    width: min(500px, 52vmin);
+    height: min(500px, 52vmin);
+    transform-style: preserve-3d;
+    perspective: 1400px;
+  }
+
+  .iso-inner {
+    position: absolute;
+    inset: 0;
+    transform: rotateX(55deg) rotateZ(45deg);
+    transform-style: preserve-3d;
+    transition: transform 0.45s cubic-bezier(0.2, 0.9, 0.2, 1);
+  }
+
+  .iso-floor {
+    position: absolute;
+    left: 50%; top: 50%;
+    width: 90%; height: 90%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(closest-side, rgba(26,22,18,0.12), transparent 70%);
+    filter: blur(6px);
+    pointer-events: none;
+  }
+
+  .iso-tile {
+    position: absolute;
+    width: 24%; height: 24%;
+    transform-style: preserve-3d;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.2, 1);
+  }
+  .iso-tile.hovered  { transform: translateZ(28px) scale(1.02); }
+  .iso-tile.pressing { transform: translateZ(6px) scale(0.99); }
+
+  .iso-block {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    animation: iso-bob 3.2s ease-in-out infinite;
+  }
+
+  @keyframes iso-bob {
+    0%, 100% { transform: translateZ(0); }
+    50%       { transform: translateZ(6px); }
+  }
+
+  .iso-layer {
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: var(--tc, #888);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tc-d, #555) 80%, #000 10%);
+  }
+  .iso-layer.l2 { transform: translateZ(-8px);  background: color-mix(in oklab, var(--tc-d, #555) 95%, #000 5%); }
+  .iso-layer.l3 { transform: translateZ(-16px); background: color-mix(in oklab, var(--tc-d, #555) 85%, #000 8%); }
+  .iso-layer.l4 { transform: translateZ(-24px); background: color-mix(in oklab, var(--tc-d, #555) 75%, #000 12%); }
+  .iso-layer.l5 { transform: translateZ(-32px); background: color-mix(in oklab, var(--tc-d, #555) 65%, #000 16%); }
+  .iso-layer.top {
+    transform: translateZ(4px);
+    background: var(--tc, #888);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tc-d, #555) 80%, #000 10%);
+  }
+
+  .iso-face-content {
+    position: absolute;
+    inset: 0;
+    transform: translateZ(5px);
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+  }
+
+  .iso-icon-pane {
+    width: 62%; height: 58%;
+    border-radius: 6px;
+    background: color-mix(in oklab, #fff 20%, var(--tc, #888));
+    display: grid;
+    place-items: center;
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tc-d, #555) 40%, transparent);
+    color: color-mix(in oklab, #fff 78%, var(--tc, #888));
+  }
+
+  .iso-label {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -36px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--tc-d, #555);
+    font-size: clamp(11px, 1.3vmin, 15px);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .iso-label.top-label { top: -32px; bottom: auto; }
+  .dark .iso-label { color: color-mix(in oklab, var(--tc, #888) 80%, #fff 20%); }
+
+  .iso-ripple {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 10px;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.7) 0%, transparent 50%);
+    opacity: 0;
+  }
+  .iso-tile.pressing .iso-ripple {
+    opacity: 1;
+    animation: iso-rip 0.35s ease-out forwards;
+  }
+  @keyframes iso-rip {
+    from { opacity: 0.6; transform: scale(0.7); }
+    to   { opacity: 0;   transform: scale(1.2); }
+  }
+
+  /* Hover preview card */
+  .iso-preview {
+    position: absolute;
+    z-index: 20;
+    width: 220px;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
+    padding: 12px;
+    pointer-events: none;
+    box-shadow: 0 20px 40px -20px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .iso-preview-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .iso-preview-swatch {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    background: var(--tc, #888);
+    flex-shrink: 0;
+  }
+  .iso-preview-title b { font-size: 14px; }
+  .iso-preview-sub {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: hsl(var(--muted-foreground));
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+  .iso-preview-kpis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 10px;
+  }
+  .iso-preview-kpis > div { font-size: 11px; color: hsl(var(--muted-foreground)); }
+  .iso-preview-kpis > div b {
+    display: block;
+    font-size: 13px;
+    color: hsl(var(--foreground));
+    font-weight: 600;
+    font-family: var(--font-mono, 'JetBrains Mono'), ui-monospace, monospace;
+  }
+  .iso-preview-go {
+    margin-top: 8px;
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+    font-family: var(--font-mono, 'JetBrains Mono'), ui-monospace, monospace;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Status strip */
+  .iso-stat-strip {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px 0;
+    width: 100%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    flex-shrink: 0;
+  }
+  .iso-stat-strip::-webkit-scrollbar { display: none; }
+  .iso-stat {
+    flex: 1;
+    min-width: 0;
+    background: color-mix(in oklab, hsl(var(--card)) 85%, transparent);
+    backdrop-filter: blur(8px);
+    border: 1px solid hsl(var(--border));
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    scroll-snap-align: start;
+  }
+  .iso-stat-k {
+    font-size: 10px;
+    color: hsl(var(--muted-foreground));
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+  }
+  .iso-stat-v {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-family: var(--font-mono, 'JetBrains Mono'), ui-monospace, monospace;
+  }
+  .iso-stat-d {
+    font-size: 11px;
+    color: hsl(var(--muted-foreground));
+    margin-left: auto;
+    font-family: var(--font-mono, 'JetBrains Mono'), ui-monospace, monospace;
+    white-space: nowrap;
+  }
+  .iso-stat-d.up   { color: var(--c-mgmt, #269271); }
+  .iso-stat-d.down { color: var(--c-anlx, #c74a2d); }
+
+  /* Sparkline */
+  .iso-spark { width: 40px; height: 22px; flex-shrink: 0; }
+
+  /* Mobile grid (≤ 720px) */
+  @media (max-width: 720px) {
+    .iso-stage-wrap { display: none; }
+    .iso-hint       { display: none; }
+
+    .iso-mobile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding: 12px 16px 20px;
+      width: 100%;
+    }
+    .iso-mobile-tile {
+      aspect-ratio: 1 / 1;
+      border-radius: 18px;
+      overflow: hidden;
+      background: linear-gradient(160deg, var(--tc, #888) 0%, var(--tc-d, #555) 100%);
+      box-shadow: 0 12px 22px -14px color-mix(in oklab, var(--tc-d, #555) 80%, #000 20%),
+                  0 0 0 1px color-mix(in oklab, var(--tc-d, #555) 60%, transparent);
+      cursor: pointer;
+      transition: transform 0.12s cubic-bezier(0.2, 0.9, 0.2, 1);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      color: #fff;
+    }
+    .iso-mobile-tile:active { transform: scale(0.97); }
+    .iso-mobile-tile.primary {
+      grid-column: 1 / -1;
+      aspect-ratio: auto;
+      min-height: 100px;
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+    }
+    .iso-mobile-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: color-mix(in oklab, #fff 22%, var(--tc, #888));
+      display: grid;
+      place-items: center;
+      box-shadow: inset 0 0 0 1px color-mix(in oklab, #fff 35%, transparent);
+      flex-shrink: 0;
+    }
+    .iso-mobile-name { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+    .iso-mobile-meta { font-size: 11px; opacity: 0.85; font-family: var(--font-mono, monospace); margin-top: 2px; }
+  }
+
+  @media (min-width: 721px) {
+    .iso-mobile-grid { display: none; }
   }
 }

@@ -2,14 +2,13 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, ChefHat, Clock3, ShoppingBag, DollarSign, Users, Clock } from 'lucide-react';
+import { CheckCircle2, ChefHat, Clock3 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
-import StatCard from '@/components/StatCard';
 import Button from '@/components/Button';
+import IsometricLauncher from '@/components/IsometricLauncher';
 import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { useOrders } from '@/hooks/useOrders';
-import { useUsers } from '@/hooks/useUsers';
 
 const statusBadge: Record<
   'new' | 'preparing' | 'ready',
@@ -39,41 +38,8 @@ export default function DashboardPage() {
   const hydrated = useStoreHydrated();
   const user = useAppStore(s => s.user);
   const { data: orders = [] } = useOrders();
-  const { data: staff = [] } = useUsers();
 
   const isWaiter = user?.role === 'waiter';
-
-  const ownerStats = useMemo(() => {
-    const activeOrders = orders.filter(o => o.status !== 'completed').length;
-    const newOrders = orders.filter(o => o.status === 'new').length;
-    const revenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
-    return [
-      {
-        label: 'Active Orders',
-        value: activeOrders,
-        icon: ShoppingBag,
-        color: 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-200',
-      },
-      {
-        label: "Today's Revenue",
-        value: `€${revenue.toFixed(2)}`,
-        icon: DollarSign,
-        color: 'bg-green-50 text-green-600 dark:bg-green-950/40 dark:text-green-200',
-      },
-      {
-        label: 'New Orders',
-        value: newOrders,
-        icon: Clock,
-        color: 'bg-orange-50 text-orange-600 dark:bg-orange-950/40 dark:text-orange-200',
-      },
-      {
-        label: 'Active Staff',
-        value: staff.filter(u => u.active).length,
-        icon: Users,
-        color: 'bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-200',
-      },
-    ] as const;
-  }, [orders, staff]);
 
   const waiterSummary = useMemo(() => {
     const newCount = orders.filter(o => o.status === 'new').length;
@@ -102,21 +68,9 @@ export default function DashboardPage() {
   }
 
   if (!isWaiter) {
-    const titleName = user?.name?.split(' ')[0] ?? 'Admin';
-    const roleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Owner';
     return (
-      <div className="p-6 w-[95%] mx-auto">
-        <PageHeader
-          title={`Welcome back, ${titleName}`}
-          subtitle={`${roleLabel} · RestaurantOS`}
-          className="mb-8"
-        />
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {ownerStats.map(stat => (
-            <StatCard key={stat.label} {...stat} />
-          ))}
-        </div>
+      <div className="h-full flex flex-col overflow-hidden">
+        <IsometricLauncher />
       </div>
     );
   }
