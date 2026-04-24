@@ -31,10 +31,10 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: Restore
-        run: dotnet restore src/backend
+        run: dotnet restore src/backend/DashTab.API/DashTab.API.csproj
 
       - name: Build
-        run: dotnet build src/backend --no-restore --configuration Release
+        run: dotnet build src/backend/DashTab.API/DashTab.API.csproj --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test src/backend --configuration Release --verbosity minimal
+        run: dotnet test src/backend/DashTab.API/DashTab.API.csproj --configuration Release --verbosity minimal
