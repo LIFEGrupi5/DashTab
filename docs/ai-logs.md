@@ -1,10 +1,10 @@
 # AI Development Log
 
 ## Summary Statistics
-- Total entries: **49** (Milestone 1 table: 4 rows; Milestone 2 / session chronicle: **#1–#36**; post–M2.7 Cursor session: **#37–#40**; Apr 19 polish session: **#41–#49**)
-- Estimated total time saved: ~34h
+- Total entries: **55** (Milestone 1 table: 4 rows; Milestone 2 / session chronicle: **#1–#36**; post–M2.7 Cursor session: **#37–#40**; Apr 19 polish session: **#41–#49**; Apr 24 Docker + frontend fixes: **#50–#55**)
+- Estimated total time saved: ~38h
 - Most used tool: Claude / Cursor Agent
-- Updated through: Milestone 2 + M2.7 a11y/Lighthouse + **Apr 16–17** git-dated sessions + **Apr 18, 2026** kitchen board & dashboard shell (Cursor) + **Apr 19, 2026** UI polish & kitchen board UX (Claude Code)
+- Updated through: Milestone 2 + M2.7 a11y/Lighthouse + **Apr 16–17** git-dated sessions + **Apr 18, 2026** kitchen board & dashboard shell (Cursor) + **Apr 19, 2026** UI polish & kitchen board UX (Claude Code) + **Apr 24, 2026** Docker bring-up & frontend fixes (Claude Code)
 
 ---
 
@@ -128,5 +128,16 @@ Heavy integration day (merges, CI fixes, M2.5 state branch, dark-mode/responsive
 | 47 | Claude Code | Frontend | Sidebar nav icons: increased from `w-4 h-4` to `w-5 h-5` for better visibility and touch target size | Good | ~2min | Icon size in a sidebar should match the surrounding padding rhythm — `w-5` fits `px-3 py-2.5` better than `w-4` |
 | 48 | Claude Code | Frontend | Kitchen board card click-to-advance: made the entire order card div clickable (`onClick={onAdvance}`, `cursor-pointer`, subtle `hover:brightness` + `active:scale`) instead of only a button at the bottom; removed the separate action button | Good | ~10min | Touch-friendly KDS boards work best when the whole card is the tap target — small buttons are hard to hit under pressure |
 | 49 | Claude Code | Frontend | Kitchen board interactivity debugging: confirmed click-to-advance only works when logged in as kitchen staff (`petrit@restaurant.com`) — `interactive={isKitchenStaff}` gates the `onClick`; tested by temporarily opening to all roles then reverting | Good | ~5min | When a feature appears broken, check role guards before assuming a UI bug — the logic was correct, just the test account was wrong |
+
+### Session — Apr 24, 2026 (Docker bring-up + frontend fixes; Claude Code)
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 50 | Claude Code | DevOps | Stack wasn't running — went through the Docker and Compose files together to catch issues before starting; Claude spotted the missing Keycloak DB owner and a few config gaps | Good | ~30min | Always read configs before running; small issues like missing DB ownership compound into confusing runtime failures |
+| 51 | Claude Code | Backend | Hit a compile error and a silent routing bug during Docker build — Claude helped identify that `WeatherForecast.cs` was missing and that `UseHttpsRedirection` breaks inside an HTTP-only container | Good | ~20min | In Docker, TLS belongs at the nginx layer not inside the app; gate `UseHttpsRedirection` behind `IsDevelopment()` |
+| 52 | Claude Code | DevOps | Ran into port conflicts and a stubborn Keycloak `unhealthy` status — Claude helped trace each one; ports killed manually, Keycloak needed three separate env var fixes | Needed several rounds | ~45min | Debug healthchecks by running the command directly inside the container with `docker exec` — it tells you immediately if the service or the check is broken |
+| 53 | Claude Code | DevOps | nginx kept crashing with `host not found in upstream` — Claude explained why and how to fix the routing without breaking proxy paths | Good | ~20min | nginx resolves upstreams at startup; a `set $upstream` variable defers DNS to request time; can't concatenate a path after a variable — use `rewrite` to strip prefixes instead |
+| 54 | Claude Code | Frontend | Asked Claude to review and score the frontend — wanted a clear picture of what was solid and what was broken before deciding what to fix | Good | ~20min | An outside read caught broken order creation, missing toasts, modal a11y gaps, and no error states — easy to miss from inside the codebase |
+| 55 | Claude Code | Frontend | Worked through the priority fixes together — modal accessibility, wiring up `sonner`, making order creation functional with cart state, and connecting the status buttons | Good | ~45min | Derive values from state rather than storing them separately; reset modal state on close not on open |
 
 ---

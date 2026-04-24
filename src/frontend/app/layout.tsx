@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Space_Grotesk, JetBrains_Mono } from 'next/font/google';
+import { Toaster } from 'sonner';
 import '@/styles/globals.css';
 import WebVitals from '@/app/_components/WebVitals';
 import { AppProviders } from '@/components/providers/AppProviders';
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProviders>
           <WebVitals />
           {children}
+          <Toaster richColors position="top-right" />
         </AppProviders>
       </body>
     </html>

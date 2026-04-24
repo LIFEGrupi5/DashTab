@@ -223,10 +223,21 @@ export function ensureOrderKitchenTimes(o: Order, nowMs: number = Date.now()): O
   return { ...o, stageEnteredAtIso: o.stageEnteredAtIso ?? o.placedAtIso };
 }
 
+let _ordersStore: Order[] | null = null;
+
+function getOrdersStore(): Order[] {
+  if (!_ordersStore) _ordersStore = [...MOCK_ORDERS];
+  return _ordersStore;
+}
+
+export function addMockOrder(order: Order): void {
+  getOrdersStore().unshift(order);
+}
+
 export async function fetchMockOrders(): Promise<Order[]> {
   await delay();
   const now = Date.now();
-  return MOCK_ORDERS.map(o => enrichOrderKitchenTimes(o, now));
+  return getOrdersStore().map(o => ensureOrderKitchenTimes(o, now));
 }
 
 export async function fetchMockMenu(): Promise<MenuItem[]> {

@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Clock3, Funnel, Plus } from 'lucide-react';
+import { Clock3, Funnel, Minus, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import PageHeader from '@/components/PageHeader';
@@ -12,6 +13,9 @@ import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { useOrders } from '@/hooks/useOrders';
 import { useMenu } from '@/hooks/useMenu';
+import { useSetOrderStatus } from '@/hooks/useSetOrderStatus';
+import { useCreateOrder } from '@/hooks/useCreateOrder';
+import type { OrderLineItem } from '@/lib/api/mock';
 
 const TABS = [
   { key: 'all', label: 'All Orders' },
@@ -31,13 +35,37 @@ const STATUS_STYLES: Record<string, string> = {
     'bg-neutral-100 text-neutral-600 border border-neutral-200 dark:bg-muted/40 dark:text-muted-foreground dark:border-border',
 };
 
+function OrderCardSkeleton() {
+  return (
+    <div className="bg-white dark:bg-card rounded-xl border border-neutral-200 dark:border-border p-4 animate-pulse">
+      <div className="flex justify-between mb-3">
+        <div className="space-y-2">
+          <div className="h-4 bg-neutral-200 dark:bg-muted rounded w-28" />
+          <div className="h-3 bg-neutral-100 dark:bg-muted/60 rounded w-40" />
+        </div>
+        <div className="h-5 bg-neutral-200 dark:bg-muted rounded w-16" />
+      </div>
+      <div className="flex gap-1.5 mb-3">
+        <div className="h-6 bg-neutral-100 dark:bg-muted/60 rounded w-20" />
+        <div className="h-6 bg-neutral-100 dark:bg-muted/60 rounded w-24" />
+      </div>
+      <div className="h-7 bg-neutral-100 dark:bg-muted/60 rounded w-28" />
+    </div>
+  );
+}
+
 export default function OrdersPage() {
   const hydrated = useStoreHydrated();
   const user = useAppStore(s => s.user);
-  const { data: orders = [], isLoading } = useOrders();
+  const { data: orders = [], isLoading, isError } = useOrders();
   const { data: menuItems = [] } = useMenu();
+  const setOrderStatus = useSetOrderStatus();
+  const createOrder = useCreateOrder();
+
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]['key']>('all');
   const [open, setOpen] = useState(false);
+  const [modalTable, setModalTable] = useState('');
+  const [modalCart, setModalCart] = useState<Record<string, number>>({});
 
   const isWaiter = user?.role === 'waiter';
 
@@ -57,9 +85,59 @@ export default function OrdersPage() {
     [orders]
   );
 
+  const modalTotal = Object.entries(modalCart)
+    .filter(([, qty]) => qty > 0)
+    .reduce((sum, [id, qty]) => {
+      const item = menuItems.find(i => i.id === id);
+      return sum + (item ? item.price * qty : 0);
+    }, 0);
+
+  const addModalItem = (id: string) => setModalCart(prev => ({ ...prev, [id]: (prev[id] ?? 0) + 1 }));
+  const removeModalItem = (id: string) =>
+    setModalCart(prev => {
+      const next = { ...prev, [id]: (prev[id] ?? 0) - 1 };
+      if (next[id] <= 0) delete next[id];
+      return next;
+    });
+
+  const handleModalCreate = () => {
+    const items = Object.entries(modalCart).filter(([, qty]) => qty > 0);
+    if (!modalTable.trim() || items.length === 0) {
+      toast.error('Add a table number and at least one item');
+      return;
+    }
+    const lineItems: OrderLineItem[] = items.map(([id, qty]) => {
+      const item = menuItems.find(i => i.id === id)!;
+      return { menuItemName: item.name, quantity: qty, amount: item.price * qty };
+    });
+    createOrder(modalTable.trim(), lineItems);
+    setOpen(false);
+    setModalTable('');
+    setModalCart({});
+  };
+
+  const handleStatusChange = (orderId: string, label: string, next: 'preparing' | 'ready' | 'completed') => {
+    setOrderStatus(orderId, next);
+    toast.success(`Order marked as ${next}`);
+  };
+
   if (!hydrated) {
     return (
-      <div className="p-6 text-sm text-muted-foreground flex items-center justify-center min-h-[40vh]">Loading…</div>
+      <div className="p-6 w-[95%] mx-auto">
+        <div className="h-8 bg-neutral-200 dark:bg-muted rounded w-32 mb-6 animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />)}
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center min-h-[40vh] gap-3">
+        <p className="text-sm text-neutral-500 dark:text-muted-foreground">Failed to load orders.</p>
+        <Button variant="secondary" size="sm" onClick={() => window.location.reload()}>Retry</Button>
+      </div>
     );
   }
 
@@ -93,8 +171,12 @@ export default function OrdersPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.length === 0 ? (
-            <div className="text-center py-12 text-sm text-neutral-500 dark:text-muted-foreground">No orders found</div>
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />)
+          ) : filtered.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-sm text-neutral-500 dark:text-muted-foreground">
+              No orders found
+            </div>
           ) : (
             filtered.map(order => (
               <div
@@ -127,17 +209,17 @@ export default function OrdersPage() {
                 </div>
                 <div className="flex gap-2">
                   {order.status === 'new' && (
-                    <Button variant="warning" size="sm">
+                    <Button variant="warning" size="sm" onClick={() => handleStatusChange(order.id, order.orderNumber, 'preparing')}>
                       Start Preparing
                     </Button>
                   )}
                   {order.status === 'preparing' && (
-                    <Button variant="success" size="sm">
+                    <Button variant="success" size="sm" onClick={() => handleStatusChange(order.id, order.orderNumber, 'ready')}>
                       Mark Ready
                     </Button>
                   )}
                   {order.status === 'ready' && (
-                    <Button variant="secondary" size="sm">
+                    <Button variant="secondary" size="sm" onClick={() => handleStatusChange(order.id, order.orderNumber, 'completed')}>
                       Complete
                     </Button>
                   )}
@@ -150,25 +232,69 @@ export default function OrdersPage() {
         {open && (
           <Modal
             title="New Order"
-            onClose={() => setOpen(false)}
+            onClose={() => { setOpen(false); setModalTable(''); setModalCart({}); }}
             maxWidthClassName="max-w-md max-h-[90vh] overflow-y-auto"
             bodyClassName="space-y-4"
-            footer={<Button fullWidth>Create Order</Button>}
+            footer={
+              <div className="space-y-2">
+                {modalTotal > 0 && (
+                  <div className="flex justify-between text-sm font-semibold text-neutral-900 dark:text-foreground px-1">
+                    <span>Total</span>
+                    <span className="text-orange-600 dark:text-orange-400">€{modalTotal.toFixed(2)}</span>
+                  </div>
+                )}
+                <Button fullWidth onClick={handleModalCreate}>Create Order</Button>
+              </div>
+            }
           >
-            <TextField label="Table Number" type="text" placeholder="e.g. T-5" className="py-2" />
+            <TextField
+              label="Table Number"
+              type="text"
+              placeholder="e.g. T-5"
+              className="py-2"
+              value={modalTable}
+              onChange={e => setModalTable(e.target.value)}
+            />
             <div>
               <p className="text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-2">Menu Items</p>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                {menuItems.slice(0, 12).map(item => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="w-full text-left flex items-center justify-between px-3 py-2 rounded-lg hover:bg-neutral-50 dark:hover:bg-muted/25 border border-transparent hover:border-neutral-200 dark:hover:border-border transition"
-                  >
-                    <span className="text-sm text-neutral-800 dark:text-foreground">{item.name}</span>
-                    <span className="text-xs font-semibold text-orange-600 dark:text-orange-300">Select</span>
-                  </button>
-                ))}
+              <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                {menuItems.map(item => {
+                  const qty = modalCart[item.id] ?? 0;
+                  return (
+                    <div
+                      key={item.id}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-transparent hover:bg-neutral-50 dark:hover:bg-muted/25 hover:border-neutral-200 dark:hover:border-border transition"
+                    >
+                      <div className="min-w-0">
+                        <span className="text-sm text-neutral-800 dark:text-foreground block truncate">{item.name}</span>
+                        <span className="text-xs text-orange-600 dark:text-orange-400 font-semibold">€{item.price.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        {qty > 0 && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => removeModalItem(item.id)}
+                              className="w-6 h-6 rounded-md bg-neutral-100 dark:bg-muted/40 flex items-center justify-center hover:bg-neutral-200 dark:hover:bg-muted/60 transition"
+                              aria-label={`Remove ${item.name}`}
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-4 text-center text-sm font-bold text-neutral-900 dark:text-foreground">{qty}</span>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => addModalItem(item.id)}
+                          className="w-6 h-6 rounded-md bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 transition"
+                          aria-label={`Add ${item.name}`}
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </Modal>
@@ -222,7 +348,9 @@ export default function OrdersPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />)
+        ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-sm text-neutral-500 dark:text-muted-foreground col-span-full">
             No orders found
           </div>
