@@ -4,35 +4,55 @@
 
 ```
 src/backend/
-  DashTab.Domain/          # Entities, value objects, domain logic — no external dependencies
-  DashTab.Application/     # Use cases, DTOs, interfaces — depends on Domain only
-  DashTab.Infrastructure/  # EF Core, external services — implements Application interfaces
-  DashTab.API/             # Controllers, middleware, DI wiring — depends on all layers
+  DashTab.Domain/
+    Entities/       # Core business objects (e.g. Order.cs)
+    Enums/          # Domain enumerations (e.g. OrderStatus.cs)
+  DashTab.Application/
+    Interfaces/     # Service interfaces (e.g. IOrderService.cs)
+    Dtos/           # Request/response shapes (e.g. OrderDto.cs)
+  DashTab.Infrastructure/
+    Persistence/    # AppDbContext — swap to EF Core when DB is configured
+    Services/       # Service implementations (e.g. OrderService.cs)
+  DashTab.API/
+    Controllers/    # Thin HTTP controllers
+    Program.cs      # DI wiring and middleware
 ```
 
 Dependency direction: `API → Infrastructure → Application → Domain`
 
 ## Running the API
 
+**Via Docker (recommended):**
+```bash
+cd devops/docker
+docker compose --profile backend up
+```
+API available at `http://localhost:5000`
+
+**Locally:**
 ```bash
 cd src/backend/DashTab.API
 dotnet run
 ```
 
-- HTTP:  http://localhost:5129
-- HTTPS: https://localhost:7156
-- OpenAPI: https://localhost:7156/openapi (development only)
+**Build the whole solution:**
+```bash
+cd src/backend
+dotnet build
+```
 
 ## Current State
 
-- `DashTab.API` is scaffolded with a demo `WeatherForecastController` — replace with real controllers
-- `DashTab.Application`, `DashTab.Domain`, `DashTab.Infrastructure` are empty — ready to implement
-- No database, authentication, or business logic yet
+- All 4 projects scaffolded with stub examples based on `Order`
+- `AppDbContext` is a plain class placeholder — not connected to a real database yet
+- No authentication or real business logic yet
+- Docker runs API + PostgreSQL + Redis
 
 ## Conventions
 
 - Each layer is its own `.csproj`; add project references explicitly (never skip a layer)
 - Controllers are thin — no business logic, only HTTP concerns
-- All business logic lives in Application use cases
-- Domain has zero infrastructure dependencies
-- Use `IRepository<T>` interfaces in Application, implement in Infrastructure
+- Service interfaces (`IXxxService`) live in `Application/Interfaces/`
+- Service implementations (`XxxService`) live in `Infrastructure/Services/` — they depend on `AppDbContext`
+- DTOs live in `Application/Dtos/` — controllers and services pass DTOs, never raw entities
+- Domain has zero external dependencies
