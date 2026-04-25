@@ -7,7 +7,7 @@ on:
       - 'src/backend/**'
       - '.github/workflows/backend-ci.yml'
   pull_request:
-    branches: [main]
+    branches: [main, development]
     paths:
       - 'src/backend/**'
       - '.github/workflows/backend-ci.yml'
@@ -31,10 +31,10 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: Restore
-        run: dotnet restore src/backend/DashTab.API/DashTab.API.csproj
+        run: dotnet restore src/backend/DashTab.sln
 
       - name: Build
-        run: dotnet build src/backend/DashTab.API/DashTab.API.csproj --no-restore --configuration Release
+        run: dotnet build src/backend/DashTab.sln --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test src/backend/DashTab.API/DashTab.API.csproj --configuration Release --verbosity minimal
+        run: dotnet test src/backend/DashTab.sln --configuration Release --verbosity minimal
