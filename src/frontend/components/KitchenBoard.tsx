@@ -94,6 +94,12 @@ export default function KitchenBoard() {
   const clearAuth = useAppStore(s => s.clearAuth);
   const isKitchenStaff = user?.role === 'kitchen';
 
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const visible = useMemo(
     () => orders.filter(o => KITCHEN_STATUSES.includes(o.status)),
     [orders]
@@ -207,6 +213,7 @@ export default function KitchenBoard() {
                           section={section}
                           interactive={isKitchenStaff}
                           onAdvance={() => onAdvance(order.id, section.next)}
+                          now={now}
                         />
                       ))
                     )}
@@ -221,17 +228,10 @@ export default function KitchenBoard() {
   );
 }
 
-function KitchenOrderTiming({ order }: { order: Order }) {
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-
+function KitchenOrderTiming({ order, now }: { order: Order; now: number }) {
   const placedAt = order.placedAtIso;
   if (!placedAt) return null;
 
-  const now = Date.now();
   const placedMs = new Date(placedAt).getTime();
   const waitMs = Math.max(0, now - placedMs);
 
@@ -254,21 +254,17 @@ function KitchenOrderCard({
   section,
   interactive,
   onAdvance,
+  now,
 }: {
   order: Order;
   section: (typeof SECTION_META)[number];
   interactive: boolean;
   onAdvance: () => void;
+  now: number;
 }) {
-  const [slaTick, setSlaTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setSlaTick(n => n + 1), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
   const showOverdueBell = useMemo(
-    () => orderWaitExceedsKitchenSla(order, Date.now()),
-    [order, slaTick]
+    () => orderWaitExceedsKitchenSla(order, now),
+    [order, now]
   );
 
   return (
@@ -301,7 +297,7 @@ function KitchenOrderCard({
                 ) : null}
               </div>
               <span className="text-sm text-neutral-600 dark:text-muted-foreground">{order.createdByName}</span>
-              <KitchenOrderTiming order={order} />
+              <KitchenOrderTiming order={order} now={now} />
             </div>
           </div>
         </div>
