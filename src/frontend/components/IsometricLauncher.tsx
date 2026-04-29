@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 type TileId = 'pos' | 'menu' | 'staff' | 'management' | 'analytics';
@@ -131,6 +131,9 @@ export default function IsometricLauncher() {
   const router = useRouter();
   const wrapRef  = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const rafRef   = useRef<number | null>(null);
+
+  useEffect(() => () => { if (rafRef.current != null) cancelAnimationFrame(rafRef.current); }, []);
 
   const [hoverId,  setHoverId]  = useState<TileId | null>(null);
   const [pressId,  setPressId]  = useState<TileId | null>(null);
@@ -208,7 +211,14 @@ export default function IsometricLauncher() {
             cursor: hoverId ? 'pointer' : 'default',
             zIndex: 10,
           }}
-          onMouseMove={e => updateHover(e.clientX, e.clientY)}
+          onMouseMove={e => {
+            if (rafRef.current != null) return;
+            const { clientX, clientY } = e;
+            rafRef.current = requestAnimationFrame(() => {
+              updateHover(clientX, clientY);
+              rafRef.current = null;
+            });
+          }}
           onMouseLeave={() => { setHoverId(null); setPressId(null); setPreview(null); }}
           onMouseDown={e => {
             const tile = stageRef.current ? hitTestTile(e.clientX, e.clientY, stageRef.current) : null;
