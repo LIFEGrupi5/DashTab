@@ -118,7 +118,7 @@ export default function KitchenBoard() {
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-neutral-100 dark:bg-background text-neutral-900 dark:text-foreground">
+    <div className="flex flex-col flex-1 min-h-0 text-neutral-900 dark:text-foreground">
       <header className="shrink-0 border-b border-neutral-200 dark:border-border bg-white dark:bg-card px-4 py-3 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between w-full w-[95%] mx-auto">
           <div className="flex items-start gap-3 min-w-0">

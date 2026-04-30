@@ -34,7 +34,7 @@ type Props = {
 
 export default function OverviewCharts({ revenueByHour, peakRevenueHour, isLoading }: Props) {
   return (
-    <>
+    <div className="contents">
       <div className="bg-white dark:bg-card rounded-xl border border-neutral-200 dark:border-border p-5">
         <h2 className="font-semibold text-neutral-900 dark:text-foreground mb-1">Revenue by Hour</h2>
         <p className="text-xs text-neutral-400 dark:text-muted-foreground mb-4">
@@ -83,7 +83,7 @@ export default function OverviewCharts({ revenueByHour, peakRevenueHour, isLoadi
         )}
       </div>
 
-      <div className="bg-white dark:bg-card rounded-xl border border-neutral-200 dark:border-border p-5 mt-6">
+      <div className="col-span-full bg-white dark:bg-card rounded-xl border border-neutral-200 dark:border-border p-5">
         <div className="flex items-start justify-between mb-1">
           <div>
             <div className="flex items-center gap-1.5">
@@ -164,6 +164,6 @@ export default function OverviewCharts({ revenueByHour, peakRevenueHour, isLoadi
           </AreaChart>
         </ResponsiveContainer>
       </div>
-    </>
+    </div>
   );
 }
