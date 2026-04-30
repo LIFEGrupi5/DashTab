@@ -191,12 +191,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
       ) : null}
 
-      <main className="flex-1 min-w-0 overflow-y-auto">
+      <main className="flex-1 min-w-0 overflow-y-auto flex flex-col">
         <motion.div
           key={pathname}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="flex-1 flex flex-col"
         >
           {children}
         </motion.div>

@@ -10,9 +10,9 @@ import { useOrders } from '@/hooks/useOrders';
 const OverviewCharts = dynamic(() => import('@/components/OverviewCharts'), {
   ssr: false,
   loading: () => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="contents">
       <div className="h-[232px] rounded-xl bg-neutral-100 dark:bg-muted/30 animate-pulse" />
-      <div className="h-[232px] rounded-xl bg-neutral-100 dark:bg-muted/30 animate-pulse" />
+      <div className="col-span-full h-[280px] rounded-xl bg-neutral-100 dark:bg-muted/30 animate-pulse" />
     </div>
   ),
 });
