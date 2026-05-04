@@ -1,10 +1,3 @@
 namespace DashTab.Domain.Enums;
 
-public enum OrderStatus
-{
-    Pending,
-    InProgress,
-    Ready,
-    Delivered,
-    Cancelled
-}
+public enum OrderStatus { New, Preparing, Ready, Completed, Cancelled }
