@@ -1,26 +1,63 @@
+using System.Text.Json.Serialization;
 using DashTab.Application.Interfaces;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+// ── Persistence ───────────────────────────────────────────────────────────────
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options
+        .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
+        .UseSnakeCaseNamingConvention());
+
+// ── JSON: camelCase property names + lowercase string enums ───────────────────
+builder.Services.AddControllers().AddJsonOptions(o =>
+{
+    o.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    o.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    o.JsonSerializerOptions.Converters.Add(
+        new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase));
+});
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+builder.Services.AddCors(cors => cors.AddPolicy("Frontend", policy => policy
+    .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
+
+// ── OpenAPI / Swagger ─────────────────────────────────────────────────────────
 builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
 
-// Database — swap AppDbContext for EF Core DbContext once DB is configured
-builder.Services.AddSingleton<AppDbContext>();
+// ── ProblemDetails for unhandled exceptions ───────────────────────────────────
+builder.Services.AddProblemDetails();
 
-// Services
+// ── Application services ──────────────────────────────────────────────────────
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
 var app = builder.Build();
 
+// ── Dev only: apply migrations + run seed ────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+    await DevSeed.RunAsync(db);
+
     app.MapOpenApi();
-    app.UseHttpsRedirection();
 }
 
-app.UseAuthorization();
+// ── Middleware pipeline ───────────────────────────────────────────────────────
+app.UseExceptionHandler();
+app.UseHttpsRedirection();
+app.UseCors("Frontend");
 app.MapControllers();
+
 app.Run();

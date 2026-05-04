@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.4" />
+    <!-- Pin EF Core version to match Infrastructure and avoid MSB3277 binding conflict -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.4" />
   </ItemGroup>
 
   <ItemGroup>
