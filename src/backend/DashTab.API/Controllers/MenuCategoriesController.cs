@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DashTab.API.Controllers;
 
 [ApiController]
-[Route("api/menu-categories")]
+[Route("api/v1/menu-categories")]
 public class MenuCategoriesController(ICategoryService categoryService) : ControllerBase
 {
     [HttpGet]

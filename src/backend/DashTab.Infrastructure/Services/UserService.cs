@@ -11,8 +11,16 @@ public class UserService(AppDbContext db) : IUserService
 {
     public async Task<IEnumerable<StaffUserDto>> ListAsync()
     {
-        var users = await db.Users.OrderBy(u => u.FullName).ToListAsync();
-        return users.Select(ToDto);
+        try
+        {
+            var users = await db.Users.OrderBy(u => u.FullName).ToListAsync();
+            return users.Select(ToDto);
+        }
+        catch (Npgsql.PostgresException)
+        {
+            // Tables don't exist yet—no migrations applied
+            return [];
+        }
     }
 
     public async Task<StaffUserDto?> GetByIdAsync(Guid id)

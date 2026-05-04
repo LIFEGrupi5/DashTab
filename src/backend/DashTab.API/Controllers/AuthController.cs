@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DashTab.API.Controllers;
 
 [ApiController]
-[Route("api/auth")]
+[Route("api/v1/auth")]
 public class AuthController(IAuthService authService) : ControllerBase
 {
     [HttpPost("login")]
