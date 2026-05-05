@@ -87,7 +87,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex h-screen min-h-0 w-full max-w-[100vw] overflow-x-hidden bg-background" onDoubleClick={() => router.push('/dashboard')}>
+    <div
+      className="flex h-screen min-h-0 w-full max-w-[100vw] overflow-x-hidden bg-background"
+      onDoubleClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (
+          target.closest(
+            'a, button, input, select, textarea, label, summary, [role="button"], [role="link"], [role="menuitem"], [role="tab"], [role="checkbox"], [role="radio"], [role="switch"], [contenteditable="true"]'
+          )
+        ) {
+          return;
+        }
+        router.push('/dashboard');
+      }}
+    >
       {!hideShellSidebar ? (
       <aside
         className={`shrink-0 bg-card dark:bg-card border-r border-border flex flex-col transition-[width] duration-200 ease-out w-14 ${
