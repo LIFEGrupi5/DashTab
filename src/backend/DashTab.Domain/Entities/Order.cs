@@ -33,6 +33,8 @@ public class Order
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    public bool IsDeleted { get; set; } = false;
+
     public User CreatedBy { get; set; } = null!;
     public ICollection<OrderItem> Items { get; set; } = [];
 }

@@ -7,25 +7,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class UserService(AppDbContext db) : IUserService
+public class UserService(DashTabDbContext _context) : IUserService
 {
     public async Task<IEnumerable<StaffUserDto>> ListAsync()
     {
-        try
-        {
-            var users = await db.Users.OrderBy(u => u.FullName).ToListAsync();
-            return users.Select(ToDto);
-        }
-        catch (Npgsql.PostgresException)
-        {
-            // Tables don't exist yet—no migrations applied
-            return [];
-        }
+        var users = await _context.Users.OrderBy(u => u.FullName).ToListAsync();
+        return users.Select(ToDto);
     }
 
     public async Task<StaffUserDto?> GetByIdAsync(Guid id)
     {
-        var user = await db.Users.FindAsync(id);
+        var user = await _context.Users.FindAsync(id);
         return user is null ? null : ToDto(user);
     }
 
@@ -44,14 +36,14 @@ public class UserService(AppDbContext db) : IUserService
             CreatedAt = now,
             UpdatedAt = now,
         };
-        db.Users.Add(user);
-        await db.SaveChangesAsync();
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
         return ToDto(user);
     }
 
     public async Task<StaffUserDto?> UpdateAsync(Guid id, UpdateStaffRequest request)
     {
-        var user = await db.Users.FindAsync(id);
+        var user = await _context.Users.FindAsync(id);
         if (user is null) return null;
 
         user.FullName = request.FullName;
@@ -60,28 +52,29 @@ public class UserService(AppDbContext db) : IUserService
         user.Bio = request.Bio;
         user.PhotoUrl = request.PhotoUrl;
         user.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync();
+        await _context.SaveChangesAsync();
         return ToDto(user);
     }
 
     public async Task<StaffUserDto?> SetActiveAsync(Guid id, bool active)
     {
-        var user = await db.Users.FindAsync(id);
+        var user = await _context.Users.FindAsync(id);
         if (user is null) return null;
 
         user.IsActive = active;
         user.UpdatedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync();
+        await _context.SaveChangesAsync();
         return ToDto(user);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var user = await db.Users.FindAsync(id);
+        var user = await _context.Users.FindAsync(id);
         if (user is null) return false;
 
-        db.Users.Remove(user);
-        await db.SaveChangesAsync();
+        user.IsDeleted = true;
+        user.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
         return true;
     }
 

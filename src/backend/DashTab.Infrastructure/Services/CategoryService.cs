@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class CategoryService(AppDbContext db) : ICategoryService
+public class CategoryService(DashTabDbContext db) : ICategoryService
 {
     public async Task<IEnumerable<MenuCategoryDto>> ListAsync()
     {
@@ -57,7 +57,8 @@ public class CategoryService(AppDbContext db) : ICategoryService
         if (hasItems)
             throw new InvalidOperationException("Cannot delete a category that still has menu items.");
 
-        db.MenuCategories.Remove(cat);
+        cat.IsDeleted = true;
+        cat.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
         return true;
     }

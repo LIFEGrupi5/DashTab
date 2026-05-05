@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class MenuItemService(AppDbContext db) : IMenuItemService
+public class MenuItemService(DashTabDbContext db) : IMenuItemService
 {
     public async Task<IEnumerable<MenuItemDto>> ListAsync(Guid? categoryId = null, string? search = null, bool? available = null)
     {
@@ -88,7 +88,8 @@ public class MenuItemService(AppDbContext db) : IMenuItemService
         var item = await db.MenuItems.FindAsync(id);
         if (item is null) return false;
 
-        db.MenuItems.Remove(item);
+        item.IsDeleted = true;
+        item.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
         return true;
     }

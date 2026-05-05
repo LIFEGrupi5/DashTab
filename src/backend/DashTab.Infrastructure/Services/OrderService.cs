@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class OrderService(AppDbContext db) : IOrderService
+public class OrderService(DashTabDbContext db) : IOrderService
 {
     private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
     {
