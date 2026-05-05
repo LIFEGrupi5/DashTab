@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using DashTab.API.Middleware;
 using DashTab.Application.Interfaces;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
@@ -32,6 +33,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // ── ProblemDetails for unhandled exceptions ───────────────────────────────────
+builder.Services.AddExceptionHandler<DashTabExceptionHandler>();
 builder.Services.AddProblemDetails();
 
 // ── Application services ──────────────────────────────────────────────────────
