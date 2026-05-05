@@ -28,8 +28,8 @@ builder.Services.AddCors(cors => cors.AddPolicy("Frontend", policy => policy
     .AllowAnyMethod()));
 
 // ── OpenAPI / Swagger ─────────────────────────────────────────────────────────
-builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // ── ProblemDetails for unhandled exceptions ───────────────────────────────────
 builder.Services.AddProblemDetails();
@@ -43,15 +43,11 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 
 var app = builder.Build();
 
-// ── Dev only: apply migrations + run seed ────────────────────────────────────
+// ── Dev only: Swagger UI ──────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
-    await DevSeed.RunAsync(db);
-
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 // ── Middleware pipeline ───────────────────────────────────────────────────────

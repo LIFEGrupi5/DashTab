@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DashTab.API.Controllers;
 
 [ApiController]
-[Route("api/orders")]
+[Route("api/v1/orders")]
 public class OrdersController(IOrderService orderService, IAuthService authService) : ControllerBase
 {
     [HttpGet]

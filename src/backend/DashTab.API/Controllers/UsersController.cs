@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DashTab.API.Controllers;
 
 [ApiController]
-[Route("api/users")]
+[Route("api/v1/users")]
 public class UsersController(IUserService userService) : ControllerBase
 {
     [HttpGet]
