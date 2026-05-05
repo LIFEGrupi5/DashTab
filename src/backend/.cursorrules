@@ -1,0 +1,58 @@
+# DashTab Backend — Cursor Rules
+
+## Architecture
+- Dependency direction: Domain → Application → Infrastructure → API
+- Domain has zero external dependencies (no EF Core, no packages)
+- Application holds interfaces and DTOs only — no implementations
+- Infrastructure holds EF Core DbContext, service implementations, and seeding
+- API holds controllers and Program.cs only — no business logic in controllers
+
+## Project Structure
+- Entities → DashTab.Domain/Entities/
+- Enums → DashTab.Domain/Enums/
+- Exceptions → DashTab.Domain/Exceptions/
+- DTOs and request models → DashTab.Application/Dtos/
+- Service interfaces → DashTab.Application/Interfaces/
+- Service implementations → DashTab.Infrastructure/Services/
+- Controllers → DashTab.API/Controllers/
+
+## Entities
+- Plain classes with data annotations ([Key], [Required], [MaxLength], [Column])
+- No abstract base classes
+- Navigation properties use = null! for required and ? for optional
+- Collections initialized with = []
+
+## Services
+- Constructor-inject AppDbContext directly — no repository pattern
+- Keep all business logic inside services, never in controllers
+- Return DTOs from services, never raw entities
+- Set CreatedAt and UpdatedAt manually when creating or updating
+
+## Controllers
+- Thin — only call a service method and return the result
+- Use IActionResult return type
+- Map exceptions to HTTP status codes in try/catch (400, 404, 422)
+- Routes follow the pattern: api/v1/<resource>
+
+## DTOs
+- Use records for DTOs and request models
+- One file per feature group (e.g. OrderDto.cs, StaffDtos.cs)
+
+## EF Core
+- Use AppDbContext directly in services
+- Configure relationships in OnModelCreating — no separate configuration classes
+- Use HasConversion<string>() for enums stored as strings
+- Use numeric(10,2) for all money/price columns
+
+## Naming
+- Files: PascalCase (OrderService.cs)
+- Classes: PascalCase
+- Methods: PascalCase
+- Variables and parameters: camelCase
+- Database columns: snake_case (via EFCore.NamingConventions)
+
+## General
+- No business logic in controllers
+- No raw entities returned from controllers
+- No repository pattern — services use DbContext directly
+- Keep code simple and readable — avoid unnecessary abstractions
