@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class AuthService(AppDbContext db) : IAuthService
+public class AuthService(DashTabDbContext db) : IAuthService
 {
     public async Task<AuthSessionDto?> LoginAsync(string email)
     {

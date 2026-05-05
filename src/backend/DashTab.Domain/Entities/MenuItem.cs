@@ -22,6 +22,7 @@ public class MenuItem
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; } = false;
 
     public MenuCategory Category { get; set; } = null!;
     public ICollection<OrderItem> OrderItems { get; set; } = [];

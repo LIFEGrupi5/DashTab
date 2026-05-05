@@ -23,5 +23,6 @@ public class OrderItem
     public decimal LineTotal { get; set; }
 
     public Order Order { get; set; } = null!;
+    public bool IsDeleted { get; set; } = false;
     public MenuItem? MenuItem { get; set; }
 }
