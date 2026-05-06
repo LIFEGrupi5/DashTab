@@ -1,9 +1,11 @@
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DashTab.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/v1/menu-categories")]
 public class MenuCategoriesController(ICategoryService categoryService) : ControllerBase
@@ -19,6 +21,7 @@ public class MenuCategoriesController(ICategoryService categoryService) : Contro
         return cat is null ? NotFound() : Ok(cat);
     }
 
+    [Authorize(Roles = "Owner,Manager")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
     {
@@ -26,6 +29,7 @@ public class MenuCategoriesController(ICategoryService categoryService) : Contro
         return CreatedAtAction(nameof(GetById), new { id = cat.Id }, cat);
     }
 
+    [Authorize(Roles = "Owner,Manager")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCategoryRequest request)
     {
@@ -33,6 +37,7 @@ public class MenuCategoriesController(ICategoryService categoryService) : Contro
         return cat is null ? NotFound() : Ok(cat);
     }
 
+    [Authorize(Roles = "Owner,Manager")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
