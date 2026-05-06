@@ -1,20 +1,20 @@
 import { test as base, expect } from '@playwright/test';
 
 const MOCK_USER = {
-  id: '33333333-3333-3333-3333-333333333333',
-  name: 'Ana Kovaci',
-  email: 'ana@restaurant.com',
-  role: 'waiter',
+  id: '11111111-1111-1111-1111-111111111111',
+  name: 'Admin User',
+  email: 'admin@restaurant.com',
+  role: 'owner',
   active: true,
 };
 
 const MOCK_SESSION = {
-  token: 'mock_token_33333333-3333-3333-3333-333333333333',
+  token: 'mock_token_11111111-1111-1111-1111-111111111111',
   user: MOCK_USER,
 };
 
 export const test = base.extend({
-  page: async ({ page }, use) => {
+  page: async ({ page }, apply) => {
     await page.route('**/api/v1/auth/login', route =>
       route.fulfill({ status: 200, json: MOCK_SESSION })
     );
@@ -33,7 +33,7 @@ export const test = base.extend({
     await page.route('**/api/v1/users**', route =>
       route.fulfill({ status: 200, json: [] })
     );
-    await use(page);
+    await apply(page);
   },
 });
 
