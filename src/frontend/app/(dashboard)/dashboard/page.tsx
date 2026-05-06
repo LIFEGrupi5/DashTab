@@ -11,7 +11,7 @@ import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { useOrders } from '@/hooks/useOrders';
 
 const statusBadge: Record<
-  'new' | 'preparing' | 'ready',
+  string,
   { label: string; className: string; icon: typeof Clock3 }
 > = {
   new: {
@@ -31,6 +31,18 @@ const statusBadge: Record<
     className:
       'bg-green-50 text-green-700 border border-green-100 dark:bg-green-950/40 dark:text-green-200 dark:border-green-900/50',
     icon: CheckCircle2,
+  },
+  completed: {
+    label: 'Completed',
+    className:
+      'bg-neutral-100 text-neutral-600 border border-neutral-200 dark:bg-muted/40 dark:text-muted-foreground dark:border-border',
+    icon: CheckCircle2,
+  },
+  cancelled: {
+    label: 'Cancelled',
+    className:
+      'bg-red-50 text-red-600 border border-red-100 dark:bg-red-950/30 dark:text-red-300 dark:border-red-900/40',
+    icon: Clock3,
   },
 };
 

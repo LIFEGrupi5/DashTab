@@ -7,7 +7,8 @@ import { ChefHat, Mail, Lock } from 'lucide-react';
 import Button from '@/components/Button';
 import TextField from '@/components/TextField';
 import { useAppStore } from '@/stores/useAppStore';
-import { authUserFromEmail, mockTokenForUserId } from '@/lib/api/mock';
+import { login } from '@/lib/api/auth';
+import { toast } from 'sonner';
 
 const demoAccounts = [
   { email: 'admin@restaurant.com', role: 'Owner' },
@@ -22,13 +23,21 @@ export default function LoginPage() {
   const setAuth = useAppStore(s => s.setAuth);
   const [selectedEmail, setSelectedEmail] = useState<string>(demoAccounts[0].email);
 
-  const handleSignIn = (event: React.FormEvent<HTMLFormElement>) => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const user = authUserFromEmail(selectedEmail);
-    if (!user) return;
-    setAuth(user, mockTokenForUserId(user.id));
-    void queryClient.invalidateQueries({ queryKey: ['auth'] });
-    router.push(user.role === 'kitchen' ? '/kitchen' : '/dashboard');
+    setIsLoading(true);
+    try {
+      const session = await login(selectedEmail);
+      setAuth(session.user, session.token);
+      void queryClient.invalidateQueries({ queryKey: ['auth'] });
+      router.push(session.user.role === 'kitchen' ? '/kitchen' : '/dashboard');
+    } catch {
+      toast.error('Invalid credentials. Check the demo accounts below.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -60,8 +69,8 @@ export default function LoginPage() {
               leftIcon={<Lock className="w-5 h-5" />}
             />
 
-            <Button type="submit" fullWidth className="rounded-xl py-3">
-              Sign In
+            <Button type="submit" fullWidth className="rounded-xl py-3" disabled={isLoading}>
+              {isLoading ? 'Signing in…' : 'Sign In'}
             </Button>
 
           </form>

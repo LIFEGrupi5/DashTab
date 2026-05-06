@@ -17,7 +17,7 @@ import { useMenu } from '@/hooks/useMenu';
 import { useSetOrderStatus } from '@/hooks/useSetOrderStatus';
 import { useCreateOrder } from '@/hooks/useCreateOrder';
 import { useOrderModal } from '@/hooks/useOrderModal';
-import type { Order, MenuItem, OrderLineItem } from '@/lib/api/mock';
+import type { Order, MenuItem } from '@/lib/api/types';
 
 const TABS = [
   { key: 'all', label: 'All Orders' },
@@ -121,17 +121,15 @@ export default function OrdersPage() {
       toast.error('Add a table number and at least one item');
       return;
     }
-    const lineItems: OrderLineItem[] = items.map(([id, qty]) => {
-      const item = menuItems.find(i => i.id === id)!;
-      return { menuItemName: item.name, quantity: qty, amount: item.price * qty };
+    createOrder.mutate({
+      tableNumber: modal.state.table.trim(),
+      items: items.map(([menuItemId, quantity]) => ({ menuItemId, quantity })),
     });
-    createOrder(modal.state.table.trim(), lineItems);
     modal.close();
   };
 
   const handleStatusChange = (orderId: string, next: 'preparing' | 'ready' | 'completed') => {
-    setOrderStatus(orderId, next);
-    toast.success(`Order marked as ${next}`);
+    setOrderStatus.mutate({ id: orderId, status: next });
   };
 
   if (!hydrated) {

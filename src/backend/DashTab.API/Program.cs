@@ -21,6 +21,10 @@ builder.Services.AddDbContext<DashTabDbContext>(options =>
         .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
         .UseSnakeCaseNamingConvention());
 
+// ── Validation ────────────────────────────────────────────────────────────────
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
+builder.Services.AddFluentValidationAutoValidation();
+
 // ── JSON: camelCase property names + lowercase string enums ───────────────────
 builder.Services.AddControllers().AddJsonOptions(o =>
 {
@@ -67,11 +71,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
-
-
-builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
-builder.Services.AddFluentValidationAutoValidation();
-
 
 builder.Services.AddRateLimiter(o =>
 {

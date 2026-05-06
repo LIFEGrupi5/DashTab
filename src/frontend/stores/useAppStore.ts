@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import type { AuthUser } from '@/lib/api/mock';
+import type { AuthUser } from '@/lib/api/types';
 
 type AppState = {
   token: string | null;

@@ -21,10 +21,14 @@ public class DashTabDbContext(DbContextOptions<DashTabDbContext> options) : DbCo
         modelBuilder.Entity<User>()
             .Property(u => u.Role).HasConversion<string>();
         modelBuilder.Entity<User>()
+            .Property(u => u.IsDeleted).HasDefaultValue(false);
+        modelBuilder.Entity<User>()
             .HasQueryFilter(u => !u.IsDeleted);
 
         modelBuilder.Entity<MenuCategory>()
             .HasIndex(c => c.Name).IsUnique();
+        modelBuilder.Entity<MenuCategory>()
+            .Property(c => c.IsDeleted).HasDefaultValue(false);
         modelBuilder.Entity<MenuCategory>()
             .HasQueryFilter(c => !c.IsDeleted);
 
@@ -33,6 +37,8 @@ public class DashTabDbContext(DbContextOptions<DashTabDbContext> options) : DbCo
             .WithMany(c => c.MenuItems)
             .HasForeignKey(m => m.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
+        modelBuilder.Entity<MenuItem>()
+            .Property(m => m.IsDeleted).HasDefaultValue(false);
         modelBuilder.Entity<MenuItem>()
             .HasQueryFilter(m => !m.IsDeleted);
 
@@ -44,8 +50,12 @@ public class DashTabDbContext(DbContextOptions<DashTabDbContext> options) : DbCo
             .HasForeignKey(o => o.CreatedById)
             .OnDelete(DeleteBehavior.Restrict);
         modelBuilder.Entity<Order>()
+            .Property(o => o.IsDeleted).HasDefaultValue(false);
+        modelBuilder.Entity<Order>()
             .HasQueryFilter(o => !o.IsDeleted);
 
+        modelBuilder.Entity<OrderItem>()
+            .Property(i => i.IsDeleted).HasDefaultValue(false);
         modelBuilder.Entity<OrderItem>()
             .HasOne(i => i.Order)
             .WithMany(o => o.Items)
