@@ -6,7 +6,7 @@ import { Bell, CheckCircle2, ChefHat, Clock3, LogOut, Moon, Sun } from 'lucide-r
 import { useOrders } from '@/hooks/useOrders';
 import { useSetOrderStatus } from '@/hooks/useSetOrderStatus';
 import { useAppStore } from '@/stores/useAppStore';
-import type { Order, OrderStatus } from '@/lib/api/mock';
+import type { Order, OrderStatus } from '@/lib/api/types';
 
 /** Fixed width for flex row + wrap (20rem); no grow so row fills then wraps. */
 const KITCHEN_CARD_WRAP = 'w-full min-h-[150px]';
@@ -114,7 +114,7 @@ export default function KitchenBoard() {
 
   const onAdvance = (orderId: string, next: OrderStatus) => {
     if (!isKitchenStaff) return;
-    setStatus(orderId, next);
+    setStatus.mutate({ id: orderId, status: next });
   };
 
   return (

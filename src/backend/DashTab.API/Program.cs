@@ -1,8 +1,11 @@
 using System.Text.Json.Serialization;
 using DashTab.API.Middleware;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Validators;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +15,10 @@ builder.Services.AddDbContext<DashTabDbContext>(options =>
     options
         .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
         .UseSnakeCaseNamingConvention());
+
+// ── Validation ────────────────────────────────────────────────────────────────
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
+builder.Services.AddFluentValidationAutoValidation();
 
 // ── JSON: camelCase property names + lowercase string enums ───────────────────
 builder.Services.AddControllers().AddJsonOptions(o =>

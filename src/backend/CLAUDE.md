@@ -20,6 +20,17 @@ src/backend/
 
 Dependency direction: `API → Infrastructure → Application → Domain`
 
+## Local Secrets Setup
+
+Connection strings are **not** in `appsettings.Development.json`. Each developer sets them via .NET user secrets (stored on your machine only, never in git):
+
+```bash
+cd src/backend/DashTab.API
+dotnet user-secrets set "ConnectionStrings:Default" "Host=localhost;Port=5432;Database=dashtab;Username=dashtab;Password=<your_local_password>"
+```
+
+The password should match `POSTGRES_PASSWORD` in your `devops/docker/.env`.
+
 ## Running the API
 
 **Via Docker (recommended):**

@@ -1,26 +1,21 @@
 'use client';
 
-import { useQueryClient } from '@tanstack/react-query';
-import type { Order, OrderStatus } from '@/lib/api/mock';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { updateOrderStatus } from '@/lib/api/orders';
 import { queryKeys } from '@/lib/queryKeys';
 
 export function useSetOrderStatus() {
   const queryClient = useQueryClient();
-
-  return (orderId: string, status: OrderStatus) => {
-    const entered = new Date().toISOString();
-    queryClient.setQueryData<Order[]>(queryKeys.orders.all, prev => {
-      if (!prev) return prev;
-      return prev.map(o =>
-        o.id === orderId
-          ? {
-              ...o,
-              status,
-              stageEnteredAtIso: entered,
-              placedAtIso: o.placedAtIso ?? entered,
-            }
-          : o
-      );
-    });
-  };
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      updateOrderStatus(id, status),
+    onSuccess: order => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      toast.success(`Order marked as ${order.status}`);
+    },
+    onError: () => {
+      toast.error('Failed to update order status.');
+    },
+  });
 }

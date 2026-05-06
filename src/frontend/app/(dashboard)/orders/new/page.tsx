@@ -9,7 +9,6 @@ import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { useMenu } from '@/hooks/useMenu';
 import { useCreateOrder } from '@/hooks/useCreateOrder';
-import type { OrderLineItem } from '@/lib/api/mock';
 
 const CATEGORIES = ['All Items', 'Main Course', 'Appetizer', 'Salad', 'Dessert', 'Beverage'] as const;
 
@@ -74,14 +73,13 @@ export default function NewOrderPage() {
 
   const canSubmit = tableNumber.trim().length > 0 && cartEntries.length > 0;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit) return;
-    const lineItems: OrderLineItem[] = cartEntries.map(e => ({
-      menuItemName: e.name,
-      quantity: e.quantity,
-      amount: e.lineTotal,
-    }));
-    createOrder(tableNumber.trim(), lineItems);
+    await createOrder.mutateAsync({
+      tableNumber: tableNumber.trim(),
+      notes: notes || undefined,
+      items: cartEntries.map(e => ({ menuItemId: e.id, quantity: e.quantity })),
+    });
     router.push('/orders');
   };
 
@@ -254,7 +252,7 @@ export default function NewOrderPage() {
             <Button
               fullWidth
               onClick={handleSubmit}
-              disabled={!canSubmit}
+              disabled={!canSubmit || createOrder.isPending}
               className="rounded-xl py-3"
             >
               <Check className="w-4 h-4" />
