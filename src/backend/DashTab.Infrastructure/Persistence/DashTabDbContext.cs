@@ -77,6 +77,16 @@ public class DashTabDbContext(DbContextOptions<DashTabDbContext> options) : DbCo
               var entityId = entry.Properties
                   .FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue;
 
+              var oldValues = entry.State is EntityState.Modified or EntityState.Deleted
+                  ? JsonSerializer.Serialize(entry.OriginalValues.Properties
+                      .ToDictionary(p => p.Name, p => entry.OriginalValues[p]))
+                  : null;
+
+              var newValues = entry.State is EntityState.Added or EntityState.Modified
+                  ? JsonSerializer.Serialize(entry.CurrentValues.Properties
+                      .ToDictionary(p => p.Name, p => entry.CurrentValues[p]))
+                  : null;
+
               AuditLogs.Add(new AuditLog
               {
                   Id = Guid.NewGuid(),
@@ -84,8 +94,8 @@ public class DashTabDbContext(DbContextOptions<DashTabDbContext> options) : DbCo
                   EntityId = entityId is Guid g ? g : Guid.Empty,
                   Action = action,
                   ChangedAt = DateTime.UtcNow,
-                  Diff = JsonSerializer.Serialize(
-                      entry.Properties.ToDictionary(p => p.Metadata.Name, p => p.CurrentValue))
+                  OldValues = oldValues,
+                  NewValues = newValues,
               });
           }
 

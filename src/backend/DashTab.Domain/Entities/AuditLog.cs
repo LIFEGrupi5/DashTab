@@ -22,6 +22,7 @@ public class AuditLog
 
     public DateTime ChangedAt { get; set; }
 
-    public string? Diff { get; set; }
+    public string? OldValues { get; set; }
 
+    public string? NewValues { get; set; }
 }
