@@ -42,7 +42,7 @@ services:
     image: quay.io/keycloak/keycloak:25.0
     restart: unless-stopped
     profiles: [full]
-    command: start-dev
+    command: start-dev --import-realm
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
@@ -61,6 +61,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    volumes:
+      - ./../keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && echo -e 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q 'UP' <&3"]
       interval: 15s

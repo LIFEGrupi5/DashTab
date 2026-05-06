@@ -1,29 +1,43 @@
 using DashTab.Application.Dtos;
-using DashTab.Application.Interfaces;
-using Microsoft.AspNetCore.Mvc;
+  using DashTab.Application.Interfaces;
+  using Microsoft.AspNetCore.Authorization;
+  using Microsoft.AspNetCore.Mvc;
 
-namespace DashTab.API.Controllers;
+  namespace DashTab.API.Controllers;
 
-[ApiController]
-[Route("api/v1/auth")]
-public class AuthController(IAuthService authService) : ControllerBase
-{
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request)
-    {
-        var result = await authService.LoginAsync(request.Email);
-        return result is null ? Unauthorized(new { error = "Invalid credentials." }) : Ok(result);
-    }
+  [ApiController]
+  [Route("api/v1/auth")]
+  public class AuthController(IAuthService _service, ICurrentUser currentUser) : ControllerBase
+  {
+      [AllowAnonymous]
+      [HttpPost("login")]
+      public async Task<IActionResult> Login([FromBody] LoginRequest request)
+      {
+          var tokens = await _service.LoginAsync(request);
+          return Ok(tokens);
+      }
 
-    [HttpGet("me")]
-    public async Task<IActionResult> Me()
-    {
-        var header = HttpContext.Request.Headers.Authorization.FirstOrDefault();
-        if (string.IsNullOrEmpty(header) || !header.StartsWith("Bearer "))
-            return Unauthorized(new { error = "Missing or invalid Authorization header." });
+      [AllowAnonymous]
+      [HttpPost("refresh")]
+      public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
+      {
+          var tokens = await _service.RefreshAsync(request);
+          return Ok(tokens);
+      }
 
-        var token = header["Bearer ".Length..].Trim();
-        var user = await authService.GetCurrentUserAsync(token);
-        return user is null ? Unauthorized(new { error = "Token invalid or user not found." }) : Ok(user);
-    }
-}
+      [Authorize]
+      [HttpPost("logout")]
+      public async Task<IActionResult> Logout([FromBody] LogoutRequest request)
+      {
+          await _service.LogoutAsync(request);
+          return NoContent();
+      }
+
+      [Authorize]
+      [HttpGet("me")]
+      public async Task<IActionResult> Me()
+      {
+          var user = await _service.GetCurrentUserAsync(currentUser);
+          return user is null ? NotFound() : Ok(user);
+      }
+  }

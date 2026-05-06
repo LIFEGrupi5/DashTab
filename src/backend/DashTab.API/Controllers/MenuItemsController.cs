@@ -1,9 +1,11 @@
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DashTab.API.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/v1/menu-items")]
 public class MenuItemsController(IMenuItemService menuItemService) : ControllerBase
@@ -22,6 +24,7 @@ public class MenuItemsController(IMenuItemService menuItemService) : ControllerB
         return item is null ? NotFound() : Ok(item);
     }
 
+    [Authorize(Roles = "Owner,Manager")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateMenuItemRequest request)
     {
@@ -29,6 +32,7 @@ public class MenuItemsController(IMenuItemService menuItemService) : ControllerB
         return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
     }
 
+    [Authorize(Roles = "Owner,Manager")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMenuItemRequest request)
     {
@@ -36,6 +40,7 @@ public class MenuItemsController(IMenuItemService menuItemService) : ControllerB
         return item is null ? NotFound() : Ok(item);
     }
 
+    [Authorize(Roles = "Owner,Manager")]
     [HttpPatch("{id:guid}/availability")]
     public async Task<IActionResult> ToggleAvailability(Guid id, [FromBody] ToggleAvailabilityRequest request)
     {
@@ -43,6 +48,7 @@ public class MenuItemsController(IMenuItemService menuItemService) : ControllerB
         return item is null ? NotFound() : Ok(item);
     }
 
+    [Authorize(Roles = "Owner,Manager")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
