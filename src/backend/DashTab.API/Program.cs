@@ -1,9 +1,17 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using DashTab.API.Middleware;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Validators;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,15 +30,89 @@ builder.Services.AddControllers().AddJsonOptions(o =>
         new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase));
 });
 
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(o =>
+{
+    o.InvalidModelStateResponseFactory = ctx =>
+    {
+        var errors = ctx.ModelState
+            .Where(e => e.Value?.Errors.Count > 0)
+            .ToDictionary(e => e.Key, e => e.Value!.Errors.Select(x => x.ErrorMessage).ToArray());
+
+        var problem = new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Status = 422,
+            Title = "Validation Failed",
+            Extensions = { ["errors"] = errors }
+        };
+        return new Microsoft.AspNetCore.Mvc.UnprocessableEntityObjectResult(problem);
+    };
+});
+
 // ── CORS ──────────────────────────────────────────────────────────────────────
 builder.Services.AddCors(cors => cors.AddPolicy("Frontend", policy => policy
     .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
+// -- Authentication with JWT Bearer tokens from Keycloak ─────────────────────────
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(opts =>
+    {
+        opts.Authority = builder.Configuration["Keycloak:Authority"];
+        opts.Audience = builder.Configuration["Keycloak:Audience"];
+        opts.RequireHttpsMetadata = false;
+        opts.MapInboundClaims = false;
+        opts.TokenValidationParameters.RoleClaimType = "roles";
+    });
+builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
+
+
+builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
+builder.Services.AddFluentValidationAutoValidation();
+
+
+builder.Services.AddRateLimiter(o =>
+{
+  o.RejectionStatusCode = 429;
+  o.OnRejected = (ctx, _) =>
+  {
+      ctx.HttpContext.Response.Headers["Retry-After"] = "60";
+      return ValueTask.CompletedTask;
+  };
+  o.AddFixedWindowLimiter("auth-login", opt =>
+  {
+      opt.PermitLimit = 10;
+      opt.Window = TimeSpan.FromMinutes(1);
+  });
+  o.AddFixedWindowLimiter("auth-refresh", opt =>
+  {
+      opt.PermitLimit = 5;
+      opt.Window = TimeSpan.FromMinutes(1);
+  });
+});
+
 // ── OpenAPI / Swagger ─────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(o =>
+  {
+      o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+      {
+          Type = SecuritySchemeType.Http,
+          Scheme = "bearer",
+          BearerFormat = "JWT",
+          In = ParameterLocation.Header,
+          Description = "Paste your access token here."
+      });
+      o.AddSecurityRequirement(new OpenApiSecurityRequirement
+      {
+          [new OpenApiSecurityScheme
+          {
+              Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+          }] = []
+      });
+  });
 
 // ── ProblemDetails for unhandled exceptions ───────────────────────────────────
 builder.Services.AddExceptionHandler<DashTabExceptionHandler>();
@@ -42,6 +124,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 var app = builder.Build();
 
@@ -53,9 +136,10 @@ if (app.Environment.IsDevelopment())
 }
 
 // ── Middleware pipeline ───────────────────────────────────────────────────────
-app.UseExceptionHandler();
-app.UseHttpsRedirection();
 app.UseCors("Frontend");
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
