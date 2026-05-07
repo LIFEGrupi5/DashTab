@@ -1,39 +1,36 @@
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Mappings;
 using DashTab.Domain.Entities;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class CategoryService(DashTabDbContext db) : ICategoryService
+public class CategoryService(DashTabDbContext db, MenuCategoryMapper mapper) : ICategoryService
 {
     public async Task<IEnumerable<MenuCategoryDto>> ListAsync()
     {
         var cats = await db.MenuCategories.OrderBy(c => c.DisplayOrder).ToListAsync();
-        return cats.Select(ToDto);
+        return cats.Select(mapper.ToDto);
     }
 
     public async Task<MenuCategoryDto?> GetByIdAsync(Guid id)
     {
         var cat = await db.MenuCategories.FindAsync(id);
-        return cat is null ? null : ToDto(cat);
+        return cat is null ? null : mapper.ToDto(cat);
     }
 
     public async Task<MenuCategoryDto> CreateAsync(CreateCategoryRequest request)
     {
         var now = DateTime.UtcNow;
-        var cat = new MenuCategory
-        {
-            Id = Guid.NewGuid(),
-            Name = request.Name,
-            DisplayOrder = request.DisplayOrder,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
+        var cat = mapper.ToEntity(request);
+        cat.Id = Guid.NewGuid();
+        cat.CreatedAt = now;
+        cat.UpdatedAt = now;
         db.MenuCategories.Add(cat);
         await db.SaveChangesAsync();
-        return ToDto(cat);
+        return mapper.ToDto(cat);
     }
 
     public async Task<MenuCategoryDto?> UpdateAsync(Guid id, UpdateCategoryRequest request)
@@ -41,11 +38,10 @@ public class CategoryService(DashTabDbContext db) : ICategoryService
         var cat = await db.MenuCategories.FindAsync(id);
         if (cat is null) return null;
 
-        cat.Name = request.Name;
-        cat.DisplayOrder = request.DisplayOrder;
+        mapper.Update(request, cat);
         cat.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
-        return ToDto(cat);
+        return mapper.ToDto(cat);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -62,6 +58,4 @@ public class CategoryService(DashTabDbContext db) : ICategoryService
         await db.SaveChangesAsync();
         return true;
     }
-
-    private static MenuCategoryDto ToDto(MenuCategory c) => new(c.Id, c.Name, c.DisplayOrder);
 }

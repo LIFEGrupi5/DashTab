@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using DashTab.API.Middleware;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Mappings;
 using DashTab.Application.Validators;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
@@ -124,6 +125,12 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
+// ── Mappers (Mapperly-generated, stateless) ──────────────────────────────────
+builder.Services.AddSingleton<MenuCategoryMapper>();
+builder.Services.AddSingleton<MenuItemMapper>();
+builder.Services.AddSingleton<UserMapper>();
+builder.Services.AddSingleton<OrderMapper>();
 
 var app = builder.Build();
 
