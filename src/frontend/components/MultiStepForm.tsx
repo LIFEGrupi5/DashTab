@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useReducer } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Button from '@/components/Button';
@@ -9,15 +9,32 @@ import FileUpload from '@/components/FileUpload';
 import { staffSchema, type StaffFormData } from '@/lib/schemas';
 
 const STEPS = ['Personal Info', 'Role & Date', 'Photo & Bio'];
+const LAST_STEP = STEPS.length - 1;
 
 type Props = {
   onClose: () => void;
   onSubmit: (data: StaffFormData) => void;
 };
 
+type WizardState = { step: number; photo: File | null };
+type WizardAction =
+  | { type: 'next' }
+  | { type: 'back' }
+  | { type: 'setPhoto'; file: File | null };
+
+function wizardReducer(state: WizardState, action: WizardAction): WizardState {
+  switch (action.type) {
+    case 'next':
+      return { ...state, step: Math.min(LAST_STEP, state.step + 1) };
+    case 'back':
+      return { ...state, step: Math.max(0, state.step - 1) };
+    case 'setPhoto':
+      return { ...state, photo: action.file };
+  }
+}
+
 export default function MultiStepForm({ onClose, onSubmit }: Props) {
-  const [step, setStep] = useState(0);
-  const [photo, setPhoto] = useState<File | null>(null);
+  const [{ step, photo }, dispatch] = useReducer(wizardReducer, { step: 0, photo: null });
 
   const { register, trigger, getValues, formState: { errors } } = useForm<StaffFormData>({
     resolver: zodResolver(staffSchema),
@@ -30,12 +47,12 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
       ['role', 'startDate'],
       ['bio'],
     ];
-    const valid = await trigger(fields[step] as (keyof StaffFormData)[]);
+    const valid = await trigger(fields[step]);
     if (!valid) return;
-    if (step === 2) {
+    if (step === LAST_STEP) {
       onSubmit(getValues());
     } else {
-      setStep(s => s + 1);
+      dispatch({ type: 'next' });
     }
   };
 
@@ -119,7 +136,7 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
 
             {step === 2 && (
               <>
-                <FileUpload value={photo} onChange={setPhoto} />
+                <FileUpload value={photo} onChange={file => dispatch({ type: 'setPhoto', file })} />
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Bio (optional)</label>
                   <textarea
@@ -134,11 +151,11 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
           </div>
 
           <div className="flex gap-3 p-5 pt-0">
-            <Button variant="secondary" onClick={step === 0 ? onClose : () => setStep(s => s - 1)}>
+            <Button variant="secondary" onClick={step === 0 ? onClose : () => dispatch({ type: 'back' })}>
               {step === 0 ? 'Cancel' : 'Back'}
             </Button>
             <Button fullWidth onClick={next}>
-              {step === 2 ? 'Add Member' : 'Next'}
+              {step === LAST_STEP ? 'Add Member' : 'Next'}
             </Button>
           </div>
         </div>

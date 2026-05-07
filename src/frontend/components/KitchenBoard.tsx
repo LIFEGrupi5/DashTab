@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { Bell, CheckCircle2, ChefHat, Clock3, LogOut, Moon, Sun } from 'lucide-react';
 import { useOrders } from '@/hooks/useOrders';
 import { useSetOrderStatus } from '@/hooks/useSetOrderStatus';
 import { useAppStore } from '@/stores/useAppStore';
+import { useNow } from '@/hooks/useNow';
 import type { Order, OrderStatus } from '@/lib/api/types';
 
 /** Fixed width for flex row + wrap (20rem); no grow so row fills then wraps. */
@@ -94,28 +95,37 @@ export default function KitchenBoard() {
   const clearAuth = useAppStore(s => s.clearAuth);
   const isKitchenStaff = user?.role === 'kitchen';
 
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(id);
-  }, []);
+  // Header clock: re-render the parent once a minute so the displayed time stays fresh.
+  // Card-level "X mins ago" tickers live inside KitchenOrderCard via useNow(30_000).
+  useNow(60_000);
 
   const visible = useMemo(
     () => orders.filter(o => KITCHEN_STATUSES.includes(o.status)),
     [orders]
   );
 
-  const counts = useMemo(() => {
-    const n = (s: OrderStatus) => visible.filter(o => o.status === s).length;
-    return { new: n('new'), preparing: n('preparing'), ready: n('ready') };
-  }, [visible]);
+  const byStatus = useMemo(
+    () => ({
+      new: visible.filter(o => o.status === 'new'),
+      preparing: visible.filter(o => o.status === 'preparing'),
+      ready: visible.filter(o => o.status === 'ready'),
+    }),
+    [visible]
+  );
 
-  const byStatus = (s: OrderStatus) => visible.filter(o => o.status === s);
+  const counts = useMemo(
+    () => ({ new: byStatus.new.length, preparing: byStatus.preparing.length, ready: byStatus.ready.length }),
+    [byStatus]
+  );
 
-  const onAdvance = (orderId: string, next: OrderStatus) => {
-    if (!isKitchenStaff) return;
-    setStatus.mutate({ id: orderId, status: next });
-  };
+  const mutateStatus = setStatus.mutate;
+  const onAdvance = useCallback(
+    (orderId: string, next: OrderStatus) => {
+      if (!isKitchenStaff) return;
+      mutateStatus({ id: orderId, status: next });
+    },
+    [isKitchenStaff, mutateStatus]
+  );
 
   return (
     <div className="flex flex-col flex-1 min-h-0 text-neutral-900 dark:text-foreground">
@@ -187,7 +197,7 @@ export default function KitchenBoard() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
               {SECTION_META.map(section => {
-                const list = byStatus(section.status);
+                const list = byStatus[section.status];
                 const Icon = section.Icon;
                 return (
                   <div key={section.status} className="flex flex-col gap-3">
@@ -212,8 +222,7 @@ export default function KitchenBoard() {
                           order={order}
                           section={section}
                           interactive={isKitchenStaff}
-                          onAdvance={() => onAdvance(order.id, section.next)}
-                          now={now}
+                          onAdvance={onAdvance}
                         />
                       ))
                     )}
@@ -249,28 +258,28 @@ function KitchenOrderTiming({ order, now }: { order: Order; now: number }) {
   );
 }
 
-function KitchenOrderCard({
+const KitchenOrderCard = memo(function KitchenOrderCard({
   order,
   section,
   interactive,
   onAdvance,
-  now,
 }: {
   order: Order;
   section: (typeof SECTION_META)[number];
   interactive: boolean;
-  onAdvance: () => void;
-  now: number;
+  onAdvance: (orderId: string, next: OrderStatus) => void;
 }) {
+  const now = useNow(30_000);
   const showOverdueBell = useMemo(
     () => orderWaitExceedsKitchenSla(order, now),
     [order, now]
   );
+  const handleAdvance = interactive ? () => onAdvance(order.id, section.next) : undefined;
 
   return (
     <div className={KITCHEN_CARD_WRAP}>
       <div
-        onClick={interactive ? onAdvance : undefined}
+        onClick={handleAdvance}
         className={`h-full rounded-xl bg-white dark:bg-card p-3 sm:p-4 border-2 ${section.cardBorder} shadow-[0_1px_3px_rgba(15,23,42,0.06)] dark:shadow-[0_1px_3px_rgba(0,0,0,0.25)] flex flex-col ${interactive ? 'cursor-pointer hover:brightness-[0.97] active:scale-[0.99] transition-transform' : ''}`}
       >
         <div className="flex items-start justify-between gap-3">
@@ -316,4 +325,4 @@ function KitchenOrderCard({
       </div>
     </div>
   );
-}
+});
