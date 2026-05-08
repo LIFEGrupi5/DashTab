@@ -1,44 +1,37 @@
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Mappings;
 using DashTab.Domain.Entities;
-using DashTab.Domain.Enums;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class UserService(DashTabDbContext _context) : IUserService
+public class UserService(DashTabDbContext _context, UserMapper mapper) : IUserService
 {
     public async Task<IEnumerable<StaffUserDto>> ListAsync()
     {
         var users = await _context.Users.OrderBy(u => u.FullName).ToListAsync();
-        return users.Select(ToDto);
+        return users.Select(mapper.ToDto);
     }
 
     public async Task<StaffUserDto?> GetByIdAsync(Guid id)
     {
         var user = await _context.Users.FindAsync(id);
-        return user is null ? null : ToDto(user);
+        return user is null ? null : mapper.ToDto(user);
     }
 
     public async Task<StaffUserDto> CreateAsync(CreateStaffRequest request)
     {
         var now = DateTime.UtcNow;
-        var user = new User
-        {
-            Id = Guid.NewGuid(),
-            FullName = request.FullName,
-            Email = request.Email,
-            Role = Enum.Parse<Role>(request.Role, ignoreCase: true),
-            IsActive = true,
-            HireStartDate = DateOnly.TryParse(request.StartDate, out var d) ? d : null,
-            Bio = request.Bio,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
+        var user = mapper.ToEntity(request);
+        user.Id = Guid.NewGuid();
+        user.IsActive = true;
+        user.CreatedAt = now;
+        user.UpdatedAt = now;
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
-        return ToDto(user);
+        return mapper.ToDto(user);
     }
 
     public async Task<StaffUserDto?> UpdateAsync(Guid id, UpdateStaffRequest request)
@@ -46,14 +39,10 @@ public class UserService(DashTabDbContext _context) : IUserService
         var user = await _context.Users.FindAsync(id);
         if (user is null) return null;
 
-        user.FullName = request.FullName;
-        user.Email = request.Email;
-        user.Role = Enum.Parse<Role>(request.Role, ignoreCase: true);
-        user.Bio = request.Bio;
-        user.PhotoUrl = request.PhotoUrl;
+        mapper.Update(request, user);
         user.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
-        return ToDto(user);
+        return mapper.ToDto(user);
     }
 
     public async Task<StaffUserDto?> SetActiveAsync(Guid id, bool active)
@@ -64,7 +53,7 @@ public class UserService(DashTabDbContext _context) : IUserService
         user.IsActive = active;
         user.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
-        return ToDto(user);
+        return mapper.ToDto(user);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -77,7 +66,4 @@ public class UserService(DashTabDbContext _context) : IUserService
         await _context.SaveChangesAsync();
         return true;
     }
-
-    private static StaffUserDto ToDto(User u) =>
-        new(u.Id, u.FullName, u.Email, u.Role.ToString().ToLower(), u.IsActive);
 }

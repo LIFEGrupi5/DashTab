@@ -1,12 +1,13 @@
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Mappings;
 using DashTab.Domain.Entities;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class MenuItemService(DashTabDbContext db) : IMenuItemService
+public class MenuItemService(DashTabDbContext db, MenuItemMapper mapper) : IMenuItemService
 {
     public async Task<IEnumerable<MenuItemDto>> ListAsync(Guid? categoryId = null, string? search = null, bool? available = null)
     {
@@ -24,33 +25,26 @@ public class MenuItemService(DashTabDbContext db) : IMenuItemService
             .ThenBy(m => m.Name)
             .ToListAsync();
 
-        return items.Select(ToDto);
+        return items.Select(mapper.ToDto);
     }
 
     public async Task<MenuItemDto?> GetByIdAsync(Guid id)
     {
         var item = await db.MenuItems.Include(m => m.Category).FirstOrDefaultAsync(m => m.Id == id);
-        return item is null ? null : ToDto(item);
+        return item is null ? null : mapper.ToDto(item);
     }
 
     public async Task<MenuItemDto> CreateAsync(CreateMenuItemRequest request)
     {
         var now = DateTime.UtcNow;
-        var item = new MenuItem
-        {
-            Id = Guid.NewGuid(),
-            CategoryId = request.CategoryId,
-            Name = request.Name,
-            Description = request.Description,
-            Price = request.Price,
-            IsAvailable = request.Available,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
+        var item = mapper.ToEntity(request);
+        item.Id = Guid.NewGuid();
+        item.CreatedAt = now;
+        item.UpdatedAt = now;
         db.MenuItems.Add(item);
         await db.SaveChangesAsync();
         await db.Entry(item).Reference(m => m.Category).LoadAsync();
-        return ToDto(item);
+        return mapper.ToDto(item);
     }
 
     public async Task<MenuItemDto?> UpdateAsync(Guid id, UpdateMenuItemRequest request)
@@ -58,18 +52,14 @@ public class MenuItemService(DashTabDbContext db) : IMenuItemService
         var item = await db.MenuItems.Include(m => m.Category).FirstOrDefaultAsync(m => m.Id == id);
         if (item is null) return null;
 
-        item.Name = request.Name;
-        item.CategoryId = request.CategoryId;
-        item.Description = request.Description;
-        item.Price = request.Price;
-        item.IsAvailable = request.Available;
+        mapper.Update(request, item);
         item.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
         if (item.Category.Id != request.CategoryId)
             await db.Entry(item).Reference(m => m.Category).LoadAsync();
 
-        return ToDto(item);
+        return mapper.ToDto(item);
     }
 
     public async Task<MenuItemDto?> ToggleAvailabilityAsync(Guid id, bool available)
@@ -80,7 +70,7 @@ public class MenuItemService(DashTabDbContext db) : IMenuItemService
         item.IsAvailable = available;
         item.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
-        return ToDto(item);
+        return mapper.ToDto(item);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -93,7 +83,4 @@ public class MenuItemService(DashTabDbContext db) : IMenuItemService
         await db.SaveChangesAsync();
         return true;
     }
-
-    private static MenuItemDto ToDto(MenuItem m) =>
-        new(m.Id, m.Name, m.Category.Name, m.Price, m.Description, m.IsAvailable);
 }

@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Mappings;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -11,7 +12,7 @@ namespace DashTab.Infrastructure.Services;
 
 public class AuthService(IHttpClientFactory
   httpClientFactory, IConfiguration config,
-  DashTabDbContext db) : IAuthService
+  DashTabDbContext db, UserMapper userMapper) : IAuthService
 {
    private string TokenEndpoint =>
        $"{config["Keycloak:Authority"]}/protocol/openid-connect/token";
@@ -81,7 +82,7 @@ public class AuthService(IHttpClientFactory
       var user = await db.Users.FirstOrDefaultAsync(u => u.Email == current.Email);
       if (user is null) return null;
 
-      return new StaffUserDto(user.Id, user.FullName, user.Email, user.Role.ToString(), user.IsActive);
+      return userMapper.ToDto(user);
    }
 
    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
