@@ -12,8 +12,17 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Logging (Serilog → stdout JSON → promtail → Loki) ─────────────────────────
+builder.Host.UseSerilog((ctx, cfg) => cfg
+    .ReadFrom.Configuration(ctx.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "DashTab.API")
+    .WriteTo.Console(new CompactJsonFormatter()));
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<DashTabDbContext>(options =>
@@ -135,6 +144,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // ── Middleware pipeline ───────────────────────────────────────────────────────
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseSerilogRequestLogging();
 app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
