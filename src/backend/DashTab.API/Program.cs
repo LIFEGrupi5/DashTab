@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using DashTab.API.Middleware;
 using DashTab.Application.Interfaces;
 using DashTab.Application.Validators;
+using DashTab.Infrastructure.Caching;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
 using FluentValidation;
@@ -20,6 +21,13 @@ builder.Services.AddDbContext<DashTabDbContext>(options =>
     options
         .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
         .UseSnakeCaseNamingConvention());
+
+// ── Distributed cache (Redis with in-memory fallback) ─────────────────────────
+var redisConn = builder.Configuration.GetConnectionString("Redis");
+if (!string.IsNullOrWhiteSpace(redisConn))
+    builder.Services.AddStackExchangeRedisCache(o => o.Configuration = redisConn);
+else
+    builder.Services.AddDistributedMemoryCache();
 
 // ── Validation ────────────────────────────────────────────────────────────────
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
@@ -67,6 +75,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         opts.RequireHttpsMetadata = false;
         opts.MapInboundClaims = false;
         opts.TokenValidationParameters.RoleClaimType = "roles";
+        // In Docker the API talks to keycloak:8080 internally, but Keycloak always puts
+        // localhost:8080 in the discovery doc (issuer + jwks_uri). We fix both:
+        // 1. Override ValidIssuer so the token's iss (localhost:8080) is accepted.
+        // 2. Rewrite backchannel requests so jwks_uri fetches succeed via keycloak:8080.
+        var validIssuer = builder.Configuration["Keycloak:ValidIssuer"];
+        if (!string.IsNullOrEmpty(validIssuer))
+        {
+            opts.TokenValidationParameters.ValidIssuer = validIssuer;
+            opts.BackchannelHttpHandler = new KeycloakBackchannelHandler(
+                publicBase: validIssuer,
+                internalBase: opts.Authority!);
+        }
     });
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
@@ -124,6 +144,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddSingleton<ICacheService, CacheService>();
 
 var app = builder.Build();
 
@@ -142,3 +163,17 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Rewrites any backchannel HTTP request (discovery, JWKS) that uses the public
+// Keycloak URL to use the internal Docker hostname instead.
+class KeycloakBackchannelHandler(string publicBase, string internalBase) : HttpClientHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken ct)
+    {
+        var uri = request.RequestUri?.ToString();
+        if (!string.IsNullOrEmpty(uri) && uri.StartsWith(publicBase))
+            request.RequestUri = new Uri(uri.Replace(publicBase, internalBase));
+        return base.SendAsync(request, ct);
+    }
+}
