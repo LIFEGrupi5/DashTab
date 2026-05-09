@@ -1,4 +1,5 @@
 using DashTab.Application.Dtos;
+using DashTab.Application.Events;
 using DashTab.Application.Interfaces;
 using DashTab.Application.Mappings;
 using DashTab.Domain.Entities;
@@ -9,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class OrderService(DashTabDbContext db, OrderMapper mapper) : IOrderService
+public class OrderService(DashTabDbContext db, OrderMapper mapper, IEventPublisher events) : IOrderService
 {
     private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
     {
@@ -85,7 +86,10 @@ public class OrderService(DashTabDbContext db, OrderMapper mapper) : IOrderServi
 
         db.Orders.Add(order);
         await db.SaveChangesAsync();
-        return mapper.ToDto(order, now);
+
+        var dto = mapper.ToDto(order, now);
+        await events.PublishAsync(new OrderPlacedEvent(dto, now), OrderRoutingKeys.Placed);
+        return dto;
     }
 
     public async Task<OrderDto?> UpdateStatusAsync(Guid id, string newStatus)
@@ -99,11 +103,18 @@ public class OrderService(DashTabDbContext db, OrderMapper mapper) : IOrderServi
         if (!AllowedTransitions[order.Status].Contains(next))
             throw new InvalidStateTransitionException(order.Status.ToString(), next.ToString());
 
+        var previousStatus = order.Status;
+        var now = DateTime.UtcNow;
         order.Status = next;
-        order.StageEnteredAt = DateTime.UtcNow;
-        order.UpdatedAt = DateTime.UtcNow;
+        order.StageEnteredAt = now;
+        order.UpdatedAt = now;
         await db.SaveChangesAsync();
-        return mapper.ToDto(order, DateTime.UtcNow);
+
+        var dto = mapper.ToDto(order, now);
+        await events.PublishAsync(
+            new OrderStatusChangedEvent(dto, previousStatus.ToString(), now),
+            OrderRoutingKeys.StatusChanged);
+        return dto;
     }
 
     public async Task<OrderDto?> CancelAsync(Guid id)
@@ -114,11 +125,18 @@ public class OrderService(DashTabDbContext db, OrderMapper mapper) : IOrderServi
         if (order.Status == OrderStatus.Completed)
             throw new InvalidStateTransitionException(order.Status.ToString(), "Cancelled");
 
+        var previousStatus = order.Status;
+        var now = DateTime.UtcNow;
         order.Status = OrderStatus.Cancelled;
-        order.StageEnteredAt = DateTime.UtcNow;
-        order.UpdatedAt = DateTime.UtcNow;
+        order.StageEnteredAt = now;
+        order.UpdatedAt = now;
         await db.SaveChangesAsync();
-        return mapper.ToDto(order, DateTime.UtcNow);
+
+        var dto = mapper.ToDto(order, now);
+        await events.PublishAsync(
+            new OrderCancelledEvent(dto, previousStatus.ToString(), now),
+            OrderRoutingKeys.Cancelled);
+        return dto;
     }
 
     private async Task<string> NextOrderNumberAsync(DateTime now)

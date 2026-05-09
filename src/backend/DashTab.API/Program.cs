@@ -4,6 +4,7 @@ using DashTab.API.Middleware;
 using DashTab.Application.Interfaces;
 using DashTab.Application.Mappings;
 using DashTab.Application.Validators;
+using DashTab.Infrastructure.Messaging;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
 using FluentValidation;
@@ -126,6 +127,12 @@ builder.Services.AddSwaggerGen(o =>
 // ── ProblemDetails for unhandled exceptions ───────────────────────────────────
 builder.Services.AddExceptionHandler<DashTabExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+// ── Messaging (RabbitMQ) ──────────────────────────────────────────────────────
+builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection(RabbitMqOptions.SectionName));
+builder.Services.AddSingleton<RabbitMqConnection>();
+builder.Services.AddScoped<IEventPublisher, RabbitMqEventPublisher>();
+builder.Services.AddHostedService<RabbitMqTopologyInitializer>();
 
 // ── Application services ──────────────────────────────────────────────────────
 builder.Services.AddScoped<IAuthService, AuthService>();
