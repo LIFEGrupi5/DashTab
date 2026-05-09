@@ -1,11 +1,13 @@
-import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
-import type { AuthUser } from '@/lib/api/types';
+import { create } from "zustand";
+import { devtools, persist } from "zustand/middleware";
+import type { AuthUser } from "@/lib/api/types";
 
 type AppState = {
   token: string | null;
+  refreshToken: string | null;
   user: AuthUser | null;
-  setAuth: (user: AuthUser, token: string) => void;
+  setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => void;
+  setTokens: (accessToken: string, refreshToken: string) => void;
   clearAuth: () => void;
   sidebarOpen: boolean;
   toggleSidebar: () => void;
@@ -19,31 +21,30 @@ export const useAppStore = create<AppState>()(
     persist(
       (set, get) => ({
         token: null,
+        refreshToken: null,
         user: null,
-        setAuth: (user, token) => set({ user, token }),
-        clearAuth: () => {
-          if (typeof window !== 'undefined') {
-            window.localStorage.removeItem('restaurantos:role');
-            window.localStorage.removeItem('restaurantos:email');
-          }
-          set({ user: null, token: null });
-        },
+        setAuth: (user, accessToken, refreshToken) =>
+          set({ user, token: accessToken, refreshToken }),
+        setTokens: (accessToken, refreshToken) =>
+          set({ token: accessToken, refreshToken }),
+        clearAuth: () => set({ user: null, token: null, refreshToken: null }),
         sidebarOpen: true,
         toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
-        setSidebarOpen: sidebarOpen => set({ sidebarOpen }),
+        setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
         darkMode: false,
-        setDarkMode: darkMode => set({ darkMode }),
+        setDarkMode: (darkMode) => set({ darkMode }),
       }),
       {
-        name: 'restaurantos-app',
-        partialize: s => ({
+        name: "restaurantos-app",
+        partialize: (s) => ({
           token: s.token,
+          refreshToken: s.refreshToken,
           user: s.user,
           sidebarOpen: s.sidebarOpen,
           darkMode: s.darkMode,
         }),
-      }
+      },
     ),
-    { name: 'RestaurantOS', enabled: process.env.NODE_ENV === 'development' }
-  )
+    { name: "RestaurantOS", enabled: process.env.NODE_ENV === "development" },
+  ),
 );

@@ -1,6 +1,7 @@
-import { useAppStore } from '@/stores/useAppStore';
+import { useAppStore } from "@/stores/useAppStore";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:5000/api/v1';
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api/v1";
 
 export class ApiError extends Error {
   constructor(
@@ -11,21 +12,45 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  isRetry = false,
+): Promise<T> {
   const token = useAppStore.getState().token;
 
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
     },
   });
 
-  if (res.status === 401) {
+  if (res.status === 401 && !isRetry) {
+    const { refreshToken, setTokens, clearAuth } = useAppStore.getState();
+    if (refreshToken) {
+      try {
+        const { refreshTokens } = await import("./auth");
+        const session = await refreshTokens(refreshToken);
+        setTokens(session.accessToken, session.refreshToken);
+        return request<T>(path, init, true);
+      } catch {
+        clearAuth();
+        window.location.replace("/login");
+        throw new ApiError(401, { error: "Session expired." });
+      }
+    }
+    clearAuth();
+    window.location.replace("/login");
+    throw new ApiError(401, { error: "Session expired." });
+  }
+
+  if (res.status === 401 && isRetry) {
     useAppStore.getState().clearAuth();
-    throw new ApiError(401, { error: 'Session expired. Please sign in again.' });
+    window.location.replace("/login");
+    throw new ApiError(401, { error: "Session expired." });
   }
 
   if (!res.ok) {
@@ -40,12 +65,13 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export const apiGet = <T>(path: string) => request<T>(path);
 
 export const apiPost = <T>(path: string, body: unknown) =>
-  request<T>(path, { method: 'POST', body: JSON.stringify(body) });
+  request<T>(path, { method: "POST", body: JSON.stringify(body) });
 
 export const apiPut = <T>(path: string, body: unknown) =>
-  request<T>(path, { method: 'PUT', body: JSON.stringify(body) });
+  request<T>(path, { method: "PUT", body: JSON.stringify(body) });
 
 export const apiPatch = <T>(path: string, body: unknown) =>
-  request<T>(path, { method: 'PATCH', body: JSON.stringify(body) });
+  request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
 
-export const apiDelete = (path: string) => request<void>(path, { method: 'DELETE' });
+export const apiDelete = (path: string) =>
+  request<void>(path, { method: "DELETE" });

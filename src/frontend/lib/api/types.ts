@@ -2,7 +2,7 @@ export type Role = 'owner' | 'manager' | 'waiter' | 'kitchen';
 
 export type AuthUser = { id: string; email: string; name: string; role: Role };
 
-export type AuthSession = { token: string; user: AuthUser };
+export type AuthSession = { accessToken: string; refreshToken: string; expiresIn: number };
 
 export type OrderStatus = 'new' | 'preparing' | 'ready' | 'completed' | 'cancelled';
 
