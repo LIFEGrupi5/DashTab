@@ -1,10 +1,10 @@
 # AI Development Log
 
 ## Summary Statistics
-- Total entries: **77** (Milestone 1 table: 4 rows; Milestone 2 / session chronicle: **#1–#36**; post–M2.7 Cursor session: **#37–#40**; Apr 19 polish session: **#41–#49**; Apr 24 Docker + frontend fixes: **#50–#55**; Apr 28 perf + FE requirements session: **#56–#64**; May 6 dev environment + architecture + API wiring: **#65–#72**; May 6 FE-2 / FE-9 requirements pass: **#73–#76**; May 7 M3.13 Serilog + correlation IDs: **#77**)
-- Estimated total time saved: ~57h
+- Total entries: **88** (Milestone 1 table: 4 rows; Milestone 2 / session chronicle: **#1–#36**; post–M2.7 Cursor session: **#37–#40**; Apr 19 polish session: **#41–#49**; Apr 24 Docker + frontend fixes: **#50–#55**; Apr 28 perf + FE requirements session: **#56–#64**; May 6 dev environment + architecture + API wiring: **#65–#72**; May 6 FE-2 / FE-9 requirements pass: **#73–#76**; May 7 M3.13 Serilog + correlation IDs: **#77**; Apr 25 backend Clean Architecture scaffold: **#78–#79**; May 4–5 backend entities + Swagger + exception handler: **#80–#83**; May 6 backend DB layer: **#84–#85**; May 6 Keycloak + RBAC + validation + rate limiting: **#86–#88**)
+- Estimated total time saved: ~68h
 - Most used tool: Claude / Cursor Agent
-- Updated through: Milestone 2 + M2.7 a11y/Lighthouse + **Apr 16–17** git-dated sessions + **Apr 18, 2026** kitchen board & dashboard shell (Cursor) + **Apr 19, 2026** UI polish & kitchen board UX (Claude Code) + **Apr 24, 2026** Docker bring-up & frontend fixes (Claude Code) + **Apr 28, 2026** performance audit + FE requirements pass (Claude Code) + **May 6, 2026** dev environment hardening + architecture review + frontend/backend wiring (Claude Code) + **May 6, 2026** FE §3.2 audit + FE-2 / FE-9 follow-up (Claude Code) + **May 7, 2026** M3.13 Serilog + correlation IDs (Claude Code)
+- Updated through: Milestone 2 + M2.7 a11y/Lighthouse + **Apr 16–17** git-dated sessions + **Apr 18, 2026** kitchen board & dashboard shell (Cursor) + **Apr 19, 2026** UI polish & kitchen board UX (Claude Code) + **Apr 24, 2026** Docker bring-up & frontend fixes (Claude Code) + **Apr 28, 2026** performance audit + FE requirements pass (Claude Code) + **Apr 25, 2026** backend Clean Architecture scaffold (Claude Code) + **May 4–5, 2026** backend entities, endpoints, Swagger, exception handler (Claude Code) + **May 6, 2026** dev environment hardening + architecture review + frontend/backend wiring (Claude Code) + **May 6, 2026** FE §3.2 audit + FE-2 / FE-9 follow-up (Claude Code) + **May 6, 2026** backend DB layer — soft delete, audit trail, migrations (Claude Code) + **May 6, 2026** Keycloak JWT auth + RBAC + FluentValidation + rate limiting (Claude Code) + **May 7, 2026** M3.13 Serilog + correlation IDs (Claude Code)
 
 ---
 
@@ -191,3 +191,50 @@ Closed M3.13 (Person 3 deck) — backend now ships structured JSON logs with per
 | # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
 |---|---|---|---|---|---|---|
 | 77 | Claude Code | Backend / Observability | **M3.13 Serilog + correlation IDs:** added `Serilog.Formatting.Compact` package; wired `Host.UseSerilog()` in `Program.cs` with `ReadFrom.Configuration` + `Enrich.FromLogContext()` + `WriteTo.Console(new CompactJsonFormatter())`; added `Middleware/CorrelationIdMiddleware.cs` that reads or generates `X-Correlation-Id`, echoes it on the response, stashes it in `HttpContext.Items`, and pushes it onto Serilog `LogContext` for the request scope; registered the middleware first in the pipeline followed by `UseSerilogRequestLogging()`; replaced the default `"Logging"` config block in both `appsettings.json` and `appsettings.Development.json` with a `"Serilog"` section (Information / Debug defaults, Microsoft.AspNetCore + EFCore overrides). Backend builds clean (only pre-existing `NU1510` warnings on `Microsoft.Extensions.Http` in Infrastructure) | Good | ~1h | Promtail's docker_sd scraper already ships container stdout to Loki, so a direct `Serilog.Sinks.Grafana.Loki` is redundant — emit CLEF JSON to stdout and let promtail handle transport; this keeps the app decoupled from log storage. `LogContext.PushProperty` inside the middleware's `using` block is the right scope so correlation IDs land on every log emitted during the request, including downstream `ILogger<T>` calls in services without any extra wiring |
+
+---
+
+### Session — Apr 25, 2026 (backend Clean Architecture scaffold; Claude Code) — Olti
+
+Bootstrapped the .NET 10 backend from scratch: Clean Architecture solution structure, initial API setup, and CI ruleset fix.
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 78 | Claude Code | Backend | **Clean Architecture scaffold:** created 4-layer .NET 10 solution (`DashTab.Domain`, `DashTab.Application`, `DashTab.Infrastructure`, `DashTab.API`) with correct project references (Domain ← Application ← Infrastructure ← API); added mock controller stubs as placeholders to confirm routing worked end-to-end before real entities were built | Good | ~1.5h | Start with a working skeleton (even with mock returns) before building real services — it proves the DI chain and routing are wired before adding complexity |
+| 79 | Claude Code | DevOps | **CI ruleset fix:** branch protection ruleset was blocking pushes; fixed the GitHub Actions workflow configuration so CI gates applied correctly without locking out the team | Needed fixes | ~30min | GitHub branch rulesets and classic branch protection rules interact — confirm which one is active before adding status check requirements |
+
+---
+
+### Session — May 4–5, 2026 (backend entities + endpoints + Swagger + exception handler; Claude Code) — Olti
+
+Built the full backend data model and all four endpoint groups, wired Swagger with bearer auth support, and added global exception handling.
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 80 | Claude Code | Backend | **EF Core entities + DbContext:** created all domain entities (`Order`, `OrderItem`, `MenuItem`, `MenuCategory`, `User`) with base `AuditableEntity` (`CreatedAt`, `UpdatedAt`, `CreatedById`); configured relationships, snake_case naming convention, and `DbContext` with all `DbSet` properties; added EF Core packages and Npgsql provider | Good | ~1.5h | Define `BaseEntity` and `AuditableEntity` first — every other entity inherits them and it prevents duplication of `Id`, `CreatedAt`, `UpdatedAt` across 5+ classes |
+| 81 | Claude Code | Backend | **CRUD endpoints (Menu, Orders, Staff, Categories):** implemented service interfaces and concrete services in Infrastructure for all four resource groups; wired controllers with correct HTTP verbs, route templates (`api/v1/...`), and `[Authorize]` / `[Authorize(Roles="Owner,Manager")]` attributes on write endpoints; added `ICurrentUser` service reading `sub` / `email` / `roles` claims from `HttpContext` | Good | ~2h | Use `[Authorize(Roles="...")]` at the action level for write endpoints rather than a policy name — it's readable and maps directly to the Keycloak role names without extra policy registration |
+| 82 | Claude Code | Backend | **Swagger + bearer auth:** added `Swashbuckle.AspNetCore` 6.9.0; configured `AddSecurityDefinition("Bearer", ...)` + `AddSecurityRequirement` in `Program.cs`; downgraded from 10.1.7 to 6.9.0 because 10.x requires `Microsoft.OpenApi` 2.x whose `OpenApiSecurityScheme` namespace moved | Needed fixes | ~30min | Always check the Swashbuckle ↔ Microsoft.OpenApi version matrix before installing — major Swashbuckle versions track OpenApi major versions; 6.x uses `Microsoft.OpenApi` 1.x which is stable |
+| 83 | Claude Code | Backend | **Global exception handler:** added `DashTabExceptionHandler` implementing `IExceptionHandler`; maps `ValidationException` → 422 with field errors dict, `UnauthorizedAccessException` → 401, `KeyNotFoundException` → 404, unhandled → 500; registered via `AddExceptionHandler` + `UseExceptionHandler` in `Program.cs` | Good | ~30min | Implement `IExceptionHandler` (ASP.NET Core 8+) rather than middleware — it composes cleanly with `IProblemDetailsService` and produces consistent `ProblemDetails` JSON without manual serialization |
+
+---
+
+### Session — May 6, 2026 (backend DB layer — soft delete + audit trail + migrations; Claude Code) — Olti
+
+Added production-quality data layer features: soft delete with global query filter, full audit trail via `SaveChanges` override, and first EF Core migration.
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 84 | Claude Code | Backend | **Soft delete + global query filter:** added `IsDeleted` flag to `BaseEntity`; overrode `SaveChangesAsync` to intercept `EntityState.Deleted` and flip to `Modified` + set `IsDeleted = true`; added `HasQueryFilter(e => !e.IsDeleted)` on every entity in `OnModelCreating` so deleted rows are invisible to all queries without any call-site changes | Good | ~30min | `HasQueryFilter` is applied globally — use `IgnoreQueryFilters()` only on the specific admin query that needs to see deleted records; forgetting this causes "record not found" on admin restore operations |
+| 85 | Claude Code | Backend | **Audit trail via SaveChanges override:** extended the `SaveChangesAsync` override to capture `OldValues` and `NewValues` as JSON for every modified entity and write an `AuditLog` row per change; stored `ChangedById` from `ICurrentUser` so every write is traceable to the authenticated user; added `migrations.md` documenting the migration history and how to apply them | Good | ~45min | Capture `OldValues` from `OriginalValues` before calling `base.SaveChangesAsync` — after the base call the change tracker resets and `OriginalValues` reflects the new state; serialize to JSON inside the override so the audit row is written in the same transaction as the change |
+
+---
+
+### Session — May 6, 2026 (Keycloak JWT auth + RBAC + FluentValidation + rate limiting; Claude Code) — Olti
+
+Full security layer: backend proxies Keycloak token endpoint, JWT bearer validation with role claim mapping, authorization policies, FluentValidation on all DTOs, and rate limiting on auth endpoints.
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 86 | Claude Code | Backend | **Keycloak JWT bearer auth:** added `Keycloak:Authority` + `Keycloak:Audience` to `appsettings`; configured `AddJwtBearer` with `MapInboundClaims = false` and `RoleClaimType = "roles"` so Keycloak's PascalCase roles claim maps correctly; created `AuthService` proxying Keycloak's ROPC token endpoint via `IHttpClientFactory`; added `AuthController` with `[AllowAnonymous]` login/refresh and `[Authorize]` logout/me endpoints | Needed fixes | ~2h | `MapInboundClaims = false` is essential — without it ASP.NET Core remaps `roles` to a URI-based claim type and `[Authorize(Roles="Owner")]` silently fails with 403 even when the JWT contains the correct role |
+| 87 | Claude Code | Backend | **RBAC attributes on all controllers:** added `[Authorize]` at class level on all controllers; added `[Authorize(Roles="Owner,Manager")]` on write actions (POST/PUT/DELETE) for menu items, categories, and users; verified Owner token gets 201, Waiter token gets 403 on the same endpoint via curl | Good | ~30min | Test RBAC with curl rather than Swagger UI — the UI's bearer token input is easy to forget to update between role switches; curl makes the `Authorization` header explicit |
+| 88 | Claude Code | Backend | **FluentValidation + rate limiting:** added validators for all request DTOs (`LoginRequest`, `CreateOrderRequest`, `CreateMenuItemRequest`, `UpdateMenuItemRequest`, `CreateCategoryRequest`, `CreateStaffRequest`, `UpdateStaffRequest`); wired `AddFluentValidationAutoValidation` + custom `InvalidModelStateResponseFactory` returning 422 instead of 400; added `AddRateLimiter` with a fixed-window limiter on `/auth/login` (10 req/min) and a global sliding-window limiter (200 req/min) | Good | ~1h | `InvalidModelStateResponseFactory` must be set after `AddFluentValidationAutoValidation` in the service registration order — if set before, the default factory still handles model state errors and returns 400 |
