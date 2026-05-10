@@ -1,6 +1,8 @@
-import { apiGet, apiPost } from './client';
-import type { AuthSession, AuthUser } from './types';
+import { apiPost } from './client';
+import type { AuthSession } from './types';
 
-export const login = (email: string) => apiPost<AuthSession>('/auth/login', { email });
+export const login = (email: string, password: string) => apiPost<AuthSession>('/auth/login', {email, password});
 
-export const fetchMe = () => apiGet<AuthUser>('/auth/me');
+export const refreshTokens = (refreshToken: string) => apiPost<AuthSession>('/auth/refresh', {refreshToken});
+
+export const logoutApi = (refreshToken: string) => apiPost<void>('/auth/logout', {refreshToken});

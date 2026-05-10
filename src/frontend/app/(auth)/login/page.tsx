@@ -1,40 +1,43 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
-import { ChefHat, Mail, Lock } from 'lucide-react';
-import Button from '@/components/Button';
-import TextField from '@/components/TextField';
-import { useAppStore } from '@/stores/useAppStore';
-import { login } from '@/lib/api/auth';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { ChefHat, Mail, Lock } from "lucide-react";
+import Button from "@/components/Button";
+import TextField from "@/components/TextField";
+import { useAppStore } from "@/stores/useAppStore";
+import { login } from "@/lib/api/auth";
+import { decodeJwt, claimsToAuthUser } from "@/lib/api/jwt";
+import { toast } from "sonner";
 
 const demoAccounts = [
-  { email: 'admin@restaurant.com', role: 'Owner' },
-  { email: 'manager@restaurant.com', role: 'Manager' },
-  { email: 'ana@restaurant.com', role: 'Waiter' },
-  { email: 'petrit@restaurant.com', role: 'Kitchen' },
+  { email: "owner@dashtab.dev", password: "Owner1!", role: "Owner" },
+  { email: "manager@dashtab.dev", password: "Manager1!", role: "Manager" },
+  { email: "waiter@dashtab.dev", password: "Waiter1!", role: "Waiter" },
+  { email: "kitchen@dashtab.dev", password: "Kitchen1!", role: "Kitchen" },
 ] as const;
 
 export default function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const setAuth = useAppStore(s => s.setAuth);
-  const [selectedEmail, setSelectedEmail] = useState<string>(demoAccounts[0].email);
-
+  const setAuth = useAppStore((s) => s.setAuth);
+  const [email, setEmail] = useState<string>(demoAccounts[0].email);
+  const [password, setPassword] = useState<string>(demoAccounts[0].password);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     try {
-      const session = await login(selectedEmail);
-      setAuth(session.user, session.token);
-      void queryClient.invalidateQueries({ queryKey: ['auth'] });
-      router.push(session.user.role === 'kitchen' ? '/kitchen' : '/dashboard');
+      const session = await login(email, password);
+      const claims = decodeJwt<Record<string, unknown>>(session.accessToken);
+      const user = claimsToAuthUser(claims);
+      setAuth(user, session.accessToken, session.refreshToken);
+      void queryClient.invalidateQueries({ queryKey: ["auth"] });
+      router.push(user.role === "kitchen" ? "/kitchen" : "/dashboard");
     } catch {
-      toast.error('Invalid credentials. Check the demo accounts below.');
+      toast.error("Invalid credentials. Check the demo accounts below.");
     } finally {
       setIsLoading(false);
     }
@@ -47,53 +50,82 @@ export default function LoginPage() {
           <div className="w-14 h-14 bg-orange-500 rounded-2xl flex items-center justify-center mb-5 shadow-lg">
             <ChefHat className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-neutral-900 dark:text-foreground">RestaurantOS</h1>
-          <p className="text-sm text-neutral-500 dark:text-muted-foreground mt-2">Operations Management System</p>
+          <h1
+            className="text-4xl font-extrabold tracking-tight text-neutral-900
+  dark:text-foreground"
+          >
+            RestaurantOS
+          </h1>
+          <p className="text-sm text-neutral-500 dark:text-muted-foreground mt-2">
+            Operations Management System
+          </p>
         </div>
 
-        <div className="bg-white dark:bg-card rounded-2xl border border-neutral-200 dark:border-border shadow-sm p-8">
-          <h2 className="text-2xl font-bold text-neutral-900 dark:text-card-foreground mb-6">Sign in to your account</h2>
+        <div
+          className="bg-white dark:bg-card rounded-2xl border border-neutral-200 dark:border-border shadow-sm
+  p-8"
+        >
+          <h2 className="text-2xl font-bold text-neutral-900 dark:text-card-foreground mb-6">
+            Sign in to your account
+          </h2>
           <form className="space-y-5" onSubmit={handleSignIn}>
             <TextField
               label="Email Address"
               type="email"
-              placeholder="you@restaurant.com"
-              value={selectedEmail}
-              onChange={event => setSelectedEmail(event.target.value)}
+              placeholder="you@dashtab.dev"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               leftIcon={<Mail className="w-5 h-5" />}
             />
             <TextField
               label="Password"
               type="password"
               placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               leftIcon={<Lock className="w-5 h-5" />}
             />
 
-            <Button type="submit" fullWidth className="rounded-xl py-3" disabled={isLoading}>
-              {isLoading ? 'Signing in…' : 'Sign In'}
+            <Button
+              type="submit"
+              fullWidth
+              className="rounded-xl py-3"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing in…" : "Sign In"}
             </Button>
-
           </form>
         </div>
 
         <div className="mt-4 bg-white dark:bg-card rounded-2xl border border-neutral-200 dark:border-border p-4">
-          <p className="text-xs font-semibold text-neutral-500 dark:text-muted-foreground uppercase tracking-wide mb-3">
+          <p
+            className="text-xs font-semibold text-neutral-500 dark:text-muted-foreground uppercase tracking-wide
+  mb-3"
+          >
             Demo accounts
           </p>
           <div className="space-y-2">
-            {demoAccounts.map(acc => (
+            {demoAccounts.map((acc) => (
               <button
                 key={acc.email}
                 type="button"
-                onClick={() => setSelectedEmail(acc.email)}
+                onClick={() => {
+                  setEmail(acc.email);
+                  setPassword(acc.password);
+                }}
                 className={`w-full text-left flex items-center justify-between px-3 py-2 rounded-lg transition ${
-                  selectedEmail === acc.email
-                    ? 'bg-orange-50 dark:bg-orange-950/40'
-                    : 'hover:bg-neutral-50 dark:hover:bg-muted/20'
+                  email === acc.email
+                    ? "bg-orange-50 dark:bg-orange-950/40"
+                    : "hover:bg-neutral-50 dark:hover:bg-muted/20"
                 }`}
               >
-                <span className="text-sm text-neutral-700 dark:text-foreground">{acc.email}</span>
-                <span className="text-xs font-medium text-orange-600 dark:text-orange-300 bg-orange-50 dark:bg-orange-950/50 px-2 py-0.5 rounded-full">
+                <span className="text-sm text-neutral-700 dark:text-foreground">
+                  {acc.email}
+                </span>
+                <span
+                  className="text-xs font-medium text-orange-600 dark:text-orange-300 bg-orange-50
+  dark:bg-orange-950/50 px-2 py-0.5 rounded-full"
+                >
                   {acc.role}
                 </span>
               </button>

@@ -1,15 +1,9 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { fetchMe } from '@/lib/api/auth';
-import { queryKeys } from '@/lib/queryKeys';
-import { useAppStore } from '@/stores/useAppStore';
+import { useAppStore } from "@/stores/useAppStore";
 
-export function useAuth() {
+export function useAuth() { 
+  const user = useAppStore(s => s.user);
   const token = useAppStore(s => s.token);
-  return useQuery({
-    queryKey: queryKeys.auth.me(token),
-    queryFn: fetchMe,
-    enabled: !!token,
-  });
+  return {user, token , isAuthenticated: !!user};
 }

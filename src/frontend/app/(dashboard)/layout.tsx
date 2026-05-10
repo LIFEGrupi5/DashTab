@@ -85,6 +85,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
     );
   }
+  
+  if (!user) {
+    router.replace('/login');
+    return null;
+  }
 
   return (
     <div
