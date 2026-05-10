@@ -1,5 +1,6 @@
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Mappings;
 using DashTab.Domain.Entities;
 using DashTab.Infrastructure.Caching;
 using DashTab.Infrastructure.Persistence;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class CategoryService(DashTabDbContext db, ICacheService cache) : ICategoryService
+public class CategoryService(DashTabDbContext db, ICacheService cache, MenuCategoryMapper mapper) : ICategoryService
 {
     private static readonly TimeSpan CategoryTtl = TimeSpan.FromMinutes(15);
 
@@ -17,7 +18,7 @@ public class CategoryService(DashTabDbContext db, ICacheService cache) : ICatego
         if (cached is not null) return cached;
 
         var cats = await db.MenuCategories.OrderBy(c => c.DisplayOrder).ToListAsync();
-        var dtos = cats.Select(ToDto).ToList();
+        var dtos = cats.Select(mapper.ToDto).ToList();
 
         await cache.SetAsync(CacheKeys.MenuCategoriesAll, dtos, CategoryTtl);
         return dtos;
@@ -32,7 +33,7 @@ public class CategoryService(DashTabDbContext db, ICacheService cache) : ICatego
         var cat = await db.MenuCategories.FindAsync(id);
         if (cat is null) return null;
 
-        var dto = ToDto(cat);
+        var dto = mapper.ToDto(cat);
         await cache.SetAsync(key, dto, CategoryTtl);
         return dto;
     }
@@ -40,20 +41,16 @@ public class CategoryService(DashTabDbContext db, ICacheService cache) : ICatego
     public async Task<MenuCategoryDto> CreateAsync(CreateCategoryRequest request)
     {
         var now = DateTime.UtcNow;
-        var cat = new MenuCategory
-        {
-            Id = Guid.NewGuid(),
-            Name = request.Name,
-            DisplayOrder = request.DisplayOrder,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
+        var cat = mapper.ToEntity(request);
+        cat.Id = Guid.NewGuid();
+        cat.CreatedAt = now;
+        cat.UpdatedAt = now;
         db.MenuCategories.Add(cat);
         await db.SaveChangesAsync();
 
         await cache.RemoveAsync(CacheKeys.MenuCategoriesAll);
 
-        return ToDto(cat);
+        return mapper.ToDto(cat);
     }
 
     public async Task<MenuCategoryDto?> UpdateAsync(Guid id, UpdateCategoryRequest request)
@@ -61,8 +58,7 @@ public class CategoryService(DashTabDbContext db, ICacheService cache) : ICatego
         var cat = await db.MenuCategories.FindAsync(id);
         if (cat is null) return null;
 
-        cat.Name = request.Name;
-        cat.DisplayOrder = request.DisplayOrder;
+        mapper.Update(request, cat);
         cat.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
@@ -75,7 +71,7 @@ public class CategoryService(DashTabDbContext db, ICacheService cache) : ICatego
             CacheKeys.MenuItemsByCategory(id)
         });
 
-        return ToDto(cat);
+        return mapper.ToDto(cat);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -99,6 +95,4 @@ public class CategoryService(DashTabDbContext db, ICacheService cache) : ICatego
 
         return true;
     }
-
-    private static MenuCategoryDto ToDto(MenuCategory c) => new(c.Id, c.Name, c.DisplayOrder);
 }

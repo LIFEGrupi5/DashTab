@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using DashTab.API.Middleware;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Mappings;
 using DashTab.Application.Validators;
 using DashTab.Infrastructure.Caching;
 using DashTab.Infrastructure.Persistence;
@@ -13,8 +14,17 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Logging (Serilog → stdout JSON → promtail → Loki) ─────────────────────────
+builder.Host.UseSerilog((ctx, cfg) => cfg
+    .ReadFrom.Configuration(ctx.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "DashTab.API")
+    .WriteTo.Console(new CompactJsonFormatter()));
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<DashTabDbContext>(options =>
@@ -146,6 +156,12 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton<ICacheService, CacheService>();
 
+// ── Mappers (Mapperly-generated, stateless) ──────────────────────────────────
+builder.Services.AddSingleton<MenuCategoryMapper>();
+builder.Services.AddSingleton<MenuItemMapper>();
+builder.Services.AddSingleton<UserMapper>();
+builder.Services.AddSingleton<OrderMapper>();
+
 var app = builder.Build();
 
 // ── Dev only: Swagger UI ──────────────────────────────────────────────────────
@@ -156,6 +172,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // ── Middleware pipeline ───────────────────────────────────────────────────────
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseSerilogRequestLogging();
 app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();

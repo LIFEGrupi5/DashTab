@@ -1,5 +1,6 @@
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Mappings;
 using DashTab.Domain.Entities;
 using DashTab.Domain.Enums;
 using DashTab.Domain.Exceptions;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class OrderService(DashTabDbContext db) : IOrderService
+public class OrderService(DashTabDbContext db, OrderMapper mapper) : IOrderService
 {
     private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
     {
@@ -19,8 +20,6 @@ public class OrderService(DashTabDbContext db) : IOrderService
         [OrderStatus.Cancelled] = [],
     };
 
-    private const int DelayedThresholdMinutes = 30;
-
     public async Task<IEnumerable<OrderDto>> ListAsync(string? status = null)
     {
         var query = db.Orders.Include(o => o.Items).AsQueryable();
@@ -30,13 +29,13 @@ public class OrderService(DashTabDbContext db) : IOrderService
 
         var orders = await query.OrderByDescending(o => o.PlacedAt).ToListAsync();
         var now = DateTime.UtcNow;
-        return orders.Select(o => ToDto(o, now));
+        return orders.Select(o => mapper.ToDto(o, now));
     }
 
     public async Task<OrderDto?> GetByIdAsync(Guid id)
     {
         var order = await db.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
-        return order is null ? null : ToDto(order, DateTime.UtcNow);
+        return order is null ? null : mapper.ToDto(order, DateTime.UtcNow);
     }
 
     public async Task<OrderDto> CreateAsync(CreateOrderRequest request, Guid createdById)
@@ -86,7 +85,7 @@ public class OrderService(DashTabDbContext db) : IOrderService
 
         db.Orders.Add(order);
         await db.SaveChangesAsync();
-        return ToDto(order, now);
+        return mapper.ToDto(order, now);
     }
 
     public async Task<OrderDto?> UpdateStatusAsync(Guid id, string newStatus)
@@ -104,7 +103,7 @@ public class OrderService(DashTabDbContext db) : IOrderService
         order.StageEnteredAt = DateTime.UtcNow;
         order.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
-        return ToDto(order, DateTime.UtcNow);
+        return mapper.ToDto(order, DateTime.UtcNow);
     }
 
     public async Task<OrderDto?> CancelAsync(Guid id)
@@ -119,7 +118,7 @@ public class OrderService(DashTabDbContext db) : IOrderService
         order.StageEnteredAt = DateTime.UtcNow;
         order.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
-        return ToDto(order, DateTime.UtcNow);
+        return mapper.ToDto(order, DateTime.UtcNow);
     }
 
     private async Task<string> NextOrderNumberAsync(DateTime now)
@@ -128,19 +127,4 @@ public class OrderService(DashTabDbContext db) : IOrderService
         var count = await db.Orders.CountAsync(o => o.PlacedAt >= startOfDay);
         return (count + 1).ToString().PadLeft(3, '0');
     }
-
-    private static OrderDto ToDto(Order o, DateTime now) => new(
-        o.Id,
-        o.OrderNumber,
-        o.TableLabel,
-        o.PlacedAt.ToString("HH:mm"),
-        o.CreatedByName,
-        o.Status.ToString().ToLower(),
-        o.TotalAmount,
-        o.Items.Select(i => new OrderItemDto(i.MenuItemNameSnapshot, i.Quantity, i.LineTotal)),
-        o.PlacedAt.ToString("o"),
-        o.StageEnteredAt.ToString("o"),
-        Delayed: o.Status is OrderStatus.New or OrderStatus.Preparing
-                 && (now - o.PlacedAt).TotalMinutes > DelayedThresholdMinutes
-    );
 }

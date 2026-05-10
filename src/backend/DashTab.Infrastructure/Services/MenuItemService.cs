@@ -1,5 +1,6 @@
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Mappings;
 using DashTab.Domain.Entities;
 using DashTab.Infrastructure.Caching;
 using DashTab.Infrastructure.Persistence;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class MenuItemService(DashTabDbContext db, ICacheService cache) : IMenuItemService
+public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemMapper mapper) : IMenuItemService
 {
     private static readonly TimeSpan ItemTtl = TimeSpan.FromMinutes(5);
 
@@ -38,7 +39,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache) : IMenuIt
             .ThenBy(m => m.Name)
             .ToListAsync();
 
-        var dtos = items.Select(ToDto).ToList();
+        var dtos = items.Select(mapper.ToDto).ToList();
 
         if (canCache)
             await cache.SetAsync(cacheKey, dtos, ItemTtl);
@@ -55,7 +56,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache) : IMenuIt
         var item = await db.MenuItems.Include(m => m.Category).FirstOrDefaultAsync(m => m.Id == id);
         if (item is null) return null;
 
-        var dto = ToDto(item);
+        var dto = mapper.ToDto(item);
         await cache.SetAsync(key, dto, ItemTtl);
         return dto;
     }
@@ -63,17 +64,10 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache) : IMenuIt
     public async Task<MenuItemDto> CreateAsync(CreateMenuItemRequest request)
     {
         var now = DateTime.UtcNow;
-        var item = new MenuItem
-        {
-            Id = Guid.NewGuid(),
-            CategoryId = request.CategoryId,
-            Name = request.Name,
-            Description = request.Description,
-            Price = request.Price,
-            IsAvailable = request.Available,
-            CreatedAt = now,
-            UpdatedAt = now,
-        };
+        var item = mapper.ToEntity(request);
+        item.Id = Guid.NewGuid();
+        item.CreatedAt = now;
+        item.UpdatedAt = now;
         db.MenuItems.Add(item);
         await db.SaveChangesAsync();
         await db.Entry(item).Reference(m => m.Category).LoadAsync();
@@ -84,7 +78,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache) : IMenuIt
             CacheKeys.MenuItemsByCategory(item.CategoryId)
         });
 
-        return ToDto(item);
+        return mapper.ToDto(item);
     }
 
     public async Task<MenuItemDto?> UpdateAsync(Guid id, UpdateMenuItemRequest request)
@@ -94,11 +88,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache) : IMenuIt
 
         var oldCategoryId = item.CategoryId;
 
-        item.Name = request.Name;
-        item.CategoryId = request.CategoryId;
-        item.Description = request.Description;
-        item.Price = request.Price;
-        item.IsAvailable = request.Available;
+        mapper.Update(request, item);
         item.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
@@ -115,7 +105,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache) : IMenuIt
             keys.Add(CacheKeys.MenuItemsByCategory(oldCategoryId));
         await cache.RemoveManyAsync(keys);
 
-        return ToDto(item);
+        return mapper.ToDto(item);
     }
 
     public async Task<MenuItemDto?> ToggleAvailabilityAsync(Guid id, bool available)
@@ -134,7 +124,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache) : IMenuIt
             CacheKeys.MenuItem(id)
         });
 
-        return ToDto(item);
+        return mapper.ToDto(item);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -155,7 +145,4 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache) : IMenuIt
 
         return true;
     }
-
-    private static MenuItemDto ToDto(MenuItem m) =>
-        new(m.Id, m.Name, m.Category.Name, m.Price, m.Description, m.IsAvailable);
 }
