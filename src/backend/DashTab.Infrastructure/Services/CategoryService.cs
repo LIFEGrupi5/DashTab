@@ -43,6 +43,7 @@ public class CategoryService(DashTabDbContext db, ICacheService cache, MenuCateg
         var now = DateTime.UtcNow;
         var cat = mapper.ToEntity(request);
         cat.Id = Guid.NewGuid();
+        cat.IsDeleted = false;
         cat.CreatedAt = now;
         cat.UpdatedAt = now;
         db.MenuCategories.Add(cat);
