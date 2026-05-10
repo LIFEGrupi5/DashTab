@@ -41,6 +41,8 @@ public class DashTabDbContext(DbContextOptions<DashTabDbContext> options) : DbCo
             .Property(m => m.IsDeleted).HasDefaultValue(false);
         modelBuilder.Entity<MenuItem>()
             .HasQueryFilter(m => !m.IsDeleted);
+        modelBuilder.Entity<MenuItem>()
+            .HasIndex(m => m.IsAvailable);
 
         modelBuilder.Entity<Order>()
             .Property(o => o.Status).HasConversion<string>();
@@ -53,6 +55,10 @@ public class DashTabDbContext(DbContextOptions<DashTabDbContext> options) : DbCo
             .Property(o => o.IsDeleted).HasDefaultValue(false);
         modelBuilder.Entity<Order>()
             .HasQueryFilter(o => !o.IsDeleted);
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => o.Status);
+        modelBuilder.Entity<Order>()
+            .HasIndex(o => o.PlacedAt);
 
         modelBuilder.Entity<OrderItem>()
             .Property(i => i.IsDeleted).HasDefaultValue(false);
