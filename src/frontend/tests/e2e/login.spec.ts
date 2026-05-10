@@ -9,7 +9,7 @@ test.describe('Login flow', () => {
 
   test('can select a different demo account before signing in', async ({ page }) => {
     await page.goto('/login');
-    await page.getByText('manager@restaurant.com').click();
+    await page.getByText('manager@dashtab.dev').click();
     await page.getByRole('button', { name: 'Sign In' }).click();
     await expect(page).toHaveURL('/dashboard');
   });
