@@ -6,16 +6,18 @@ using DashTab.Domain.Enums;
 using DashTab.Domain.Exceptions;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using DashTab.Infrastructure.Services.Jobs;
+using Hangfire;
 
 namespace DashTab.Infrastructure.Services;
 
-public class OrderService(DashTabDbContext db, OrderMapper mapper) : IOrderService
+public class OrderService(DashTabDbContext db, OrderMapper mapper, IBackgroundJobClient backgroundJobs) : IOrderService
 {
     private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
     {
-        [OrderStatus.New]       = [OrderStatus.Preparing, OrderStatus.Cancelled],
-        [OrderStatus.Preparing] = [OrderStatus.Ready,     OrderStatus.Cancelled],
-        [OrderStatus.Ready]     = [OrderStatus.Completed, OrderStatus.Cancelled],
+        [OrderStatus.New] = [OrderStatus.Preparing, OrderStatus.Cancelled],
+        [OrderStatus.Preparing] = [OrderStatus.Ready, OrderStatus.Cancelled],
+        [OrderStatus.Ready] = [OrderStatus.Completed, OrderStatus.Cancelled],
         [OrderStatus.Completed] = [],
         [OrderStatus.Cancelled] = [],
     };
@@ -85,6 +87,7 @@ public class OrderService(DashTabDbContext db, OrderMapper mapper) : IOrderServi
 
         db.Orders.Add(order);
         await db.SaveChangesAsync();
+        backgroundJobs.Enqueue<OrderEmailJob>(j => j.SendOrderConfirmation(order.Id));
         return mapper.ToDto(order, now);
     }
 
