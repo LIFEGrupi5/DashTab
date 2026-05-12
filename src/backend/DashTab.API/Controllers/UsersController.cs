@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DashTab.API.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Owner,Manager")]
 [ApiController]
 [Route("api/v1/users")]
 public class UsersController(IUserService userService) : ControllerBase
@@ -21,7 +21,7 @@ public class UsersController(IUserService userService) : ControllerBase
         return user is null ? NotFound() : Ok(user);
     }
 
-    [Authorize(Roles = "Owner,Manager")]
+    [Authorize(Roles = "Owner")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateStaffRequest request)
     {
@@ -29,7 +29,7 @@ public class UsersController(IUserService userService) : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
     }
 
-    [Authorize(Roles = "Owner,Manager")]
+    [Authorize(Roles = "Owner")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateStaffRequest request)
     {
@@ -37,7 +37,7 @@ public class UsersController(IUserService userService) : ControllerBase
         return user is null ? NotFound() : Ok(user);
     }
 
-    [Authorize(Roles = "Owner,Manager")]
+    [Authorize(Roles = "Owner")]
     [HttpPatch("{id:guid}/active")]
     public async Task<IActionResult> SetActive(Guid id, [FromBody] SetActiveRequest request)
     {
@@ -45,7 +45,7 @@ public class UsersController(IUserService userService) : ControllerBase
         return user is null ? NotFound() : Ok(user);
     }
 
-    [Authorize(Roles = "Owner,Manager")]
+    [Authorize(Roles = "Owner")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
