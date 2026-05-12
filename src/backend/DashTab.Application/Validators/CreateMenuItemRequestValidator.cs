@@ -7,7 +7,7 @@ public class CreateMenuItemRequestValidator : AbstractValidator<CreateMenuItemRe
 {
     public CreateMenuItemRequestValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Name).NotEmpty().MinimumLength(2).MaximumLength(100);
         RuleFor(x => x.Price).GreaterThan(0);
         RuleFor(x => x.CategoryId).NotEmpty();
     }
