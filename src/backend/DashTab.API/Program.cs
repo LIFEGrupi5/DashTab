@@ -18,8 +18,11 @@ using Serilog;
 using Serilog.Formatting.Compact;
 using DashTab.API.Hangfire;
 using DashTab.Infrastructure.Services.Jobs;
+using DashTab.Infrastructure.Services.Storage;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.Extensions.Options;
+using Minio;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -151,6 +154,29 @@ builder.Services.AddSwaggerGen(o =>
 // ── ProblemDetails for unhandled exceptions ───────────────────────────────────
 builder.Services.AddExceptionHandler<DashTabExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+// ── Object storage (MinIO) ────────────────────────────────────────────────────
+builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
+builder.Services.AddSingleton<IMinioClient>(sp =>
+{
+    var opts = sp.GetRequiredService<IOptions<StorageOptions>>().Value;
+    var endpoint = opts.Endpoint;
+    Uri? uri = null;
+    if (endpoint.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+        endpoint.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        uri = new Uri(endpoint);
+
+    var client = new MinioClient()
+        .WithEndpoint(uri?.Host ?? endpoint, uri?.Port ?? 9000)
+        .WithCredentials(opts.AccessKey, opts.SecretKey);
+
+    if (opts.UseSsl || uri?.Scheme == "https")
+        client = client.WithSSL();
+
+    return client.Build();
+});
+builder.Services.AddScoped<IStorageService, MinioStorageService>();
+builder.Services.AddHostedService<StorageBucketBootstrapper>();
 
 // ── Application services ──────────────────────────────────────────────────────
 builder.Services.AddScoped<IAuthService, AuthService>();

@@ -49,3 +49,5 @@ dotnet ef migrations list --project ../DashTab.Infrastructure --startup-project 
 |---|---|---|
 | `InitialCreate` | 2026-05-05 | All core tables: users, menu_categories, menu_items, orders, order_items, audit_logs |
 | `AuditLogOldNewValues` | 2026-05-06 | Replace `diff` column with `old_values` + `new_values` on audit_logs |
+| `AlignIsDeletedDefaults` | 2026-05-12 | Add `DEFAULT false` to `is_deleted` columns on 5 tables (users, orders, order_items, menu_items, menu_categories). Catches up pre-existing model-vs-DB drift where `HasDefaultValue(false)` was declared in `OnModelCreating` but never persisted by `InitialCreate`. Without this, EF Core omits the column from INSERT when value is `false`, causing NOT NULL violations. |
+| `AddMenuItemImage` | 2026-05-12 | Adds nullable `image_object_key` column to `menu_items` (text). Used by the MinIO image-upload flow to track the object key for a menu item's image. |

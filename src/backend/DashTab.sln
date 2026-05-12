@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DashTab.Application", "Dash
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DashTab.Infrastructure", "DashTab.Infrastructure\DashTab.Infrastructure.csproj", "{A3456789-ABCD-EF01-2345-6789ABCDEF03}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DashTab.UnitTests", "..\..\tests\backend\DashTab.UnitTests\DashTab.UnitTests.csproj", "{EFD44AB7-3156-4589-92AC-4F1E8A0285F7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DashTab.UnitTests", "tests\DashTab.UnitTests\DashTab.UnitTests.csproj", "{EFD44AB7-3156-4589-92AC-4F1E8A0285F7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
