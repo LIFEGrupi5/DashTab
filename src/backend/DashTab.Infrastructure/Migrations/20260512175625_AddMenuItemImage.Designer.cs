@@ -3,6 +3,7 @@ using System;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DashTab.Infrastructure.Migrations
 {
     [DbContext(typeof(DashTabDbContext))]
-    partial class DashTabDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260512175625_AddMenuItemImage")]
+    partial class AddMenuItemImage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -163,9 +166,6 @@ namespace DashTab.Infrastructure.Migrations
                     b.HasIndex("CategoryId")
                         .HasDatabaseName("ix_menu_items_category_id");
 
-                    b.HasIndex("IsAvailable")
-                        .HasDatabaseName("ix_menu_items_is_available");
-
                     b.ToTable("menu_items", (string)null);
                 });
 
@@ -238,12 +238,6 @@ namespace DashTab.Infrastructure.Migrations
 
                     b.HasIndex("CreatedById")
                         .HasDatabaseName("ix_orders_created_by_id");
-
-                    b.HasIndex("PlacedAt")
-                        .HasDatabaseName("ix_orders_placed_at");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("ix_orders_status");
 
                     b.ToTable("orders", (string)null);
                 });

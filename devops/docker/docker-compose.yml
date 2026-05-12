@@ -138,6 +138,7 @@ services:
       ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
       ConnectionStrings__RabbitMQ: "amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672"
       Storage__Endpoint: "http://minio:9000"
+      Storage__PublicBaseUrl: "http://localhost:9000"
       Storage__AccessKey: ${MINIO_ROOT_USER}
       Storage__SecretKey: ${MINIO_ROOT_PASSWORD}
       Smtp__Host: mailhog
@@ -152,6 +153,8 @@ services:
       redis:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      minio:
         condition: service_healthy
 
   # ── Frontend (Next.js) ──────────────────────────────────────────────────────
