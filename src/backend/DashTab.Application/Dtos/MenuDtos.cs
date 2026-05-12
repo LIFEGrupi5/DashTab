@@ -13,7 +13,8 @@ public record MenuItemDto(
     string Category,
     decimal Price,
     string Description,
-    bool Available);
+    bool Available,
+    string? ImageUrl = null);
 
 public record CreateMenuItemRequest(
     string Name,
@@ -30,3 +31,7 @@ public record UpdateMenuItemRequest(
     bool Available);
 
 public record ToggleAvailabilityRequest(bool Available);
+
+public record ImageUploadRequest(string FileExtension);
+
+public record CommitImageRequest(string ObjectKey);

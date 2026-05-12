@@ -1,6 +1,7 @@
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
 using DashTab.Application.Mappings;
+using DashTab.Application.Storage;
 using DashTab.Domain.Entities;
 using DashTab.Infrastructure.Caching;
 using DashTab.Infrastructure.Persistence;
@@ -8,9 +9,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemMapper mapper) : IMenuItemService
+public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemMapper mapper, IStorageService storage) : IMenuItemService
 {
     private static readonly TimeSpan ItemTtl = TimeSpan.FromMinutes(5);
+
+    private MenuItemDto ToDto(MenuItem item) =>
+        mapper.ToDto(item) with
+        {
+            ImageUrl = item.ImageObjectKey is null
+                ? null
+                : storage.GetPublicUrl(StorageBuckets.MenuImages, item.ImageObjectKey)
+        };
 
     public async Task<IEnumerable<MenuItemDto>> ListAsync(Guid? categoryId = null, string? search = null, bool? available = null)
     {
@@ -39,7 +48,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
             .ThenBy(m => m.Name)
             .ToListAsync();
 
-        var dtos = items.Select(mapper.ToDto).ToList();
+        var dtos = items.Select(ToDto).ToList();
 
         if (canCache)
             await cache.SetAsync(cacheKey, dtos, ItemTtl);
@@ -56,7 +65,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
         var item = await db.MenuItems.Include(m => m.Category).FirstOrDefaultAsync(m => m.Id == id);
         if (item is null) return null;
 
-        var dto = mapper.ToDto(item);
+        var dto = ToDto(item);
         await cache.SetAsync(key, dto, ItemTtl);
         return dto;
     }
@@ -78,7 +87,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
             CacheKeys.MenuItemsByCategory(item.CategoryId)
         });
 
-        return mapper.ToDto(item);
+        return ToDto(item);
     }
 
     public async Task<MenuItemDto?> UpdateAsync(Guid id, UpdateMenuItemRequest request)
@@ -105,7 +114,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
             keys.Add(CacheKeys.MenuItemsByCategory(oldCategoryId));
         await cache.RemoveManyAsync(keys);
 
-        return mapper.ToDto(item);
+        return ToDto(item);
     }
 
     public async Task<MenuItemDto?> ToggleAvailabilityAsync(Guid id, bool available)
@@ -124,13 +133,21 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
             CacheKeys.MenuItem(id)
         });
 
-        return mapper.ToDto(item);
+        return ToDto(item);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
         var item = await db.MenuItems.FindAsync(id);
         if (item is null) return false;
+
+        // Remove the object from storage so a soft-deleted item's image is no longer
+        // publicly reachable via its presigned/public URL.
+        if (item.ImageObjectKey is not null)
+        {
+            await storage.DeleteAsync(StorageBuckets.MenuImages, item.ImageObjectKey);
+            item.ImageObjectKey = null;
+        }
 
         item.IsDeleted = true;
         item.UpdatedAt = DateTime.UtcNow;
@@ -142,6 +159,77 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
             CacheKeys.MenuItemsByCategory(item.CategoryId),
             CacheKeys.MenuItem(id)
         });
+
+        return true;
+    }
+
+    public async Task<PresignedUploadUrl?> RequestImageUploadAsync(Guid id, string fileExtension, CancellationToken ct = default)
+    {
+        // Validator rejects unsupported extensions at the controller boundary; this is a defensive guard.
+        var contentType = ImagePolicy.ResolveContentType(fileExtension)
+            ?? throw new InvalidOperationException($"Unsupported image extension: '{fileExtension}'.");
+
+        var exists = await db.MenuItems.AnyAsync(m => m.Id == id, ct);
+        if (!exists) return null;
+
+        var ext = fileExtension.TrimStart('.').ToLowerInvariant();
+        var objectKey = $"menu-items/{id}/{Guid.NewGuid()}.{ext}";
+
+        return await storage.CreatePresignedUploadAsync(
+            StorageBuckets.MenuImages, objectKey, TimeSpan.FromMinutes(15), contentType, ct);
+    }
+
+    public async Task<MenuItemDto?> ConfirmImageAsync(Guid id, string objectKey, CancellationToken ct = default)
+    {
+        // The object key embeds the menu item ID (see RequestImageUploadAsync). Reject any key
+        // that doesn't belong to this item to prevent cross-item key reuse by authenticated callers.
+        if (!objectKey.StartsWith($"menu-items/{id}/", StringComparison.Ordinal))
+            return null;
+
+        var item = await db.MenuItems.Include(m => m.Category).FirstOrDefaultAsync(m => m.Id == id, ct);
+        if (item is null) return null;
+
+        var stat = await storage.StatAsync(StorageBuckets.MenuImages, objectKey, ct);
+        if (stat is null) return null;
+
+        if (stat.Size > ImagePolicy.MaxBytes)
+        {
+            await storage.DeleteAsync(StorageBuckets.MenuImages, objectKey, ct);
+            throw new InvalidOperationException(
+                $"Image exceeds maximum size of {ImagePolicy.MaxBytes / (1024 * 1024)} MB.");
+        }
+
+        if (stat.ContentType is not null && !stat.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+        {
+            await storage.DeleteAsync(StorageBuckets.MenuImages, objectKey, ct);
+            throw new InvalidOperationException($"Uploaded object is not an image (content-type: {stat.ContentType}).");
+        }
+
+        if (item.ImageObjectKey is not null)
+            await storage.DeleteAsync(StorageBuckets.MenuImages, item.ImageObjectKey, ct);
+
+        item.ImageObjectKey = objectKey;
+        item.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        await cache.RemoveManyAsync([CacheKeys.MenuItemsAll, CacheKeys.MenuItem(id), CacheKeys.MenuItemsByCategory(item.CategoryId)]);
+
+        return ToDto(item);
+    }
+
+    public async Task<bool> RemoveImageAsync(Guid id, CancellationToken ct = default)
+    {
+        var item = await db.MenuItems.FindAsync([id], ct);
+        if (item is null) return false;
+        if (item.ImageObjectKey is null) return false;
+
+        await storage.DeleteAsync(StorageBuckets.MenuImages, item.ImageObjectKey, ct);
+
+        item.ImageObjectKey = null;
+        item.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        await cache.RemoveManyAsync([CacheKeys.MenuItemsAll, CacheKeys.MenuItem(id), CacheKeys.MenuItemsByCategory(item.CategoryId)]);
 
         return true;
     }

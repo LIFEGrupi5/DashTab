@@ -14,6 +14,8 @@ public partial class MenuItemMapper
     [MapperIgnoreSource(nameof(MenuItem.UpdatedAt))]
     [MapperIgnoreSource(nameof(MenuItem.IsDeleted))]
     [MapperIgnoreSource(nameof(MenuItem.OrderItems))]
+    [MapperIgnoreSource(nameof(MenuItem.ImageObjectKey))]
+    [MapperIgnoreTarget(nameof(MenuItemDto.ImageUrl))]
     public partial MenuItemDto ToDto(MenuItem item);
 
     [MapProperty(nameof(CreateMenuItemRequest.Available), nameof(MenuItem.IsAvailable))]
@@ -23,6 +25,7 @@ public partial class MenuItemMapper
     [MapperIgnoreTarget(nameof(MenuItem.IsDeleted))]
     [MapperIgnoreTarget(nameof(MenuItem.Category))]
     [MapperIgnoreTarget(nameof(MenuItem.OrderItems))]
+    [MapperIgnoreTarget(nameof(MenuItem.ImageObjectKey))]
     public partial MenuItem ToEntity(CreateMenuItemRequest request);
 
     [MapProperty(nameof(UpdateMenuItemRequest.Available), nameof(MenuItem.IsAvailable))]
@@ -32,5 +35,6 @@ public partial class MenuItemMapper
     [MapperIgnoreTarget(nameof(MenuItem.IsDeleted))]
     [MapperIgnoreTarget(nameof(MenuItem.Category))]
     [MapperIgnoreTarget(nameof(MenuItem.OrderItems))]
+    [MapperIgnoreTarget(nameof(MenuItem.ImageObjectKey))]
     public partial void Update(UpdateMenuItemRequest request, MenuItem target);
 }
