@@ -111,24 +111,40 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
 
 builder.Services.AddRateLimiter(o =>
-{
-    o.RejectionStatusCode = 429;
-    o.OnRejected = (ctx, _) =>
+  {
+      o.RejectionStatusCode = 429;
+      o.OnRejected = (ctx, _) =>
+      {
+          ctx.HttpContext.Response.Headers["Retry-After"] = "60";
+          return ValueTask.CompletedTask;
+      };
+      o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
     {
-        ctx.HttpContext.Response.Headers["Retry-After"] = "60";
-        return ValueTask.CompletedTask;
-    };
-    o.AddFixedWindowLimiter("auth-login", opt =>
-    {
-        opt.PermitLimit = 10;
-        opt.Window = TimeSpan.FromMinutes(1);
+        var isAuth = ctx.User.Identity?.IsAuthenticated == true;
+        var key = isAuth
+            ? ctx.User.FindFirst("sub")?.Value ?? "auth"
+            : ctx.Connection.RemoteIpAddress?.ToString() ?? "anon";
+
+        return RateLimitPartition.GetSlidingWindowLimiter(key, _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = isAuth ? 300 : 60,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6
+        });
     });
-    o.AddFixedWindowLimiter("auth-refresh", opt =>
-    {
-        opt.PermitLimit = 5;
-        opt.Window = TimeSpan.FromMinutes(1);
-    });
-});
+      o.AddSlidingWindowLimiter("auth-login", opt =>
+      {
+          opt.PermitLimit = 10;
+          opt.Window = TimeSpan.FromMinutes(1);
+          opt.SegmentsPerWindow = 6;
+      });
+      o.AddSlidingWindowLimiter("auth-refresh", opt =>
+      {
+          opt.PermitLimit = 5;
+          opt.Window = TimeSpan.FromMinutes(1);
+          opt.SegmentsPerWindow = 6;
+      });
+  });
 
 // ── OpenAPI / Swagger ─────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
