@@ -1,23 +1,28 @@
 using DashTab.Application.Dtos;
+using DashTab.Application.Events;
 using DashTab.Application.Interfaces;
 using DashTab.Application.Mappings;
 using DashTab.Domain.Entities;
 using DashTab.Domain.Enums;
 using DashTab.Domain.Exceptions;
 using DashTab.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using DashTab.Infrastructure.Services.Jobs;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class OrderService(DashTabDbContext db, OrderMapper mapper, IBackgroundJobClient backgroundJobs) : IOrderService
+public class OrderService(
+    DashTabDbContext db,
+    OrderMapper mapper,
+    IBackgroundJobClient backgroundJobs,
+    IEventPublisher events) : IOrderService
 {
     private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
     {
-        [OrderStatus.New] = [OrderStatus.Preparing, OrderStatus.Cancelled],
-        [OrderStatus.Preparing] = [OrderStatus.Ready, OrderStatus.Cancelled],
-        [OrderStatus.Ready] = [OrderStatus.Completed, OrderStatus.Cancelled],
+        [OrderStatus.New]       = [OrderStatus.Preparing, OrderStatus.Cancelled],
+        [OrderStatus.Preparing] = [OrderStatus.Ready,     OrderStatus.Cancelled],
+        [OrderStatus.Ready]     = [OrderStatus.Completed, OrderStatus.Cancelled],
         [OrderStatus.Completed] = [],
         [OrderStatus.Cancelled] = [],
     };
@@ -45,8 +50,8 @@ public class OrderService(DashTabDbContext db, OrderMapper mapper, IBackgroundJo
         var user = await db.Users.FindAsync(createdById)
             ?? throw new InvalidOperationException("User not found.");
 
-        var itemIds = request.Items.Select(i => i.MenuItemId).ToList();
-        var menuItems = await db.MenuItems
+        var itemIds    = request.Items.Select(i => i.MenuItemId).ToList();
+        var menuItems  = await db.MenuItems
             .Where(m => itemIds.Contains(m.Id))
             .ToDictionaryAsync(m => m.Id);
 
@@ -56,39 +61,42 @@ public class OrderService(DashTabDbContext db, OrderMapper mapper, IBackgroundJo
                 throw new InvalidOperationException($"Menu item '{i.MenuItemId}' not found.");
             return new OrderItem
             {
-                Id = Guid.NewGuid(),
-                MenuItemId = m.Id,
+                Id                   = Guid.NewGuid(),
+                MenuItemId           = m.Id,
                 MenuItemNameSnapshot = m.Name,
-                Quantity = i.Quantity,
-                UnitPrice = m.Price,
-                LineTotal = m.Price * i.Quantity,
+                Quantity             = i.Quantity,
+                UnitPrice            = m.Price,
+                LineTotal            = m.Price * i.Quantity,
             };
         }).ToList();
 
-        var now = DateTime.UtcNow;
+        var now         = DateTime.UtcNow;
         var orderNumber = await NextOrderNumberAsync(now);
 
         var order = new Order
         {
-            Id = Guid.NewGuid(),
-            OrderNumber = orderNumber,
-            TableLabel = request.TableNumber,
-            Status = OrderStatus.New,
-            TotalAmount = orderItems.Sum(i => i.LineTotal),
-            Notes = request.Notes,
-            CreatedById = createdById,
+            Id           = Guid.NewGuid(),
+            OrderNumber  = orderNumber,
+            TableLabel   = request.TableNumber,
+            Status       = OrderStatus.New,
+            TotalAmount  = orderItems.Sum(i => i.LineTotal),
+            Notes        = request.Notes,
+            CreatedById  = createdById,
             CreatedByName = user.FullName,
-            PlacedAt = now,
+            PlacedAt      = now,
             StageEnteredAt = now,
-            CreatedAt = now,
-            UpdatedAt = now,
-            Items = orderItems,
+            CreatedAt    = now,
+            UpdatedAt    = now,
+            Items        = orderItems,
         };
 
         db.Orders.Add(order);
         await db.SaveChangesAsync();
+
+        var dto = mapper.ToDto(order, now);
         backgroundJobs.Enqueue<OrderEmailJob>(j => j.SendOrderConfirmation(order.Id));
-        return mapper.ToDto(order, now);
+        await events.PublishAsync(new OrderPlacedEvent(dto, now), OrderRoutingKeys.Placed);
+        return dto;
     }
 
     public async Task<OrderDto?> UpdateStatusAsync(Guid id, string newStatus)
@@ -102,11 +110,18 @@ public class OrderService(DashTabDbContext db, OrderMapper mapper, IBackgroundJo
         if (!AllowedTransitions[order.Status].Contains(next))
             throw new InvalidStateTransitionException(order.Status.ToString(), next.ToString());
 
-        order.Status = next;
-        order.StageEnteredAt = DateTime.UtcNow;
-        order.UpdatedAt = DateTime.UtcNow;
+        var previousStatus = order.Status;
+        var now            = DateTime.UtcNow;
+        order.Status       = next;
+        order.StageEnteredAt = now;
+        order.UpdatedAt    = now;
         await db.SaveChangesAsync();
-        return mapper.ToDto(order, DateTime.UtcNow);
+
+        var dto = mapper.ToDto(order, now);
+        await events.PublishAsync(
+            new OrderStatusChangedEvent(dto, previousStatus.ToString(), now),
+            OrderRoutingKeys.StatusChanged);
+        return dto;
     }
 
     public async Task<OrderDto?> CancelAsync(Guid id)
@@ -117,11 +132,18 @@ public class OrderService(DashTabDbContext db, OrderMapper mapper, IBackgroundJo
         if (order.Status == OrderStatus.Completed)
             throw new InvalidStateTransitionException(order.Status.ToString(), "Cancelled");
 
-        order.Status = OrderStatus.Cancelled;
-        order.StageEnteredAt = DateTime.UtcNow;
-        order.UpdatedAt = DateTime.UtcNow;
+        var previousStatus = order.Status;
+        var now            = DateTime.UtcNow;
+        order.Status       = OrderStatus.Cancelled;
+        order.StageEnteredAt = now;
+        order.UpdatedAt    = now;
         await db.SaveChangesAsync();
-        return mapper.ToDto(order, DateTime.UtcNow);
+
+        var dto = mapper.ToDto(order, now);
+        await events.PublishAsync(
+            new OrderCancelledEvent(dto, previousStatus.ToString(), now),
+            OrderRoutingKeys.Cancelled);
+        return dto;
     }
 
     private async Task<string> NextOrderNumberAsync(DateTime now)

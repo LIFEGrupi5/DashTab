@@ -5,6 +5,7 @@ using DashTab.Application.Interfaces;
 using DashTab.Application.Mappings;
 using DashTab.Application.Validators;
 using DashTab.Infrastructure.Caching;
+using DashTab.Infrastructure.Messaging;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
 using FluentValidation;
@@ -170,6 +171,21 @@ builder.Services.AddSwaggerGen(o =>
 // ── ProblemDetails for unhandled exceptions ───────────────────────────────────
 builder.Services.AddExceptionHandler<DashTabExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+// ── Messaging (RabbitMQ) ──────────────────────────────────────────────────────
+builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection(RabbitMqOptions.SectionName));
+var rabbitMqUri = builder.Configuration.GetConnectionString("RabbitMQ");
+if (!string.IsNullOrWhiteSpace(rabbitMqUri))
+{
+    builder.Services.AddSingleton<RabbitMqConnection>();
+    builder.Services.AddScoped<IEventPublisher, RabbitMqEventPublisher>();
+    builder.Services.AddHostedService<RabbitMqTopologyInitializer>();
+    builder.Services.AddHostedService<RabbitMqConsumerService>();
+}
+else
+{
+    builder.Services.AddSingleton<IEventPublisher, NullEventPublisher>();
+}
 
 // ── Object storage (MinIO) ────────────────────────────────────────────────────
 builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Storage"));
