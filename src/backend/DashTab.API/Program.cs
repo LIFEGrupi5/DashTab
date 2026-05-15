@@ -240,6 +240,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // ── Middleware pipeline ───────────────────────────────────────────────────────
+app.UseExceptionHandler();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
 app.UseCors("Frontend");
