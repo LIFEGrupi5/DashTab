@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using DashTab.API.Middleware;
+using DashTab.API.Realtime;
 using DashTab.Application.Interfaces;
 using DashTab.Application.Mappings;
 using DashTab.Application.Validators;
@@ -106,6 +107,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 publicBase: validIssuer,
                 internalBase: opts.Authority!);
         }
+
+        // SignalR's JS client cannot set Authorization headers on the WebSocket
+        // upgrade, so it passes the JWT as ?access_token=... — copy it into the
+        // bearer pipeline for any request under /hubs/*.
+        opts.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var token = ctx.Request.Query["access_token"];
+                var path  = ctx.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(token) && path.StartsWithSegments("/hubs"))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
@@ -230,6 +246,13 @@ builder.Services.AddSingleton<MenuItemMapper>();
 builder.Services.AddSingleton<UserMapper>();
 builder.Services.AddSingleton<OrderMapper>();
 
+// ── Realtime (SignalR + optional Redis backplane) ────────────────────────────
+var signalR = builder.Services.AddSignalR();
+if (!string.IsNullOrWhiteSpace(redisConn))
+    signalR.AddStackExchangeRedis(redisConn, o =>
+        o.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("dashtab:signalr"));
+builder.Services.AddSingleton<IKdsBroadcaster, KdsBroadcaster>();
+
 var app = builder.Build();
 
 // ── Dev only: Swagger UI ──────────────────────────────────────────────────────
@@ -252,6 +275,7 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
     Authorization = [new OwnerOnlyDashboardFilter()]
 });
 app.MapControllers();
+app.MapHub<KdsHub>("/hubs/kds");
 
 app.Run();
 
