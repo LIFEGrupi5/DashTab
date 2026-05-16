@@ -80,11 +80,15 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(o =>
     };
 });
 
-// ── CORS ──────────────────────────────────────────────────────────────────────
-builder.Services.AddCors(cors => cors.AddPolicy("Frontend", policy => policy
-    .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
-    .AllowAnyHeader()
-    .AllowAnyMethod()));
+// ── CORS (dev only — prod uses same-origin via the reverse proxy) ─────────────
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddCors(cors => cors.AddPolicy("Frontend", policy => policy
+        .WithOrigins("http://localhost:3000")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials()));
+}
 
 // -- Authentication with JWT Bearer tokens from Keycloak ─────────────────────────
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -267,7 +271,8 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
-app.UseCors("Frontend");
+if (app.Environment.IsDevelopment())
+    app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
