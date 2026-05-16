@@ -197,6 +197,7 @@ if (!string.IsNullOrWhiteSpace(rabbitMqUri))
     builder.Services.AddScoped<IEventPublisher, RabbitMqEventPublisher>();
     builder.Services.AddHostedService<RabbitMqTopologyInitializer>();
     builder.Services.AddHostedService<RabbitMqConsumerService>();
+    builder.Services.AddHostedService<KitchenBridgeConsumer>();
 }
 else
 {
