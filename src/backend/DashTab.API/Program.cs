@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using DashTab.API.Middleware;
+using DashTab.API.Realtime;
 using DashTab.Application.Interfaces;
 using DashTab.Application.Mappings;
 using DashTab.Application.Validators;
@@ -79,11 +80,15 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(o =>
     };
 });
 
-// ── CORS ──────────────────────────────────────────────────────────────────────
-builder.Services.AddCors(cors => cors.AddPolicy("Frontend", policy => policy
-    .WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [])
-    .AllowAnyHeader()
-    .AllowAnyMethod()));
+// ── CORS (dev only — prod uses same-origin via the reverse proxy) ─────────────
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddCors(cors => cors.AddPolicy("Frontend", policy => policy
+        .WithOrigins("http://localhost:3000")
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials()));
+}
 
 // -- Authentication with JWT Bearer tokens from Keycloak ─────────────────────────
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -106,6 +111,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 publicBase: validIssuer,
                 internalBase: opts.Authority!);
         }
+
+        // SignalR's JS client cannot set Authorization headers on the WebSocket
+        // upgrade, so it passes the JWT as ?access_token=... — copy it into the
+        // bearer pipeline for any request under /hubs/*.
+        opts.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var token = ctx.Request.Query["access_token"];
+                var path  = ctx.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(token) && path.StartsWithSegments("/hubs"))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            }
+        };
     });
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
@@ -181,6 +201,7 @@ if (!string.IsNullOrWhiteSpace(rabbitMqUri))
     builder.Services.AddScoped<IEventPublisher, RabbitMqEventPublisher>();
     builder.Services.AddHostedService<RabbitMqTopologyInitializer>();
     builder.Services.AddHostedService<RabbitMqConsumerService>();
+    builder.Services.AddHostedService<KitchenBridgeConsumer>();
 }
 else
 {
@@ -230,6 +251,13 @@ builder.Services.AddSingleton<MenuItemMapper>();
 builder.Services.AddSingleton<UserMapper>();
 builder.Services.AddSingleton<OrderMapper>();
 
+// ── Realtime (SignalR + optional Redis backplane) ────────────────────────────
+var signalR = builder.Services.AddSignalR();
+if (!string.IsNullOrWhiteSpace(redisConn))
+    signalR.AddStackExchangeRedis(redisConn, o =>
+        o.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("dashtab:signalr"));
+builder.Services.AddSingleton<IKdsBroadcaster, KdsBroadcaster>();
+
 var app = builder.Build();
 
 // ── Dev only: Swagger UI ──────────────────────────────────────────────────────
@@ -243,7 +271,8 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
-app.UseCors("Frontend");
+if (app.Environment.IsDevelopment())
+    app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -252,6 +281,7 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
     Authorization = [new OwnerOnlyDashboardFilter()]
 });
 app.MapControllers();
+app.MapHub<KdsHub>("/hubs/kds");
 
 app.Run();
 

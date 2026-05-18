@@ -7,6 +7,7 @@ import { useOrders } from '@/hooks/useOrders';
 import { useSetOrderStatus } from '@/hooks/useSetOrderStatus';
 import { useAppStore } from '@/stores/useAppStore';
 import { useNow } from '@/hooks/useNow';
+import { useKdsSignalR } from '@/hooks/useKdsSignalR';
 import type { Order, OrderStatus } from '@/lib/api/types';
 
 /** Fixed width for flex row + wrap (20rem); no grow so row fills then wraps. */
@@ -94,6 +95,8 @@ export default function KitchenBoard() {
   const setDarkMode = useAppStore(s => s.setDarkMode);
   const clearAuth = useAppStore(s => s.clearAuth);
   const isKitchenStaff = user?.role === 'kitchen';
+
+  useKdsSignalR();
 
   // Header clock: re-render the parent once a minute so the displayed time stays fresh.
   // Card-level "X mins ago" tickers live inside KitchenOrderCard via useNow(30_000).
