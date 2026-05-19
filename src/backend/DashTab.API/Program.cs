@@ -12,6 +12,7 @@ using DashTab.Infrastructure.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
@@ -258,6 +259,11 @@ if (!string.IsNullOrWhiteSpace(redisConn))
         o.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("dashtab:signalr"));
 builder.Services.AddSingleton<IKdsBroadcaster, KdsBroadcaster>();
 
+// ── MCP server (read-only tools for AI agents) ───────────────────────────────
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .WithToolsFromAssembly();
+
 var app = builder.Build();
 
 // ── Dev only: Swagger UI ──────────────────────────────────────────────────────
@@ -282,6 +288,8 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 });
 app.MapControllers();
 app.MapHub<KdsHub>("/hubs/kds");
+app.MapMcp("/mcp")
+    .RequireAuthorization(new AuthorizeAttribute { Roles = "Owner,Manager,Kitchen" });
 
 app.Run();
 
