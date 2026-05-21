@@ -67,3 +67,11 @@ dotnet build
 - Service implementations (`XxxService`) live in `Infrastructure/Services/` — they depend on `AppDbContext`
 - DTOs live in `Application/Dtos/` — controllers and services pass DTOs, never raw entities
 - Domain has zero external dependencies
+
+## MCP server
+
+`DashTab.API` exposes an MCP server at `/mcp` (Streamable HTTP). Tools live in
+`DashTab.API/Mcp/` and are auto-discovered via `[McpServerToolType]`. Auth is
+the same Keycloak JWT used by REST + SignalR, role-gated to
+`Owner,Manager,Kitchen`. See `docs/mcp-integration.md` for the build-out and
+how to connect a client.
