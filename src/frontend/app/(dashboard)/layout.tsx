@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -78,17 +78,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     ] as const;
   }, [isWaiter, isKitchenStaff]);
 
-  if (!hydrated) {
+  useEffect(() => {
+    if (hydrated && !user) {
+      router.replace('/login');
+    }
+  }, [hydrated, user, router]);
+
+  if (!hydrated || !user) {
     return (
       <div className="flex h-screen items-center justify-center bg-background text-muted-foreground text-sm">
         Loading…
       </div>
     );
-  }
-  
-  if (!user) {
-    router.replace('/login');
-    return null;
   }
 
   return (
