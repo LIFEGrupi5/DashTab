@@ -1,0 +1,13 @@
+# This wrapper chart adds ONE resource of its own: a ConfigMap holding the realm
+# export, which the Bitnami subchart mounts and imports on startup (see values.yaml).
+# .Files.Get reads files/ inside this chart dir — keep realm-export.json in sync
+# with devops/keycloak/realm-export.json (the Compose source of truth).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashtab-keycloak-realm
+  labels:
+    app.kubernetes.io/part-of: dashtab
+data:
+  realm-export.json: |-
+{{ .Files.Get "files/realm-export.json" | indent 4 }}

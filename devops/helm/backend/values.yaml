@@ -1,0 +1,68 @@
+# ── DashTab backend (.NET 10 API) ────────────────────────────────────────────
+replicaCount: 1
+
+image:
+  # Built + pushed by CI (Lecture 4). For local minikube you can instead build
+  # straight into the cluster — see devops/helm/README.md.
+  repository: ghcr.io/lifegrupi5/dashtab-backend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5000
+
+# Ingress: http://dashtab.local/api → backend. The rewrite annotation strips the
+# /api prefix (mirrors the old nginx `rewrite ^/api/(.*)$ /$1`).
+ingress:
+  enabled: true
+  className: nginx
+  host: dashtab.local
+  path: /api
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+
+# Non-secret config → rendered into a ConfigMap, injected via envFrom.
+# In-cluster service names come from the infra charts' fullnameOverride values.
+config:
+  ASPNETCORE_ENVIRONMENT: Development
+  ASPNETCORE_URLS: "http://+:5000"
+  Storage__Endpoint: "http://dashtab-minio:9000"
+  # Public URL browsers use for presigned/object links — the ingress host.
+  Storage__PublicBaseUrl: "http://dashtab.local/s3"
+  # In-cluster authority for token validation calls...
+  Keycloak__Authority: "http://dashtab-keycloak/auth/realms/dashtab"
+  # ...and the issuer string that must MATCH what tokens carry (public URL).
+  Keycloak__ValidIssuer: "http://dashtab.local/auth/realms/dashtab"
+
+# Secrets → rendered into a Secret, injected via envFrom. Connection strings
+# embed passwords, so they live here, not in the ConfigMap.
+# NOTE: backend talks to PgBouncer (:6432), not Postgres directly.
+secrets:
+  ConnectionStrings__Default: "Host=dashtab-pgbouncer;Port=6432;Database=dashtab;Username=dashtab;Password=dashtab"
+  ConnectionStrings__Redis: "dashtab-redis-master:6379,password=dashtab"
+  ConnectionStrings__RabbitMQ: "amqp://dashtab:dashtab@dashtab-rabbitmq:5672"
+  Storage__AccessKey: "dashtab"
+  Storage__SecretKey: "dashtabsecret"
+
+# Probes hit the .NET health endpoints (KC_HEALTH-style). Adjust paths to match
+# whatever DashTab.API actually exposes (e.g. /health, /healthz).
+probes:
+  liveness:
+    path: /health/live
+  readiness:
+    path: /health/ready
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+
+# Horizontal Pod Autoscaler — off by default (needs metrics-server).
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 75

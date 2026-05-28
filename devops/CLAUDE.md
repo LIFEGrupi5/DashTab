@@ -10,12 +10,12 @@ devops/
     postgres/            # init.sql bootstrap
     grafana/ loki/ promtail/   # Observability stack config
   keycloak/      # realm-export.json (imported on Keycloak startup)
+  helm/          # Per-service Helm charts (see devops/helm/README.md)
+    backend/ frontend/        # hand-written app charts (rolling deploy, ingress)
+    postgresql/ pgbouncer/ redis/ rabbitmq/ minio/ keycloak/  # Bitnami wrappers
   k8s/
-    base/        # Shared Kustomize manifests — placeholder (.gitkeep)
-    overlays/
-      dev/       # Dev overrides — placeholder (.gitkeep)
-      staging/   # Staging overrides — placeholder (.gitkeep)
-      prod/      # Production overrides — placeholder (.gitkeep)
+    base/        # Legacy Kustomize placeholder (.gitkeep) — superseded by helm/
+    overlays/    # Legacy Kustomize placeholders (.gitkeep)
   ci/            # Placeholder (.gitkeep) — actual pipelines live in /.github/workflows/
   infra/         # Infrastructure as Code (Terraform / Bicep) — not yet populated
 ```
@@ -64,9 +64,13 @@ Environment values come from `devops/docker/.env` (not committed).
 **CI/CD** (GitHub Actions, in `.github/workflows/`)
 - On PR: lint, test, build for backend and frontend
 
-**Kubernetes**
-- Kustomize pattern: `base/` holds shared config, `overlays/` patches per environment
-- Each overlay only overrides what differs (replica count, env vars, ingress host)
+**Kubernetes (Helm — `devops/helm/`)**
+- Per-service charts, each released independently (`make helm-deps` then `make helm-up`)
+- Apps (`backend`, `frontend`) are hand-written with rolling deploys + ingress on `dashtab.local`
+- Infra (`postgresql`, `pgbouncer`, `redis`, `rabbitmq`, `minio`, `keycloak`) are thin Bitnami wrappers
+- Prometheus exporters enabled on infra; `serviceMonitor` off until the Operator lands (Lecture 5)
+- Targets local minikube; secrets are dev-only plaintext pending a secret store (Lecture 7)
+- The old `k8s/` Kustomize dirs are superseded — left as empty placeholders
 
 **Infrastructure**
 - Provision cloud resources (cluster, database, storage) via IaC

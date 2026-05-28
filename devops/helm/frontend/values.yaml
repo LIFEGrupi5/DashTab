@@ -1,0 +1,37 @@
+# ── DashTab frontend (Next.js 15) ────────────────────────────────────────────
+replicaCount: 1
+
+image:
+  repository: ghcr.io/lifegrupi5/dashtab-frontend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 3000
+
+# Ingress: http://dashtab.local/ → frontend (catch-all; backend owns /api,
+# keycloak owns /auth via their own ingresses on the same host).
+ingress:
+  enabled: true
+  className: nginx
+  host: dashtab.local
+  path: /
+
+# ⚠️ NEXT_PUBLIC_* are inlined at BUILD time by Next.js, not read at runtime.
+# Setting them here matches Compose but only takes effect if the image was built
+# with these values. For real per-env config, pass them as Docker build args in
+# CI (Lecture 4) or use a runtime-config shim. Kept here for parity/clarity.
+config:
+  NODE_ENV: production
+  NEXT_PUBLIC_API_URL: "http://dashtab.local/api"
+  NEXT_PUBLIC_KEYCLOAK_URL: "http://dashtab.local/auth"
+  NEXT_PUBLIC_KEYCLOAK_REALM: dashtab
+  NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: dashtab-frontend
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
