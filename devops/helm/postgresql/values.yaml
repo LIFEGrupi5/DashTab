@@ -1,0 +1,29 @@
+# Values for the Bitnami PostgreSQL subchart.
+# Everything here is nested under `postgresql:` because that's the dependency name
+# in Chart.yaml — Bitnami reads its config from that key.
+# Verify the full option list with:  helm show values oci://registry-1.docker.io/bitnamicharts/postgresql
+postgresql:
+  # Fixed service name so other charts can hardcode `dashtab-postgresql` as the host.
+  fullnameOverride: dashtab-postgresql
+
+  auth:
+    username: dashtab
+    password: dashtab          # DEV ONLY — replace with a Secret/secret-store in staging+prod (Lecture 7)
+    database: dashtab
+
+  primary:
+    # Create the separate database Keycloak needs, owned by our app user.
+    initdb:
+      scripts:
+        00-keycloak-db.sql: |
+          CREATE DATABASE keycloak OWNER dashtab;
+    persistence:
+      enabled: true
+      size: 2Gi
+
+  # Prometheus exporter (postgres_exporter) as a sidecar on :9187.
+  metrics:
+    enabled: true
+    serviceMonitor:
+      # Flip to true once the Prometheus Operator (CRDs) is installed — Lecture 5.
+      enabled: false

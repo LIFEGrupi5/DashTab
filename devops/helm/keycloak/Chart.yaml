@@ -1,0 +1,13 @@
+apiVersion: v2
+name: keycloak
+description: DashTab Keycloak — identity provider, realm `dashtab` (Bitnami wrapper)
+type: application
+version: 0.1.0
+appVersion: "25.0"
+
+# Install AFTER postgresql — Keycloak uses the external `keycloak` database that
+# the postgresql chart's initdb script creates. Run `helm dependency update` first.
+dependencies:
+  - name: keycloak
+    version: "24.x.x"
+    repository: oci://registry-1.docker.io/bitnamicharts

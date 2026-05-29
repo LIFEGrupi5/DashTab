@@ -1,0 +1,26 @@
+# Overlay for the project-05 cluster.
+#   helm upgrade --install dashtab-frontend devops/helm/frontend \
+#     -n project-05 -f devops/helm/frontend/values-project05.yaml
+image:
+  tag: development
+  pullPolicy: Always
+
+ingress:
+  host: app.project-05.gjirafa.dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod   # ⚠️ VERIFY exact name
+  tls:
+    enabled: true
+    secretName: app-project05-tls
+
+# ⚠️ IMPORTANT: NEXT_PUBLIC_* are baked at BUILD time, NOT read at runtime.
+# Setting them here does NOT change an already-built image. To make the frontend
+# actually call these URLs, the image must be REBUILT with them as Docker
+# build-args (add ARG/ENV to the Dockerfile + pass --build-arg in cd.yml).
+# Listed here as the source of truth for what that rebuild should bake in.
+config:
+  NODE_ENV: production
+  NEXT_PUBLIC_API_URL: "https://api.project-05.gjirafa.dev"
+  NEXT_PUBLIC_KEYCLOAK_URL: "https://auth.project-05.gjirafa.dev"
+  NEXT_PUBLIC_KEYCLOAK_REALM: dashtab
+  NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: dashtab-frontend

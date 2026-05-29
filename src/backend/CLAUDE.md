@@ -5,17 +5,30 @@
 ```
 src/backend/
   DashTab.Domain/
-    Entities/       # Core business objects (e.g. Order.cs)
-    Enums/          # Domain enumerations (e.g. OrderStatus.cs)
+    Entities/       # Core business objects (User, MenuCategory, MenuItem, Order, OrderItem, AuditLog)
+    Enums/          # Domain enumerations (OrderStatus, Role)
   DashTab.Application/
     Interfaces/     # Service interfaces (e.g. IOrderService.cs)
     Dtos/           # Request/response shapes (e.g. OrderDto.cs)
+    Mappings/       # Mapperly mappers (entity <-> DTO)
+    Validators/     # FluentValidation request validators
+    Events/         # Domain/integration event contracts (e.g. OrderEvents.cs)
+    Storage/        # Storage policy/bucket constants (ImagePolicy, StorageBuckets)
   DashTab.Infrastructure/
-    Persistence/    # AppDbContext — swap to EF Core when DB is configured
-    Services/       # Service implementations (e.g. OrderService.cs)
+    Persistence/    # DashTabDbContext (EF Core 9, PostgreSQL) + Migrations
+    Services/       # Service implementations (Auth, User, Category, MenuItem, Order, Email, Storage, Jobs)
+    Caching/        # Redis-backed CacheService + CacheKeys
+    Messaging/      # RabbitMQ publisher, consumers, KDS bridge
   DashTab.API/
-    Controllers/    # Thin HTTP controllers
+    Controllers/    # Thin HTTP controllers (Auth, Users, MenuCategories, MenuItems, Orders, Health)
+    Middleware/     # CorrelationIdMiddleware, DashTabExceptionHandler
+    Realtime/       # SignalR KdsHub + KdsBroadcaster
+    Mcp/            # MCP tool types (MenuTools, OrderTools, StaffTools)
+    Hangfire/       # Dashboard auth filter
     Program.cs      # DI wiring and middleware
+  tests/
+    DashTab.UnitTests/         # xUnit unit tests (mappers, services, jobs)
+    DashTab.IntegrationTests/  # Integration tests (e.g. Keycloak)
 ```
 
 Dependency direction: `API → Infrastructure → Application → Domain`
@@ -54,18 +67,42 @@ dotnet build
 
 ## Current State
 
-- All 4 projects scaffolded with stub examples based on `Order`
-- `AppDbContext` is a plain class placeholder — not connected to a real database yet
-- No authentication or real business logic yet
-- Docker runs API + PostgreSQL + Redis
+- `DashTabDbContext` runs on EF Core 9 over PostgreSQL (Npgsql), with migrations, soft-delete query filters, and snake_case naming conventions
+- Authentication is live via Keycloak JWT bearer; roles `Owner,Manager,Kitchen` gate REST, SignalR, and MCP
+- Real business logic in place for auth, users, menu categories/items, and orders
+- Cross-cutting infra wired in `Program.cs`:
+  - **Redis** cache (`Caching/`, falls back to in-memory when unavailable)
+  - **RabbitMQ** messaging + consumers and the kitchen bridge (`Messaging/`)
+  - **MinIO** S3-compatible image storage (`Services/Storage/`)
+  - **Hangfire** (PostgreSQL store) for background jobs, dashboard at `/hangfire`
+  - **SignalR** KDS hub at `/hubs/kds` with optional Redis backplane
+  - **Serilog** structured logging with correlation IDs
+- Docker (`--profile backend`) runs API + PostgreSQL + Redis + Keycloak + RabbitMQ + MinIO + MailHog
+
+## Key Packages
+
+| Package | Purpose |
+|---------|---------|
+| `Npgsql.EntityFrameworkCore.PostgreSQL` 9 | EF Core PostgreSQL provider |
+| `EFCore.NamingConventions` | snake_case mapping |
+| `Riok.Mapperly` | source-generated entity ↔ DTO mapping |
+| `FluentValidation.AspNetCore` | request validation |
+| `Microsoft.AspNetCore.Authentication.JwtBearer` | Keycloak JWT auth |
+| `Microsoft.AspNetCore.SignalR.StackExchangeRedis` | KDS realtime + backplane |
+| `RabbitMQ.Client` | message broker |
+| `Minio` | object storage |
+| `Hangfire.AspNetCore` + `Hangfire.PostgreSql` | background jobs |
+| `MailKit` | SMTP email |
+| `Serilog.AspNetCore` | structured logging |
+| `ModelContextProtocol.AspNetCore` 1.3.0 | MCP server |
 
 ## Conventions
 
 - Each layer is its own `.csproj`; add project references explicitly (never skip a layer)
 - Controllers are thin — no business logic, only HTTP concerns
 - Service interfaces (`IXxxService`) live in `Application/Interfaces/`
-- Service implementations (`XxxService`) live in `Infrastructure/Services/` — they depend on `AppDbContext`
-- DTOs live in `Application/Dtos/` — controllers and services pass DTOs, never raw entities
+- Service implementations (`XxxService`) live in `Infrastructure/Services/` — they depend on `DashTabDbContext`
+- DTOs live in `Application/Dtos/`; entity ↔ DTO mapping uses Mapperly mappers in `Application/Mappings/` — controllers and services pass DTOs, never raw entities
 - Domain has zero external dependencies
 
 ## MCP server

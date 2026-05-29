@@ -1,0 +1,17 @@
+✅ DashTab frontend released as "{{ .Release.Name }}".
+
+Image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+
+Check the rollout:
+  kubectl rollout status deploy/{{ include "frontend.fullname" . }}
+
+{{- if .Values.ingress.enabled }}
+
+Open the app at:  http://{{ .Values.ingress.host }}{{ .Values.ingress.path }}
+(ensure `{{ .Values.ingress.host }}` resolves to your ingress — for minikube:
+  echo "$(minikube ip) {{ .Values.ingress.host }}" | sudo tee -a /etc/hosts)
+{{- end }}
+
+⚠️ Reminder: NEXT_PUBLIC_* vars are baked in at image BUILD time. If the API/
+   Keycloak URLs look wrong in the browser, rebuild the image with the right
+   build args rather than only editing this chart's config.
