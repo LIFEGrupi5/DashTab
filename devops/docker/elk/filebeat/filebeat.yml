@@ -1,0 +1,24 @@
+# Filebeat — tails every Docker container's stdout/stderr and ships to Logstash.
+# Runs as root (needs to read /var/lib/docker/containers). DEV config: no TLS.
+filebeat.inputs:
+  - type: container
+    paths:
+      - /var/lib/docker/containers/*/*.log
+
+# Enrich each line with the container's name/image/labels via the Docker API,
+# so you can filter by service in Kibana.
+processors:
+  - add_docker_metadata:
+      host: "unix:///var/run/docker.sock"
+  - decode_json_fields:
+      # DashTab backend logs JSON (Serilog) — parse it into real fields.
+      fields: ["message"]
+      target: ""
+      overwrite_keys: true
+      max_depth: 2
+
+# Hand off to Logstash for filtering/routing (the "L" in ELK).
+output.logstash:
+  hosts: ["logstash:5044"]
+
+logging.level: info

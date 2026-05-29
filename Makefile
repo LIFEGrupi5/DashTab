@@ -21,6 +21,8 @@ help:
 	@printf "  ├───────────────────────────────────────────┼──────────────────────────┤\n"
 	@printf "  │ docker compose --profile observability up │ loki, grafana            │\n"
 	@printf "  ├───────────────────────────────────────────┼──────────────────────────┤\n"
+	@printf "  │ docker compose --profile elk up           │ ELK logging stack        │\n"
+	@printf "  ├───────────────────────────────────────────┼──────────────────────────┤\n"
 	@printf "  │ docker compose --profile full up          │ everything               │\n"
 	@printf "  └───────────────────────────────────────────┴──────────────────────────┘\n"
 	@printf "\n"
@@ -30,6 +32,13 @@ up-backend:
 
 up-observability:
 	$(COMPOSE) --profile observability up -d
+
+up-elk:
+	@echo "Tip: run once per host -> sudo sysctl -w vm.max_map_count=262144"
+	$(COMPOSE) --profile elk up -d
+
+down-elk:
+	$(COMPOSE) --profile elk down
 
 up:
 	$(COMPOSE) --profile full up -d
