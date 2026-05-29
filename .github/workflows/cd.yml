@@ -102,6 +102,13 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Bake the project-05 public URLs into the bundle (NEXT_PUBLIC_* are
+          # build-time). Change these if the deploy target's hostnames change.
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api.project-05.gjirafa.dev
+            NEXT_PUBLIC_KEYCLOAK_URL=https://auth.project-05.gjirafa.dev
+            NEXT_PUBLIC_KEYCLOAK_REALM=dashtab
+            NEXT_PUBLIC_KEYCLOAK_CLIENT_ID=dashtab-frontend
 
   # ── Phase 2: DEPLOY (enable after a manual deploy to project-05 is proven) ──
   # Lives here so it gets a real Environment (approval gate + scoped KUBECONFIG
