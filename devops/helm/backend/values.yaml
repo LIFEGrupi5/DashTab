@@ -18,9 +18,8 @@ ingress:
   enabled: true
   className: nginx
   host: dashtab.local
-  path: /api
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  path: /                  # dedicated api.* host → route everything to the backend
+  annotations: {}
   # TLS via cert-manager — off for local (dashtab.local has no cert). Enable in
   # the per-env overlay and add the cert-manager.io/cluster-issuer annotation.
   tls:
@@ -50,9 +49,11 @@ secrets:
   Storage__AccessKey: "dashtab"
   Storage__SecretKey: "dashtabsecret"
 
-# Probes hit the .NET health endpoints (KC_HEALTH-style). Adjust paths to match
-# whatever DashTab.API actually exposes (e.g. /health, /healthz).
+# Probes. type: tcp (default) just checks the port is accepting connections —
+# correct while DashTab.API exposes NO health endpoints. Switch to type: http
+# (paths below) once ASP.NET health checks are added (a DO-5 item).
 probes:
+  type: http               # app now exposes /health/live + /health/ready
   liveness:
     path: /health/live
   readiness:

@@ -43,6 +43,12 @@ builder.Services.AddDbContext<DashTabDbContext>(options =>
         .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
         .UseSnakeCaseNamingConvention());
 
+// ── Health checks ─────────────────────────────────────────────────────────────
+// /health/live  = liveness, no dependency checks (don't restart on a DB blip).
+// /health/ready = readiness, includes the DB check (tagged "ready").
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<DashTabDbContext>("database", tags: ["ready"]);
+
 // ── Distributed cache (Redis with in-memory fallback) ─────────────────────────
 var redisConn = builder.Configuration.GetConnectionString("Redis");
 if (!string.IsNullOrWhiteSpace(redisConn))
@@ -286,6 +292,17 @@ app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {
     Authorization = [new OwnerOnlyDashboardFilter()]
 });
+// Kubernetes probes (anonymous). Liveness runs no checks; readiness runs the
+// "ready"-tagged checks (DB). Fully-qualified to avoid extra usings.
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false
+});
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
 app.MapControllers();
 app.MapHub<KdsHub>("/hubs/kds");
 app.MapMcp("/mcp")

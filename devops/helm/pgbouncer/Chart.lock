@@ -1,0 +1,6 @@
+dependencies:
+- name: pgbouncer
+  repository: oci://ghcr.io/icoretech/charts
+  version: 4.1.7
+digest: sha256:b48b033f2c39eaacf0cf074863100345fc916ac9c91ca84ff6894e8f659236d1
+generated: "2026-05-29T12:24:18.508848668+02:00"

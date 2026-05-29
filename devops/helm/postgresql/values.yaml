@@ -2,7 +2,17 @@
 # Everything here is nested under `postgresql:` because that's the dependency name
 # in Chart.yaml — Bitnami reads its config from that key.
 # Verify the full option list with:  helm show values oci://registry-1.docker.io/bitnamicharts/postgresql
+
+# Bitnami moved versioned images out of docker.io/bitnami/ (2025) → they now live
+# under docker.io/bitnamilegacy/. Repoint every image here, and allow the
+# "non-official" registry check the chart otherwise enforces.
+global:
+  security:
+    allowInsecureImages: true
+
 postgresql:
+  image:
+    repository: bitnamilegacy/postgresql
   # Fixed service name so other charts can hardcode `dashtab-postgresql` as the host.
   fullnameOverride: dashtab-postgresql
 
@@ -24,6 +34,8 @@ postgresql:
   # Prometheus exporter (postgres_exporter) as a sidecar on :9187.
   metrics:
     enabled: true
+    image:
+      repository: bitnamilegacy/postgres-exporter
     serviceMonitor:
       # Flip to true once the Prometheus Operator (CRDs) is installed — Lecture 5.
       enabled: false

@@ -21,10 +21,10 @@ spec:
     - host: {{ .Values.ingress.host }}
       http:
         paths:
-          # The (.*) capture + rewrite-target /$2 strips the /api prefix before
-          # forwarding (mirrors the old nginx `rewrite ^/api/(.*)$ /$1`).
-          - path: {{ .Values.ingress.path }}(/|$)(.*)
-            pathType: ImplementationSpecific
+          # Pass paths through unchanged — the API serves under /api/v1, /api/health
+          # and /hubs/kds, so no prefix stripping (dedicated api.* subdomain).
+          - path: {{ .Values.ingress.path }}
+            pathType: Prefix
             backend:
               service:
                 name: {{ include "backend.fullname" . }}
