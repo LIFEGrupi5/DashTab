@@ -1,0 +1,12 @@
+{{- if .Values.alertmanager.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashtab-alertmanager-config
+  labels:
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/part-of: dashtab
+data:
+  alertmanager.yml: |-
+{{ .Files.Get "files/alertmanager.yml" | indent 4 }}
+{{- end }}

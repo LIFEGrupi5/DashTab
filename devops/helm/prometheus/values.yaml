@@ -11,6 +11,17 @@ retention: 7d
 service:
   port: 9090
 
+# Alertmanager — routes firing alerts to Slack. The webhook URL goes in a Secret
+# (not this file). Set it at deploy time:  --set alertmanager.slackWebhookUrl=...
+alertmanager:
+  enabled: true
+  image:
+    repository: prom/alertmanager
+    tag: v0.27.0
+    pullPolicy: IfNotPresent
+  slackWebhookUrl: ""          # REQUIRED to actually send — supply via --set / overlay
+  slackChannel: "#alerts"
+
 resources:
   requests:
     cpu: 100m

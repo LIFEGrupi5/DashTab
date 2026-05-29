@@ -5,6 +5,12 @@ global:
 rule_files:
   - /etc/prometheus/alerts.yml
 
+# Send firing alerts to Alertmanager (in-cluster service).
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["dashtab-alertmanager:9093"]
+
 scrape_configs:
   # Prometheus scraping itself
   - job_name: prometheus
