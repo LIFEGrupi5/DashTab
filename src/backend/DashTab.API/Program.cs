@@ -273,6 +273,13 @@ builder.Services.AddMcpServer()
 
 var app = builder.Build();
 
+// Apply EF Core migrations on startup so the schema exists in fresh environments
+// (e.g. a newly-provisioned cluster database). Single replica, so no migration race.
+using (var migrationScope = app.Services.CreateScope())
+{
+    migrationScope.ServiceProvider.GetRequiredService<DashTabDbContext>().Database.Migrate();
+}
+
 // ── Dev only: Swagger UI ──────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
 {
