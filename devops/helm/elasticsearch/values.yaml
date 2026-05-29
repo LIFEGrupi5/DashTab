@@ -1,0 +1,22 @@
+# ── DashTab Elasticsearch ─────────────────────────────────────────────────────
+image:
+  repository: docker.elastic.co/elasticsearch/elasticsearch
+  tag: "8.15.3"
+  pullPolicy: IfNotPresent
+
+# JVM heap. Container needs ~2x heap. DEV: security off, single node.
+heap: "1g"
+
+persistence:
+  size: 5Gi
+  # storageClassName omitted → uses the cluster default (longhorn).
+
+service:
+  port: 9200
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 1.5Gi
+  limits:
+    memory: 2.5Gi

@@ -1,0 +1,28 @@
+# ── DashTab Kibana ────────────────────────────────────────────────────────────
+image:
+  repository: docker.elastic.co/kibana/kibana
+  tag: "8.15.3"
+  pullPolicy: IfNotPresent
+
+# In-cluster Elasticsearch (from the elasticsearch chart).
+elasticsearchUrl: "http://dashtab-elasticsearch:9200"
+
+service:
+  port: 5601
+
+ingress:
+  enabled: true
+  className: nginx
+  host: kibana.project-05.gjirafa.dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod   # ⚠️ VERIFY exact name
+  tls:
+    enabled: true
+    secretName: kibana-project05-tls
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 1Gi
+  limits:
+    memory: 1.5Gi
