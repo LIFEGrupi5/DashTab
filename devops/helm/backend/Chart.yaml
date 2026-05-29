@@ -1,0 +1,8 @@
+apiVersion: v2
+name: backend
+description: DashTab backend — .NET 10 API (hand-written chart)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+# No dependencies — this is our own app, so we template it ourselves.
+# Install LAST (after postgresql, pgbouncer, redis, rabbitmq, minio, keycloak).

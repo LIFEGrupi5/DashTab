@@ -1,0 +1,28 @@
+# Overlay for the project-05 cluster (life-cluster).
+#   helm upgrade --install dashtab-backend devops/helm/backend \
+#     -n project-05 -f devops/helm/backend/values-project05.yaml
+image:
+  tag: development        # CD tags images by branch; 'development' = latest merged build
+  pullPolicy: Always      # always pull the freshest 'development' tag
+
+ingress:
+  host: api.project-05.gjirafa.dev
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    cert-manager.io/cluster-issuer: letsencrypt-prod   # ⚠️ VERIFY exact ClusterIssuer name
+  tls:
+    enabled: true
+    secretName: api-project05-tls     # cert-manager creates this
+
+config:
+  ASPNETCORE_ENVIRONMENT: Production
+  ASPNETCORE_URLS: "http://+:5000"
+  # In-cluster (ClusterIP) endpoints — internal traffic, no TLS:
+  Storage__Endpoint: "http://dashtab-minio:9000"
+  Keycloak__Authority: "http://dashtab-keycloak/realms/dashtab"
+  # Public URLs browsers use — must be the real https hostnames:
+  Storage__PublicBaseUrl: "https://storage.project-05.gjirafa.dev"
+  Keycloak__ValidIssuer: "https://auth.project-05.gjirafa.dev/realms/dashtab"
+
+# Connection strings keep the in-cluster service names from the base values
+# (dashtab-pgbouncer, dashtab-redis-master, …) — those resolve inside project-05.

@@ -1,0 +1,31 @@
+# Overlay for the project-05 cluster (values nested under `keycloak:` for the
+# Bitnami subchart).
+#   helm dependency update devops/helm/keycloak
+#   helm upgrade --install dashtab-keycloak devops/helm/keycloak \
+#     -n project-05 -f devops/helm/keycloak/values-project05.yaml
+keycloak:
+  # Behind a TLS-terminating ingress: dev server is fine, proxy=edge trusts the
+  # X-Forwarded-* headers from nginx.
+  production: false
+  proxy: edge
+
+  # It has its OWN subdomain now (auth.…), so serve at ROOT — drop the /auth
+  # relative path used for the local single-host setup.
+  httpRelativePath: "/"
+
+  # Tell Keycloak its public hostname so the issuer + redirect URLs are correct
+  # (this is the #1 cause of login/JWT issues if wrong).
+  extraEnvVars:
+    - name: KC_HOSTNAME
+      value: auth.project-05.gjirafa.dev
+    - name: KC_HOSTNAME_STRICT
+      value: "false"
+
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: auth.project-05.gjirafa.dev
+    path: /
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod   # ⚠️ VERIFY exact name
+    tls: true        # Bitnami creates the tls block; cert-manager fills the secret

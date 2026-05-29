@@ -1,0 +1,15 @@
+# Overlay for the project-05 cluster (values nested under `minio:`).
+#   helm dependency update devops/helm/minio
+#   helm upgrade --install dashtab-minio devops/helm/minio \
+#     -n project-05 -f devops/helm/minio/values-project05.yaml
+#
+# The browser hits MinIO's S3 API directly via presigned URLs, so we expose the
+# API (port 9000) — apiIngress, NOT the console ingress.
+minio:
+  apiIngress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: storage.project-05.gjirafa.dev
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod   # ⚠️ VERIFY exact name
+    tls: true

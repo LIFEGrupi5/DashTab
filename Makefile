@@ -1,6 +1,16 @@
 COMPOSE = docker compose -f devops/docker/docker-compose.yml
 
-.PHONY: help up-backend up-observability up-elk down-elk up down logs ps build
+# ── Helm (Kubernetes) ─────────────────────────────────────────────────────────
+HELM       = helm
+HELM_NS    = dashtab
+HELM_DIR   = devops/helm
+# Install order matters: postgres first, pgbouncer + keycloak depend on it,
+# apps go last. Release names are prefixed "dashtab-" so object names read well.
+HELM_INFRA = postgresql pgbouncer redis rabbitmq minio keycloak
+HELM_APPS  = backend frontend
+
+.PHONY: help up-backend up-observability up down logs ps build \
+        helm-deps helm-lint helm-up helm-down helm-status
 
 help:
 	@printf "\n"
@@ -44,3 +54,32 @@ ps:
 
 build:
 	$(COMPOSE) --profile full build
+
+# ── Helm targets ──────────────────────────────────────────────────────────────
+
+# Pull Bitnami subcharts into each wrapper chart's charts/ dir (run once / on bump).
+helm-deps:
+	@for c in $(HELM_INFRA); do \
+	  echo "==> helm dependency update $$c"; \
+	  $(HELM) dependency update $(HELM_DIR)/$$c; \
+	done
+
+helm-lint:
+	@for c in $(HELM_INFRA) $(HELM_APPS); do $(HELM) lint $(HELM_DIR)/$$c || exit 1; done
+
+# Install/upgrade every chart in dependency order. Idempotent (upgrade --install).
+helm-up:
+	@for c in $(HELM_INFRA) $(HELM_APPS); do \
+	  echo "==> deploying $$c"; \
+	  $(HELM) upgrade --install dashtab-$$c $(HELM_DIR)/$$c \
+	    --namespace $(HELM_NS) --create-namespace --wait; \
+	done
+
+# Tear everything down in reverse order.
+helm-down:
+	@for c in $(HELM_APPS) $(HELM_INFRA); do \
+	  $(HELM) uninstall dashtab-$$c --namespace $(HELM_NS) 2>/dev/null || true; \
+	done
+
+helm-status:
+	$(HELM) list --namespace $(HELM_NS)

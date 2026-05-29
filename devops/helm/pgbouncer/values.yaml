@@ -1,0 +1,35 @@
+# Values for the Bitnami PgBouncer subchart.
+# PgBouncer pools connections to PostgreSQL so the .NET backend doesn't open a
+# fresh TCP/auth handshake per request. Backend connects here (:6432) instead of
+# straight to postgres. Keycloak intentionally stays wired direct to postgres.
+# Verify options with:  helm show values oci://registry-1.docker.io/bitnamicharts/pgbouncer
+pgbouncer:
+  fullnameOverride: dashtab-pgbouncer
+
+  # Upstream PostgreSQL — must match the postgresql chart's values.
+  postgresql:
+    host: dashtab-postgresql
+    port: 5432
+    database: dashtab
+  auth:
+    username: dashtab
+    password: dashtab          # DEV ONLY — see Lecture 7
+    # transaction pooling: best throughput; safe for the stateless API.
+    authType: md5
+
+  # Pooler tuning — modest defaults for a dev cluster.
+  configuration: |
+    [pgbouncer]
+    pool_mode = transaction
+    max_client_conn = 200
+    default_pool_size = 25
+
+  service:
+    ports:
+      pgbouncer: 6432
+
+  # PgBouncer Prometheus exporter on :9127.
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false

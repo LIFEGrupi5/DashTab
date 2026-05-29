@@ -16,9 +16,11 @@ docs/        # Architecture decisions and documentation
 
 | Layer   | Technology                         |
 |---------|------------------------------------|
-| Frontend | Next.js 15, TypeScript, Tailwind  |
-| Backend  | .NET 10, Clean Architecture       |
-| DevOps   | Docker, Kubernetes (Kustomize)    |
+| Frontend | Next.js 15, React 19, TypeScript, Tailwind |
+| Backend  | .NET 10, Clean Architecture, EF Core 9 + PostgreSQL |
+| Auth     | Keycloak (OAuth2 / JWT)           |
+| Infra    | Redis, RabbitMQ, MinIO, Hangfire, Serilog + Loki/Grafana |
+| DevOps   | Docker / docker-compose; Kubernetes (Kustomize) planned |
 
 ## Git Conventions
 
