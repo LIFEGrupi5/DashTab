@@ -88,14 +88,15 @@ builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(o =>
 });
 
 // ── CORS (dev only — prod uses same-origin via the reverse proxy) ─────────────
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddCors(cors => cors.AddPolicy("Frontend", policy => policy
-        .WithOrigins("http://localhost:3000")
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials()));
-}
+// Allowed origins come from config (Cors:AllowedOrigins). Defaults to the local
+// dev frontend; in the cluster the deployed app origin is supplied via env.
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:3000"];
+builder.Services.AddCors(cors => cors.AddPolicy("Frontend", policy => policy
+    .WithOrigins(corsOrigins)
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .AllowCredentials()));
 
 // -- Authentication with JWT Bearer tokens from Keycloak ─────────────────────────
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -283,8 +284,7 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
-if (app.Environment.IsDevelopment())
-    app.UseCors("Frontend");
+app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
