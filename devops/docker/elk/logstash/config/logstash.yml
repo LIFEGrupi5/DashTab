@@ -1,0 +1,4 @@
+# Logstash node settings (this file IS YAML — distinct from the pipeline .conf).
+# DEV: monitoring/security off to keep it light.
+http.host: "0.0.0.0"
+xpack.monitoring.enabled: false

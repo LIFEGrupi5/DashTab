@@ -1,6 +1,6 @@
 COMPOSE = docker compose -f devops/docker/docker-compose.yml
 
-.PHONY: help up-backend up-observability up down logs ps build
+.PHONY: help up-backend up-observability up-elk down-elk up down logs ps build
 
 help:
 	@printf "\n"
@@ -11,6 +11,8 @@ help:
 	@printf "  ├───────────────────────────────────────────┼──────────────────────────┤\n"
 	@printf "  │ docker compose --profile observability up │ loki, grafana            │\n"
 	@printf "  ├───────────────────────────────────────────┼──────────────────────────┤\n"
+	@printf "  │ docker compose --profile elk up           │ ELK logging stack        │\n"
+	@printf "  ├───────────────────────────────────────────┼──────────────────────────┤\n"
 	@printf "  │ docker compose --profile full up          │ everything               │\n"
 	@printf "  └───────────────────────────────────────────┴──────────────────────────┘\n"
 	@printf "\n"
@@ -20,6 +22,13 @@ up-backend:
 
 up-observability:
 	$(COMPOSE) --profile observability up -d
+
+up-elk:
+	@echo "Tip: run once per host -> sudo sysctl -w vm.max_map_count=262144"
+	$(COMPOSE) --profile elk up -d
+
+down-elk:
+	$(COMPOSE) --profile elk down
 
 up:
 	$(COMPOSE) --profile full up -d
