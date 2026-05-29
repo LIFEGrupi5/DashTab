@@ -45,6 +45,9 @@ spec:
             - secretRef:
                 name: {{ include "backend.fullname" . }}-secret
           # Readiness gates traffic during rolling updates; liveness restarts hung pods.
+          # type: tcp = just check the port is accepting (app has no /health endpoint yet);
+          # type: http = hit the paths below (switch to this once ASP.NET health checks exist).
+          {{- if eq .Values.probes.type "http" }}
           readinessProbe:
             httpGet:
               path: {{ .Values.probes.readiness.path }}
@@ -57,5 +60,17 @@ spec:
               port: http
             initialDelaySeconds: 20
             periodSeconds: 15
+          {{- else }}
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

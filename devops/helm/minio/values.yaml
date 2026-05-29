@@ -1,6 +1,16 @@
 # Values for the Bitnami MinIO subchart.
 # Verify options with:  helm show values oci://registry-1.docker.io/bitnamicharts/minio
+
+# Bitnami moved versioned images to docker.io/bitnamilegacy/ (2025).
+global:
+  security:
+    allowInsecureImages: true
+
 minio:
+  image:
+    repository: bitnamilegacy/minio
+  clientImage:                       # used by the defaultBuckets provisioning job
+    repository: bitnamilegacy/minio-client
   fullnameOverride: dashtab-minio
   mode: standalone
 

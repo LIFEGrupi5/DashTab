@@ -6,7 +6,14 @@
 #      + the backend's Keycloak__ValidIssuer). Mismatch = 401s on valid tokens.
 #   2. Realm import only runs on an EMPTY realm — re-importing a changed realm
 #      needs the keycloak PVC/db wiped first.
+# Bitnami moved versioned images to docker.io/bitnamilegacy/ (2025).
+global:
+  security:
+    allowInsecureImages: true
+
 keycloak:
+  image:
+    repository: bitnamilegacy/keycloak
   fullnameOverride: dashtab-keycloak
 
   # Dev mode: HTTP, no TLS, relaxed hostname checks. Do NOT use in prod.

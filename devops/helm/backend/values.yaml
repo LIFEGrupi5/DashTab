@@ -50,9 +50,11 @@ secrets:
   Storage__AccessKey: "dashtab"
   Storage__SecretKey: "dashtabsecret"
 
-# Probes hit the .NET health endpoints (KC_HEALTH-style). Adjust paths to match
-# whatever DashTab.API actually exposes (e.g. /health, /healthz).
+# Probes. type: tcp (default) just checks the port is accepting connections —
+# correct while DashTab.API exposes NO health endpoints. Switch to type: http
+# (paths below) once ASP.NET health checks are added (a DO-5 item).
 probes:
+  type: http               # app now exposes /health/live + /health/ready
   liveness:
     path: /health/live
   readiness:

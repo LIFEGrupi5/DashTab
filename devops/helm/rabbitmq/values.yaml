@@ -1,6 +1,14 @@
 # Values for the Bitnami RabbitMQ subchart.
 # Verify options with:  helm show values oci://registry-1.docker.io/bitnamicharts/rabbitmq
+
+# Bitnami moved versioned images to docker.io/bitnamilegacy/ (2025).
+global:
+  security:
+    allowInsecureImages: true
+
 rabbitmq:
+  image:
+    repository: bitnamilegacy/rabbitmq
   fullnameOverride: dashtab-rabbitmq
 
   auth:
