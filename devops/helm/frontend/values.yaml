@@ -17,6 +17,11 @@ ingress:
   className: nginx
   host: dashtab.local
   path: /
+  annotations: {}
+  # TLS via cert-manager — off for local; enable in the per-env overlay.
+  tls:
+    enabled: false
+    secretName: ""
 
 # ⚠️ NEXT_PUBLIC_* are inlined at BUILD time by Next.js, not read at runtime.
 # Setting them here matches Compose but only takes effect if the image was built

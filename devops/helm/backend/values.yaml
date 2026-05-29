@@ -21,6 +21,11 @@ ingress:
   path: /api
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /$2
+  # TLS via cert-manager — off for local (dashtab.local has no cert). Enable in
+  # the per-env overlay and add the cert-manager.io/cluster-issuer annotation.
+  tls:
+    enabled: false
+    secretName: ""
 
 # Non-secret config → rendered into a ConfigMap, injected via envFrom.
 # In-cluster service names come from the infra charts' fullnameOverride values.
