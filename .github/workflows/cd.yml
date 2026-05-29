@@ -1,0 +1,126 @@
+name: CD
+
+# Continuous Delivery: build + push the app images to GHCR, then (Phase 2) deploy
+# to the project-05 namespace. CI (lint/test) lives in backend-ci.yml /
+# frontend-ci.yml — this workflow owns build → push → deploy (DO-4 / DO-13).
+#
+# Philosophy: images are artifacts and are published freely on every merge; the
+# *deploy* is the gated step (GitHub Environment + approval) — see the Phase 2 stub.
+on:
+  push:
+    branches: [main, development]
+    tags: ['v*']
+  workflow_dispatch:        # allow manual runs from the Actions tab
+
+jobs:
+  # Both build jobs run on every push to main/development (no path filter) — with
+  # the gha layer cache, the unchanged service rebuilds fast. Split per service
+  # because each has its own Dockerfile/context and its own GHCR package.
+  build-backend:
+    name: Build & Push Backend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write        # lets GITHUB_TOKEN push to the org's GHCR
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}   # built-in, no PAT needed
+
+      - name: Compute tags & labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/lifegrupi5/dashtab-backend
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: src/backend
+          file: src/backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-frontend:
+    name: Build & Push Frontend
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags & labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/lifegrupi5/dashtab-frontend
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # NOTE: NEXT_PUBLIC_* are baked at build time. This image ships the
+      # Dockerfile/source defaults; pass --build-arg here once the cluster's real
+      # API/Keycloak URLs are known (requires matching ARGs in the Dockerfile).
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: src/frontend
+          file: src/frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Phase 2: DEPLOY (enable after a manual deploy to project-05 is proven) ──
+  # Lives here so it gets a real Environment (approval gate + scoped KUBECONFIG
+  # secret), separate from CI. Uncomment + fill in once the Helm deploy works by
+  # hand and the cluster's StorageClass/ingress are known.
+  #
+  # deploy:
+  #   name: Deploy to project-05
+  #   runs-on: ubuntu-latest
+  #   needs: [build-backend, build-frontend]
+  #   if: github.ref == 'refs/heads/development'
+  #   environment: project-05          # configure approval + KUBECONFIG in repo settings
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: azure/setup-helm@v4
+  #     - name: Write kubeconfig
+  #       run: echo "${{ secrets.KUBECONFIG_PROJECT05 }}" > "$RUNNER_TEMP/kc" && echo "KUBECONFIG=$RUNNER_TEMP/kc" >> "$GITHUB_ENV"
+  #     - name: Deploy via Helm
+  #       run: |
+  #         helm upgrade --install dashtab-backend devops/helm/backend \
+  #           -n project-05 -f devops/helm/values-project05.yaml \
+  #           --set image.tag=sha-${GITHUB_SHA::7}
