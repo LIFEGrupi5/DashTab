@@ -1,0 +1,19 @@
+# ── DashTab Prometheus ────────────────────────────────────────────────────────
+image:
+  repository: prom/prometheus
+  tag: v3.1.0
+  pullPolicy: IfNotPresent
+
+# Metrics history. emptyDir storage (ephemeral) keeps it simple for the cluster
+# demo; bump to a PVC (longhorn) if you want history to survive restarts.
+retention: 7d
+
+service:
+  port: 9090
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
