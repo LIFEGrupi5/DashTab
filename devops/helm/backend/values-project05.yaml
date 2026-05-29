@@ -7,8 +7,8 @@ image:
 
 ingress:
   host: api.project-05.gjirafa.dev
+  path: /                              # whole subdomain → backend, no prefix strip
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
     cert-manager.io/cluster-issuer: letsencrypt-prod   # ⚠️ VERIFY exact ClusterIssuer name
   tls:
     enabled: true

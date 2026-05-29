@@ -23,16 +23,12 @@ ingress:
     enabled: false
     secretName: ""
 
-# ⚠️ NEXT_PUBLIC_* are inlined at BUILD time by Next.js, not read at runtime.
-# Setting them here matches Compose but only takes effect if the image was built
-# with these values. For real per-env config, pass them as Docker build args in
-# CI (Lecture 4) or use a runtime-config shim. Kept here for parity/clarity.
+# ⚠️ NEXT_PUBLIC_* are inlined at BUILD time by Next.js (baked via the Docker
+# build-arg in cd.yml), NOT read at runtime — this is informational only.
+# The app reads exactly ONE public var; the KDS hub URL derives from it.
 config:
   NODE_ENV: production
-  NEXT_PUBLIC_API_URL: "http://dashtab.local/api"
-  NEXT_PUBLIC_KEYCLOAK_URL: "http://dashtab.local/auth"
-  NEXT_PUBLIC_KEYCLOAK_REALM: dashtab
-  NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: dashtab-frontend
+  NEXT_PUBLIC_API_BASE_URL: "http://localhost:5000/api/v1"
 
 resources:
   requests:
