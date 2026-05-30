@@ -108,24 +108,56 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=https://api.project-05.gjirafa.dev/api/v1
 
-  # ── Phase 2: DEPLOY (enable after a manual deploy to project-05 is proven) ──
-  # Lives here so it gets a real Environment (approval gate + scoped KUBECONFIG
-  # secret), separate from CI. Uncomment + fill in once the Helm deploy works by
-  # hand and the cluster's StorageClass/ingress are known.
+  # ── Phase 2: DEPLOY (gated) ────────────────────────────────────────────────
+  # Deploys the freshly-built app images to the project-05 namespace, pinned to
+  # the immutable sha tag (NOT the mutable 'development' tag) so every deploy is
+  # a real, traceable rollout that's trivial to roll back.
   #
-  # deploy:
-  #   name: Deploy to project-05
-  #   runs-on: ubuntu-latest
-  #   needs: [build-backend, build-frontend]
-  #   if: github.ref == 'refs/heads/development'
-  #   environment: project-05          # configure approval + KUBECONFIG in repo settings
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - uses: azure/setup-helm@v4
-  #     - name: Write kubeconfig
-  #       run: echo "${{ secrets.KUBECONFIG_PROJECT05 }}" > "$RUNNER_TEMP/kc" && echo "KUBECONFIG=$RUNNER_TEMP/kc" >> "$GITHUB_ENV"
-  #     - name: Deploy via Helm
-  #       run: |
-  #         helm upgrade --install dashtab-backend devops/helm/backend \
-  #           -n project-05 -f devops/helm/values-project05.yaml \
-  #           --set image.tag=sha-${GITHUB_SHA::7}
+  # GATE: this job targets the `project-05` GitHub Environment. Add a required
+  # reviewer to that Environment (repo Settings → Environments → project-05) and
+  # the run pauses for a one-click approval before anything touches the cluster.
+  # The scoped kubeconfig lives there too as the KUBECONFIG_PROJECT05 secret.
+  deploy:
+    name: Deploy to project-05
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    if: github.ref == 'refs/heads/development'   # only the integration branch deploys
+    environment: project-05                       # ← approval gate + scoped secret
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Configure kubeconfig
+        run: |
+          install -m 600 /dev/null "$RUNNER_TEMP/kubeconfig"
+          echo "${{ secrets.KUBECONFIG_PROJECT05 }}" > "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+
+      - name: Resolve immutable image tag
+        run: echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      - name: Deploy backend
+        run: |
+          helm upgrade --install dashtab-backend devops/helm/backend \
+            -n project-05 -f devops/helm/backend/values-project05.yaml \
+            --set image.tag="$IMAGE_TAG" \
+            --wait --timeout 5m
+
+      - name: Deploy frontend
+        run: |
+          helm upgrade --install dashtab-frontend devops/helm/frontend \
+            -n project-05 -f devops/helm/frontend/values-project05.yaml \
+            --set image.tag="$IMAGE_TAG" \
+            --wait --timeout 5m
+
+      # Belt-and-suspenders: helm --wait already blocks on readiness, but an
+      # explicit rollout status fails the run loudly if a new pod crashloops
+      # (e.g. a bad migration) instead of silently leaving the old pod serving.
+      - name: Verify rollout
+        run: |
+          kubectl -n project-05 rollout status deploy/dashtab-backend --timeout=120s
+          kubectl -n project-05 rollout status deploy/dashtab-frontend --timeout=120s
