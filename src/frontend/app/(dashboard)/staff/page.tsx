@@ -6,7 +6,7 @@ import Button from '@/components/Button';
 import MultiStepForm from '@/components/MultiStepForm';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
-import { useUsers } from '@/hooks/useUsers';
+import { useCreateStaff, useUsers } from '@/hooks/useUsers';
 
 const ROLE_COLORS: Record<string, string> = {
   owner: 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-200',
@@ -17,6 +17,7 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function StaffPage() {
   const { data: users = [], isLoading } = useUsers();
+  const createStaff = useCreateStaff();
   const [open, setOpen] = useState(false);
 
   return (
@@ -59,10 +60,9 @@ export default function StaffPage() {
       {open && (
         <MultiStepForm
           onClose={() => setOpen(false)}
-          onSubmit={data => {
-            console.log('New staff:', data);
-            setOpen(false);
-          }}
+          onSubmit={data =>
+            createStaff.mutate(data, { onSuccess: () => setOpen(false) })
+          }
         />
       )}
     </div>

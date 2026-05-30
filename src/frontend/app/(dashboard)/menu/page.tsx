@@ -7,16 +7,40 @@ import Modal from '@/components/Modal';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import TextField from '@/components/TextField';
-import { useMenu } from '@/hooks/useMenu';
+import { useCategories, useCreateMenuItem, useMenu } from '@/hooks/useMenu';
 
 const categories = ['All', 'Appetizer', 'Main Course', 'Salad', 'Dessert', 'Beverage'] as const;
 
-const fields = ['name', 'category', 'price', 'description'] as const;
+const EMPTY_FORM = { name: '', categoryId: '', price: '', description: '', available: true };
 
 export default function MenuPage() {
   const { data: menuItems = [], isLoading } = useMenu();
+  const { data: categoryOptions = [] } = useCategories();
+  const createItem = useCreateMenuItem();
   const [activeCategory, setActiveCategory] = useState<(typeof categories)[number]>('All');
   const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+
+  const canCreate = form.name.trim() !== '' && form.categoryId !== '' && form.price !== '';
+
+  const handleCreate = () => {
+    if (!canCreate) return;
+    createItem.mutate(
+      {
+        name: form.name.trim(),
+        categoryId: form.categoryId,
+        price: Number(form.price),
+        description: form.description.trim(),
+        available: form.available,
+      },
+      {
+        onSuccess: () => {
+          setForm(EMPTY_FORM);
+          setOpen(false);
+        },
+      },
+    );
+  };
 
   const filtered = useMemo(
     () => (activeCategory === 'All' ? menuItems : menuItems.filter(i => i.category === activeCategory)),
@@ -95,17 +119,63 @@ export default function MenuPage() {
       </div>
 
       {open && (
-        <Modal title="Add Item" onClose={() => setOpen(false)} footer={<Button fullWidth>Add to Menu</Button>}>
-          {fields.map(field => (
-            <TextField
-              key={field}
-              label={field.charAt(0).toUpperCase() + field.slice(1)}
-              type={field === 'price' ? 'number' : 'text'}
-              className="py-2"
-            />
-          ))}
+        <Modal
+          title="Add Item"
+          onClose={() => setOpen(false)}
+          footer={
+            <Button fullWidth onClick={handleCreate} disabled={!canCreate || createItem.isPending}>
+              {createItem.isPending ? 'Adding…' : 'Add to Menu'}
+            </Button>
+          }
+        >
+          <TextField
+            label="Name"
+            value={form.name}
+            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            className="py-2"
+          />
+          <div>
+            <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">
+              Category
+            </label>
+            <select
+              value={form.categoryId}
+              onChange={e => setForm(f => ({ ...f, categoryId: e.target.value }))}
+              className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-card text-sm text-neutral-900 dark:text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500"
+            >
+              <option value="">Select a category…</option>
+              {categoryOptions.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {categoryOptions.length === 0 && (
+              <p className="text-xs text-neutral-400 dark:text-muted-foreground mt-1">
+                No categories yet — create one before adding items.
+              </p>
+            )}
+          </div>
+          <TextField
+            label="Price"
+            type="number"
+            value={form.price}
+            onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+            className="py-2"
+          />
+          <TextField
+            label="Description"
+            value={form.description}
+            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            className="py-2"
+          />
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" defaultChecked className="w-4 h-4 accent-orange-500" />
+            <input
+              type="checkbox"
+              checked={form.available}
+              onChange={e => setForm(f => ({ ...f, available: e.target.checked }))}
+              className="w-4 h-4 accent-orange-500"
+            />
             <span className="text-sm text-neutral-700 dark:text-muted-foreground">Available</span>
           </label>
         </Modal>
