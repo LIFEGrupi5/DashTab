@@ -1,0 +1,9 @@
+apiVersion: v2
+name: prometheus
+description: DashTab Prometheus — metrics scraping + alert rules (hand-written, namespace-scoped)
+type: application
+version: 0.1.0
+appVersion: "v3.1.0"
+# Plain Deployment (no Prometheus Operator — namespace-only access can't install
+# CRDs). Scrapes the infra exporters by in-cluster service DNS (static targets),
+# so no ServiceAccount/RBAC is required. Pairs with the grafana chart.

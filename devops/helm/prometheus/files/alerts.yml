@@ -1,0 +1,33 @@
+groups:
+  - name: dashtab-infra
+    rules:
+      # Any scrape target unreachable for 2m → critical. This is the "would
+      # actually wake someone up" alert: a DB/cache/broker exporter being down
+      # means that dependency is likely down.
+      - alert: TargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Target {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} (job {{ $labels.job }}) has been unreachable for 2 minutes."
+
+      # Postgres specifically (the exporter reports pg_up).
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "The postgres exporter reports the database is unreachable."
+
+      # Redis specifically.
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
