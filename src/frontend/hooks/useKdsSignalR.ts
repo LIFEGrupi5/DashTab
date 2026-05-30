@@ -16,6 +16,12 @@ const HUB_URL =
   process.env.NEXT_PUBLIC_KDS_HUB_URL ??
   API_BASE.replace(/\/api\/v\d+\/?$/, '') + '/hubs/kds';
 
+// Window to wait for KDS events to settle before refetching orders once.
+const INVALIDATE_DEBOUNCE_MS = 400;
+// Ceiling on how stale the board may get during a sustained event stream:
+// force a refetch at least this often even if events keep arriving.
+const INVALIDATE_MAX_WAIT_MS = 1500;
+
 export function useKdsSignalR() {
   const queryClient = useQueryClient();
   const token = useAppStore(s => s.token);
@@ -31,8 +37,28 @@ export function useKdsSignalR() {
       .configureLogging(LogLevel.Warning)
       .build();
 
-    const invalidate = () =>
+    // Coalesce bursts of KDS events into a single refetch: invalidate once events
+    // settle for INVALIDATE_DEBOUNCE_MS, but force a refetch at least every
+    // INVALIDATE_MAX_WAIT_MS so a sustained stream can't starve the debounce and
+    // freeze the board on stale data.
+    let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+    let maxWaitTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const flush = () => {
+      clearTimeout(debounceTimer);
+      clearTimeout(maxWaitTimer);
+      debounceTimer = undefined;
+      maxWaitTimer = undefined;
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+    };
+
+    const invalidate = () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(flush, INVALIDATE_DEBOUNCE_MS);
+      // Started on the first event of a burst and deliberately not reset by later
+      // events, so it caps worst-case staleness during a continuous stream.
+      if (!maxWaitTimer) maxWaitTimer = setTimeout(flush, INVALIDATE_MAX_WAIT_MS);
+    };
 
     connection.on('orderPlaced', invalidate);
     connection.on('orderStatusChanged', invalidate);
@@ -43,6 +69,8 @@ export function useKdsSignalR() {
     });
 
     return () => {
+      clearTimeout(debounceTimer);
+      clearTimeout(maxWaitTimer);
       if (connection.state !== HubConnectionState.Disconnected) {
         connection.stop().catch(() => {});
       }
