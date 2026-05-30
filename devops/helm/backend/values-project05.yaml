@@ -26,6 +26,8 @@ config:
   Keycloak__ValidIssuer: "https://auth.project-05.gjirafa.dev/realms/dashtab"
   # CORS: the browser calls api.* from the app.* origin (cross-origin) → allow it.
   Cors__AllowedOrigins__0: "https://app.project-05.gjirafa.dev"
+  # Ship logs to in-cluster Elasticsearch (Serilog ES sink activates when set).
+  Elasticsearch__Uri: "http://dashtab-elasticsearch:9200"
 
 # Connection strings keep the in-cluster service names from the base values
 # (dashtab-pgbouncer, dashtab-redis-master, …) — those resolve inside project-05.

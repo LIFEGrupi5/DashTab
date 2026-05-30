@@ -19,6 +19,7 @@ using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Formatting.Compact;
+using Serilog.Sinks.Elasticsearch;
 using DashTab.API.Hangfire;
 using DashTab.Infrastructure.Services.Jobs;
 using DashTab.Infrastructure.Services.Storage;
@@ -30,12 +31,27 @@ using Minio;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Logging (Serilog → stdout JSON → promtail → Loki) ─────────────────────────
-builder.Host.UseSerilog((ctx, cfg) => cfg
-    .ReadFrom.Configuration(ctx.Configuration)
-    .Enrich.FromLogContext()
-    .Enrich.WithProperty("Application", "DashTab.API")
-    .WriteTo.Console(new CompactJsonFormatter()));
+// ── Logging (Serilog → stdout JSON; also → Elasticsearch when configured) ─────
+builder.Host.UseSerilog((ctx, cfg) =>
+{
+    cfg.ReadFrom.Configuration(ctx.Configuration)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("Application", "DashTab.API")
+        .WriteTo.Console(new CompactJsonFormatter());
+
+    // Ship to Elasticsearch only when Elasticsearch:Uri is set (cluster); local
+    // dev is unaffected. Daily indices: dashtab-logs-YYYY.MM.dd.
+    var esUri = ctx.Configuration["Elasticsearch:Uri"];
+    if (!string.IsNullOrWhiteSpace(esUri))
+    {
+        cfg.WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri(esUri))
+        {
+            AutoRegisterTemplate = false,
+            IndexFormat = "dashtab-logs-{0:yyyy.MM.dd}",
+            TypeName = null,
+        });
+    }
+});
 
 // ── Persistence ───────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<DashTabDbContext>(options =>

@@ -1,0 +1,9 @@
+apiVersion: v2
+name: elasticsearch
+description: DashTab Elasticsearch — log storage (hand-written, single-node)
+type: application
+version: 0.1.0
+appVersion: "8.15.3"
+# Single-node dev mode → Elasticsearch skips the bootstrap checks (incl.
+# vm.max_map_count), so it runs in a namespace without node-level sysctl access.
+# Official elastic image (docker.elastic.co), not Bitnami.
