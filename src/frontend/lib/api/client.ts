@@ -12,6 +12,50 @@ export class ApiError extends Error {
   }
 }
 
+// Auth endpoints must never trigger the refresh interceptor, otherwise a failing
+// /auth/refresh would await its own in-flight refresh promise and deadlock.
+const AUTH_PATHS = new Set(["/auth/login", "/auth/refresh", "/auth/logout"]);
+
+function failAuth(): never {
+  useAppStore.getState().clearAuth();
+  if (typeof window !== "undefined") {
+    window.location.replace("/login");
+  }
+  throw new ApiError(401, { error: "Session expired." });
+}
+
+// Single-flight token refresh: concurrent 401s (e.g. every query refetching on
+// window focus) share ONE /auth/refresh call instead of each firing its own.
+// This avoids a refresh storm that both trips Keycloak's rate limit (429) and
+// invalidates our own rotated refresh token mid-flight, which otherwise logs the
+// user out on return to a stale tab.
+let refreshPromise: Promise<string> | null = null;
+
+function refreshAccessToken(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const { refreshToken } = useAppStore.getState();
+      if (!refreshToken) throw new ApiError(401, { error: "Session expired." });
+      const { refreshTokens } = await import("./auth");
+      const session = await refreshTokens(refreshToken);
+      useAppStore
+        .getState()
+        .setTokens(session.accessToken, session.refreshToken);
+      return session.accessToken;
+    })();
+    // Reset the gate once settled so a later expiry can refresh again.
+    refreshPromise.then(
+      () => {
+        refreshPromise = null;
+      },
+      () => {
+        refreshPromise = null;
+      },
+    );
+  }
+  return refreshPromise;
+}
+
 async function request<T>(
   path: string,
   init: RequestInit = {},
@@ -28,29 +72,14 @@ async function request<T>(
     },
   });
 
-  if (res.status === 401 && !isRetry) {
-    const { refreshToken, setTokens, clearAuth } = useAppStore.getState();
-    if (refreshToken) {
-      try {
-        const { refreshTokens } = await import("./auth");
-        const session = await refreshTokens(refreshToken);
-        setTokens(session.accessToken, session.refreshToken);
-        return request<T>(path, init, true);
-      } catch {
-        clearAuth();
-        window.location.replace("/login");
-        throw new ApiError(401, { error: "Session expired." });
-      }
+  if (res.status === 401 && !AUTH_PATHS.has(path)) {
+    if (isRetry) failAuth();
+    try {
+      await refreshAccessToken();
+    } catch {
+      failAuth();
     }
-    clearAuth();
-    window.location.replace("/login");
-    throw new ApiError(401, { error: "Session expired." });
-  }
-
-  if (res.status === 401 && isRetry) {
-    useAppStore.getState().clearAuth();
-    window.location.replace("/login");
-    throw new ApiError(401, { error: "Session expired." });
+    return request<T>(path, init, true);
   }
 
   if (!res.ok) {
