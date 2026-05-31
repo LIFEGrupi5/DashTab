@@ -11,13 +11,13 @@ service:
 
 # Non-secret config → ConfigMap (env).
 config:
-  LLM_PROVIDER: gemini
-  GEMINI_MODEL: gemini-2.0-flash
+  LLM_PROVIDER: groq
+  GROQ_MODEL: llama-3.3-70b-versatile
 
 # Secrets → Secret (env). Provide at install time with --set or values-project05.
 # NEVER commit real values here.
 secret:
-  GEMINI_API_KEY: ""
+  GROQ_API_KEY: ""
   SLACK_WEBHOOK_URL: ""
 
 resources:

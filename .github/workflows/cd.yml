@@ -201,13 +201,13 @@ jobs:
       # explicit rollout status fails the run loudly if a new pod crashloops
       # (e.g. a bad migration) instead of silently leaving the old pod serving.
       # AIOps triage service (DO-12). Secrets come from the project-05 GitHub
-      # Environment (add GEMINI_API_KEY + SLACK_WEBHOOK_URL there), never the repo.
+      # Environment (add GROQ_API_KEY + SLACK_WEBHOOK_URL there), never the repo.
       - name: Deploy aiops-triage
         run: |
           helm upgrade --install dashtab-aiops-triage devops/helm/aiops-triage \
             -n project-05 -f devops/helm/aiops-triage/values-project05.yaml \
             --set image.tag="$IMAGE_TAG" \
-            --set secret.GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}" \
+            --set secret.GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
             --set secret.SLACK_WEBHOOK_URL="${{ secrets.SLACK_WEBHOOK_URL }}" \
             --wait --timeout 5m
 
