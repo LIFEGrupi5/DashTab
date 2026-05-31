@@ -17,6 +17,7 @@ spec:
         app.kubernetes.io/part-of: dashtab
       annotations:
         checksum/datasources: {{ include (print $.Template.BasePath "/datasource-configmap.yaml") . | sha256sum }}
+        checksum/dashboards: {{ include (print $.Template.BasePath "/dashboards-configmap.yaml") . | sha256sum }}
     spec:
       containers:
         - name: grafana
@@ -35,6 +36,10 @@ spec:
           volumeMounts:
             - name: datasources
               mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboard-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboards
+              mountPath: /var/lib/grafana/dashboards
             - name: data
               mountPath: /var/lib/grafana
           readinessProbe:
@@ -55,5 +60,11 @@ spec:
         - name: datasources
           configMap:
             name: dashtab-grafana-datasources
+        - name: dashboard-provider
+          configMap:
+            name: dashtab-grafana-dashboard-provider
+        - name: dashboards
+          configMap:
+            name: dashtab-grafana-dashboards
         - name: data
           emptyDir: {}

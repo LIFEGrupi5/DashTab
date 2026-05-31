@@ -13,6 +13,7 @@ data:
     datasources:
       - name: Prometheus
         type: prometheus
+        uid: prometheus          # fixed uid so provisioned dashboards bind to it
         access: proxy
         url: {{ .Values.prometheusUrl | quote }}
         isDefault: true

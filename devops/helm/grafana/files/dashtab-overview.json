@@ -1,0 +1,132 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "title": "DashTab — Platform Overview",
+  "uid": "dashtab-overview",
+  "tags": ["dashtab", "platform"],
+  "time": { "from": "now-6h", "to": "now" },
+  "refresh": "30s",
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Scrape Targets Up",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" } } },
+            { "type": "value", "options": { "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "up{job=\"postgres\"}", "legendFormat": "postgres", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "up{job=\"redis\"}", "legendFormat": "redis", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "C", "expr": "up{job=\"rabbitmq\"}", "legendFormat": "rabbitmq", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "D", "expr": "up{job=\"keycloak\"}", "legendFormat": "keycloak", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "PostgreSQL — Active Connections",
+      "gridPos": { "h": 6, "w": 9, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(pg_stat_database_numbackends{datname!~\"template.*|postgres\"})", "legendFormat": "active backends", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "PostgreSQL — Commits vs Rollbacks (rate)",
+      "gridPos": { "h": 6, "w": 9, "x": 15, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 }, "unit": "ops" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rate(pg_stat_database_xact_commit{datname!~\"template.*\"}[5m]))", "legendFormat": "commits/s", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "sum(rate(pg_stat_database_xact_rollback{datname!~\"template.*\"}[5m]))", "legendFormat": "rollbacks/s", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Redis — Memory Used",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes", "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "redis_memory_used_bytes", "legendFormat": "used", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "redis_memory_max_bytes", "legendFormat": "max", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Redis — Commands & Clients",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rate(redis_commands_processed_total[5m])", "legendFormat": "commands/s", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "redis_connected_clients", "legendFormat": "connected clients", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Redis — Keyspace Hit Ratio",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "yellow", "value": 0.8 }, { "color": "green", "value": 0.95 } ] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "refId": "A", "expr": "rate(redis_keyspace_hits_total[5m]) / clamp_min(rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m]), 1)", "legendFormat": "hit ratio", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "RabbitMQ — Messages",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "sum(rabbitmq_queue_messages_ready)", "legendFormat": "ready", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "sum(rabbitmq_queue_messages_unacked)", "legendFormat": "unacked", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "RabbitMQ — Connections & Queues",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 } }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "expr": "rabbitmq_connections", "legendFormat": "connections", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "refId": "B", "expr": "rabbitmq_queues", "legendFormat": "queues", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ]
+    }
+  ]
+}
