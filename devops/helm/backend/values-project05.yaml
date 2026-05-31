@@ -9,7 +9,7 @@ ingress:
   host: api.project-05.gjirafa.dev
   path: /                              # whole subdomain → backend, no prefix strip
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod   # ⚠️ VERIFY exact ClusterIssuer name
+    cert-manager.io/cluster-issuer: letsencrypt-prod   # confirmed on project-05 — cert-manager issues the LE cert
   tls:
     enabled: true
     secretName: api-project05-tls     # cert-manager creates this
