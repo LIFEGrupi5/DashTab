@@ -79,7 +79,11 @@ def call_gemini(prompt: str) -> str:
         json={"contents": [{"parts": [{"text": prompt}]}]},
         timeout=HTTP_TIMEOUT,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        # Raise a sanitized error: requests' default HTTPError embeds the full
+        # URL (incl. ?key=...), which would leak the API key into logs. The error
+        # body is JSON without the key; cap it just in case.
+        raise RuntimeError(f"Gemini API {resp.status_code}: {resp.text[:300]}")
     data = resp.json()
     # candidates[0].content.parts[0].text
     return data["candidates"][0]["content"]["parts"][0]["text"].strip()
