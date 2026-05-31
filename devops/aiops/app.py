@@ -34,6 +34,16 @@ GEMINI_API_BASE = os.getenv(
     "GEMINI_API_BASE", "https://generativelanguage.googleapis.com/v1beta"
 )
 
+# Groq — OpenAI-compatible chat API (free tier, no card, works internationally).
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_API_BASE = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")
+
+# Ollama — also OpenAI-compatible (/v1/chat/completions). Wired now so the
+# eventual switch to a self-hosted model is just LLM_PROVIDER=ollama + a base URL.
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
+OLLAMA_API_BASE = os.getenv("OLLAMA_API_BASE", "http://localhost:11434/v1")
+
 HTTP_TIMEOUT = float(os.getenv("HTTP_TIMEOUT", "20"))
 
 PROMPT_TEMPLATE = """You are an SRE on-call assistant for the DashTab platform \
@@ -79,16 +89,40 @@ def call_gemini(prompt: str) -> str:
         json={"contents": [{"parts": [{"text": prompt}]}]},
         timeout=HTTP_TIMEOUT,
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        # Raise a sanitized error: requests' default HTTPError embeds the full
+        # URL (incl. ?key=...), which would leak the API key into logs. The error
+        # body is JSON without the key; cap it just in case.
+        raise RuntimeError(f"Gemini API {resp.status_code}: {resp.text[:300]}")
     data = resp.json()
     # candidates[0].content.parts[0].text
     return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
 
+def call_openai_compatible(prompt: str, base: str, model: str, api_key: str) -> str:
+    """Call any OpenAI-compatible /chat/completions endpoint (Groq, Ollama, …)."""
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    resp = requests.post(
+        f"{base}/chat/completions",
+        headers=headers,
+        json={"model": model, "messages": [{"role": "user", "content": prompt}]},
+        timeout=HTTP_TIMEOUT,
+    )
+    if not resp.ok:
+        # Body has no key; the key is only ever in the Authorization header.
+        raise RuntimeError(f"LLM API {resp.status_code}: {resp.text[:300]}")
+    return resp.json()["choices"][0]["message"]["content"].strip()
+
+
 def call_llm(prompt: str) -> str:
     if LLM_PROVIDER == "gemini":
         return call_gemini(prompt)
-    # Extension point: add "openai" / "ollama" here.
+    if LLM_PROVIDER == "groq":
+        return call_openai_compatible(prompt, GROQ_API_BASE, GROQ_MODEL, GROQ_API_KEY)
+    if LLM_PROVIDER == "ollama":
+        return call_openai_compatible(prompt, OLLAMA_API_BASE, OLLAMA_MODEL, "")
     raise ValueError(f"unsupported LLM_PROVIDER: {LLM_PROVIDER}")
 
 
@@ -137,7 +171,10 @@ def alert():
 
 @app.get("/healthz")
 def healthz():
-    return jsonify({"status": "ok", "provider": LLM_PROVIDER, "model": GEMINI_MODEL}), 200
+    model = {"gemini": GEMINI_MODEL, "groq": GROQ_MODEL, "ollama": OLLAMA_MODEL}.get(
+        LLM_PROVIDER, "?"
+    )
+    return jsonify({"status": "ok", "provider": LLM_PROVIDER, "model": model}), 200
 
 
 if __name__ == "__main__":
