@@ -1,0 +1,33 @@
+name: Release
+
+# DO-13 — automated semantic versioning + changelog.
+#
+# release-please reads the Conventional Commits merged into the branch, then keeps
+# a "release PR" open that bumps the version and regenerates CHANGELOG.md. Merging
+# that PR cuts a GitHub Release and pushes a `vX.Y.Z` git tag — which in turn
+# triggers cd.yml (tags: ['v*']) to build & push semver-tagged images. So the
+# whole chain is: Conventional Commits → changelog + version tag → semver images.
+#
+# Runs on BOTH main and development: `target-branch` is set to the triggering
+# branch, so each branch keeps its own release PR / changelog / tags independently.
+on:
+  push:
+    branches: [main, development]
+  workflow_dispatch:
+
+permissions:
+  contents: write          # create the release commit, tag, and GitHub Release
+  pull-requests: write     # open/update the release PR
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          # Operate on whichever branch triggered the run (defaults to the repo's
+          # default branch otherwise, which would ignore development pushes).
+          target-branch: ${{ github.ref_name }}

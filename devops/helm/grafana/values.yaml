@@ -19,7 +19,7 @@ ingress:
   className: nginx
   host: grafana.project-05.gjirafa.dev
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod   # ⚠️ VERIFY exact name
+    cert-manager.io/cluster-issuer: letsencrypt-prod   # confirmed on project-05 — cert-manager issues the LE cert
   tls:
     enabled: true
     secretName: grafana-project05-tls

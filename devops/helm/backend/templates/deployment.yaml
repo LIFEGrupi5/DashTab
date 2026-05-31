@@ -31,10 +31,25 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:
+      # Pod-level hardening — the image already runs as the chiseled `app` user
+      # (UID 1654); this enforces it at the API-server level so a bad image can't
+      # silently fall back to root. (DO-2 / DO-9)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: backend
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # Container-level hardening: no privilege escalation, drop all Linux
+          # capabilities (the app needs none). readOnlyRootFilesystem is left off
+          # because the runtime writes to temp paths.
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
