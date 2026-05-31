@@ -1,0 +1,28 @@
+# ── AIOps triage service (DO-12) ──────────────────────────────────────────────
+replicaCount: 1
+
+image:
+  repository: ghcr.io/lifegrupi5/dashtab-aiops-triage
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8080
+
+# Non-secret config → ConfigMap (env).
+config:
+  LLM_PROVIDER: gemini
+  GEMINI_MODEL: gemini-2.0-flash
+
+# Secrets → Secret (env). Provide at install time with --set or values-project05.
+# NEVER commit real values here.
+secret:
+  GEMINI_API_KEY: ""
+  SLACK_WEBHOOK_URL: ""
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
