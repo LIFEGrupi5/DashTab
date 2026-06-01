@@ -171,6 +171,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Detect which observability charts changed in this push, so we only
+      # redeploy them when their own files change (not on every app code push).
+      - name: Detect changed charts
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            prometheus:
+              - 'devops/helm/prometheus/**'
+            grafana:
+              - 'devops/helm/grafana/**'
+
       - name: Set up Helm
         uses: azure/setup-helm@v4
 
@@ -210,6 +222,31 @@ jobs:
             --set secret.GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
             --set secret.SLACK_WEBHOOK_URL="${{ secrets.SLACK_WEBHOOK_URL }}" \
             --wait --timeout 5m
+
+      # ── Observability config (DO-5) ────────────────────────────────────────
+      # These ship upstream images (no per-commit build); CD just keeps their
+      # repo-managed config — alert rules, alertmanager routing, dashboards — in
+      # sync. Path-filtered so they only redeploy when their own chart changes.
+      # The explicit restart guarantees the running pod reloads the new config
+      # (a ConfigMap change alone doesn't reload a running process).
+      # NOTE: stateful infra (postgres, redis, rabbitmq, minio, elasticsearch,
+      # keycloak) is intentionally NOT auto-deployed here — deploy it manually.
+      - name: Deploy prometheus + alertmanager
+        if: steps.changes.outputs.prometheus == 'true'
+        run: |
+          helm upgrade --install dashtab-prometheus devops/helm/prometheus \
+            -n project-05 --reuse-values --wait --timeout 5m
+          kubectl -n project-05 rollout restart deploy/dashtab-prometheus deploy/dashtab-alertmanager
+          kubectl -n project-05 rollout status  deploy/dashtab-prometheus   --timeout=120s
+          kubectl -n project-05 rollout status  deploy/dashtab-alertmanager --timeout=120s
+
+      - name: Deploy grafana
+        if: steps.changes.outputs.grafana == 'true'
+        run: |
+          helm upgrade --install dashtab-grafana devops/helm/grafana \
+            -n project-05 --reuse-values --wait --timeout 5m
+          kubectl -n project-05 rollout restart deploy/dashtab-grafana
+          kubectl -n project-05 rollout status  deploy/dashtab-grafana --timeout=120s
 
       - name: Verify rollout
         run: |
