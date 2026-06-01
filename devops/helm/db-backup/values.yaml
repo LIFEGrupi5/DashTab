@@ -1,0 +1,53 @@
+# ── DashTab DB backup (pg_dump → MinIO) ──────────────────────────────────────
+schedule: "0 2 * * *"          # daily at 02:00 cluster time
+retentionDays: 7               # keep dumps newer than this; prune the rest
+concurrencyPolicy: Forbid
+startingDeadlineSeconds: 600
+activeDeadlineSeconds: 1800
+backoffLimit: 2
+
+# Source database. Dumps from Postgres directly (not pgbouncer).
+postgres:
+  host: dashtab-postgresql
+  port: 5432
+  user: dashtab
+  database: dashtab
+  passwordSecret:
+    name: dashtab-postgresql   # Bitnami secret; `password` = the dashtab user
+    key: password
+
+# Destination object storage (in-cluster MinIO by default). For real DR, point
+# endpoint at an EXTERNAL S3 bucket and swap the credentials secret — nothing
+# else changes.
+minio:
+  endpoint: http://dashtab-minio:9000
+  bucket: db-backups
+  credentialsSecret:           # SCOPED key (write-only to the bucket), created by the one-time setup
+    name: dashtab-minio-backup
+    accessKeyKey: access-key
+    secretKeyKey: secret-key
+
+images:
+  # pg_dump must be >= server major (server is 17.6). Pin to a digest for strict prod.
+  pgDump: postgres:17-alpine
+  # mc client, digest-pinned (RELEASE.2025-08-13).
+  mc: minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+
+# Non-root + hardened. fsGroup makes the emptyDir volumes writable by the user.
+securityContext:
+  runAsUser: 1001
+  fsGroup: 1001
+
+resources:
+  pgDump:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
+  upload:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      memory: 128Mi

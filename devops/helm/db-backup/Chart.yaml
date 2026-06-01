@@ -1,0 +1,8 @@
+apiVersion: v2
+name: db-backup
+description: DashTab Postgres backup CronJob — pg_dump → in-cluster MinIO (hand-written chart)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+# Self-contained scheduled backup. The MinIO bucket + scoped key are a one-time
+# bootstrap (see templates/NOTES.txt) — this chart manages only the recurring job.

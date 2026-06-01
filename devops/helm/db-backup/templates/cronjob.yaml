@@ -1,0 +1,120 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "db-backup.fullname" . }}
+  labels:
+    {{- include "db-backup.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  concurrencyPolicy: {{ .Values.concurrencyPolicy }}
+  startingDeadlineSeconds: {{ .Values.startingDeadlineSeconds }}
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.backoffLimit }}
+      activeDeadlineSeconds: {{ .Values.activeDeadlineSeconds }}
+      template:
+        metadata:
+          labels:
+            {{- include "db-backup.labels" . | nindent 12 }}
+        spec:
+          restartPolicy: OnFailure
+          # Non-root; fsGroup makes the emptyDir volumes group-writable.
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            fsGroup: {{ .Values.securityContext.fsGroup }}
+            seccompProfile:
+              type: RuntimeDefault
+          # Step 1: dump + gzip to the shared volume (runs to completion first).
+          initContainers:
+            - name: pg-dump
+              image: {{ .Values.images.pgDump | quote }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              env:
+                - name: PGHOST
+                  value: {{ .Values.postgres.host | quote }}
+                - name: PGPORT
+                  value: {{ .Values.postgres.port | quote }}
+                - name: PGUSER
+                  value: {{ .Values.postgres.user | quote }}
+                - name: PGDATABASE
+                  value: {{ .Values.postgres.database | quote }}
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.postgres.passwordSecret.name }}
+                      key: {{ .Values.postgres.passwordSecret.key }}
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  TS=$(date +%Y%m%d-%H%M%S)
+                  echo "Dumping $PGDATABASE from $PGHOST ..."
+                  pg_dump --no-owner --no-privileges -f /tmp/dump.sql
+                  gzip -c /tmp/dump.sql > /work/backup.sql.gz
+                  rm -f /tmp/dump.sql
+                  echo "dashtab-${TS}.sql.gz" > /work/objname
+                  echo "Dump ready: $(ls -lh /work/backup.sql.gz)"
+              volumeMounts:
+                - name: work
+                  mountPath: /work
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                {{- toYaml .Values.resources.pgDump | nindent 16 }}
+          # Step 2: upload to MinIO + prune old dumps (scoped key, not admin creds).
+          containers:
+            - name: upload
+              image: {{ .Values.images.mc | quote }}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities:
+                  drop: ["ALL"]
+              env:
+                - name: HOME
+                  value: /tmp
+                - name: MINIO_ENDPOINT
+                  value: {{ .Values.minio.endpoint | quote }}
+                - name: BUCKET
+                  value: {{ .Values.minio.bucket | quote }}
+                - name: RETENTION_DAYS
+                  value: {{ .Values.retentionDays | quote }}
+                - name: MINIO_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.minio.credentialsSecret.name }}
+                      key: {{ .Values.minio.credentialsSecret.accessKeyKey }}
+                - name: MINIO_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.minio.credentialsSecret.name }}
+                      key: {{ .Values.minio.credentialsSecret.secretKeyKey }}
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  set -eu
+                  read -r OBJNAME < /work/objname
+                  mc alias set store "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY" >/dev/null
+                  echo "Uploading -> store/$BUCKET/$OBJNAME"
+                  mc cp /work/backup.sql.gz "store/$BUCKET/$OBJNAME"
+                  mc rm --recursive --force --older-than "${RETENTION_DAYS}d" "store/$BUCKET/" >/dev/null 2>&1 || true
+                  echo "Current backups:"; mc ls "store/$BUCKET/"
+              volumeMounts:
+                - name: work
+                  mountPath: /work
+                - name: tmp
+                  mountPath: /tmp
+              resources:
+                {{- toYaml .Values.resources.upload | nindent 16 }}
+          volumes:
+            - name: work       # gzipped dump handed from initContainer to upload
+              emptyDir: {}
+            - name: tmp        # scratch + mc config (root fs is read-only)
+              emptyDir: {}

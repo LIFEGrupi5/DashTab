@@ -1,0 +1,9 @@
+# Overlay for the project-05 cluster (life-cluster).
+#   helm upgrade --install dashtab-db-backup devops/helm/db-backup \
+#     -n project-05 -f devops/helm/db-backup/values-project05.yaml
+#
+# The in-cluster service names (dashtab-postgresql, dashtab-minio) and secret
+# names already match the base values on project-05, so this overlay only pins
+# the operational knobs. Adjust the schedule/retention here per environment.
+schedule: "0 2 * * *"
+retentionDays: 7
