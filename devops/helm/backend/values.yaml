@@ -72,3 +72,45 @@ autoscaling:
   minReplicas: 1
   maxReplicas: 4
   targetCPUUtilizationPercentage: 75
+
+# ── Production hardening ──────────────────────────────────────────────────────
+# Image pull secrets — needed once the GHCR images/repo are private. The secret
+# holds a PAT so it is NOT templated here; create it in the namespace first:
+#   kubectl -n project-05 create secret docker-registry ghcr-pull \
+#     --docker-server=ghcr.io --docker-username=<gh-user> \
+#     --docker-password=<PAT with read:packages>
+imagePullSecrets: []          # e.g. [{ name: ghcr-pull }]
+
+# PodDisruptionBudget — preserves capacity during voluntary disruptions (node
+# drains, cluster upgrades). maxUnavailable: 1 lets a drain proceed while keeping
+# the rest up. With a single replica a drain still evicts the pod (the rolling
+# strategy covers zero-downtime on deploys); raise replicaCount/HPA for real
+# drain protection.
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# startupProbe — gives a slow cold start time to come up before the livenessProbe
+# starts counting, so a slow boot isn't killed mid-start.
+# failureThreshold * periodSeconds = max allowed startup time (here 150s).
+startupProbe:
+  enabled: true
+  failureThreshold: 30
+  periodSeconds: 5
+
+# readOnlyRootFilesystem — when true the root FS is read-only and an emptyDir is
+# mounted at /tmp. .NET writes to TMPDIR and (by default) DataProtection keys to
+# the home dir; verify those paths are covered before enabling in prod.
+readOnlyRootFilesystem: false
+
+# NetworkPolicy — default-deny for these pods + an explicit allow-list. Namespaced,
+# but only ENFORCED if the cluster CNI supports NetworkPolicy (on a non-enforcing
+# CNI it installs cleanly and silently does nothing — verify first). Off by default
+# so an incomplete allow-list can't take the app down.
+networkPolicy:
+  enabled: false
+  # Namespace label of the ingress controller (allows external ingress traffic in).
+  ingressNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx
+  # Allow egress to the public internet on 443 (backend talks only in-cluster).
+  egressInternet: false

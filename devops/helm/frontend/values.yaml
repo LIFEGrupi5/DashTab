@@ -36,3 +36,38 @@ resources:
     memory: 128Mi
   limits:
     memory: 256Mi
+
+# ── Production hardening ──────────────────────────────────────────────────────
+# Image pull secrets — needed once the GHCR images/repo are private. Create the
+# secret in the namespace first (holds a PAT, so it is NOT templated here):
+#   kubectl -n project-05 create secret docker-registry ghcr-pull \
+#     --docker-server=ghcr.io --docker-username=<gh-user> \
+#     --docker-password=<PAT with read:packages>
+imagePullSecrets: []          # e.g. [{ name: ghcr-pull }]
+
+# PodDisruptionBudget — preserves capacity during voluntary disruptions (node
+# drains, upgrades). With a single replica a drain still evicts the pod; raise
+# replicaCount for real drain protection.
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# startupProbe — gives the Next.js server time to boot before liveness counts.
+startupProbe:
+  enabled: true
+  failureThreshold: 30
+  periodSeconds: 5
+
+# readOnlyRootFilesystem — when true the root FS is read-only and an emptyDir is
+# mounted at /tmp. Next.js standalone may also write .next/cache; verify before
+# enabling in prod.
+readOnlyRootFilesystem: false
+
+# NetworkPolicy — default-deny + allow-list. Namespaced; only ENFORCED on a CNI
+# that supports it (verify on-cluster). Off by default so it can't break traffic.
+networkPolicy:
+  enabled: false
+  ingressNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx
+  # Frontend talks only to the in-cluster backend + DNS — no public egress needed.
+  egressInternet: false

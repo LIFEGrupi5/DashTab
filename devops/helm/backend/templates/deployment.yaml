@@ -31,6 +31,11 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      # Auth for pulling images from a private registry (e.g. GHCR once private).
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       # Pod-level hardening — the image already runs as the chiseled `app` user
       # (UID 1654); this enforces it at the API-server level so a bad image can't
       # silently fall back to root. (DO-2 / DO-9)
@@ -44,10 +49,11 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           # Container-level hardening: no privilege escalation, drop all Linux
-          # capabilities (the app needs none). readOnlyRootFilesystem is left off
-          # because the runtime writes to temp paths.
+          # capabilities (the app needs none). readOnlyRootFilesystem is value-gated
+          # — when on, an emptyDir is mounted at /tmp for the runtime's temp writes.
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: {{ .Values.readOnlyRootFilesystem }}
             capabilities:
               drop: ["ALL"]
           ports:
@@ -87,5 +93,30 @@ spec:
             initialDelaySeconds: 20
             periodSeconds: 20
           {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          # Holds liveness back until the (possibly slow) cold start finishes, so a
+          # slow boot isn't restart-looped. Uses the same check kind as the probes.
+          startupProbe:
+            {{- if eq .Values.probes.type "http" }}
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: http
+            {{- else }}
+            tcpSocket:
+              port: http
+            {{- end }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.readOnlyRootFilesystem }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          {{- end }}
+      {{- if .Values.readOnlyRootFilesystem }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- end }}
