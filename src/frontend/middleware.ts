@@ -32,7 +32,6 @@ export function middleware(request: NextRequest) {
 
   const scriptSrc = [
     "'self'",
-    `'nonce-${nonce}'`,
     "'unsafe-inline'",
     // Dev only: HMR and React Refresh evaluate code via eval().
     isDev ? "'unsafe-eval'" : '',
