@@ -8,12 +8,12 @@ const REPORT_ONLY = false;
 /**
  * Per-request Content-Security-Policy.
  *
- * Why middleware and not next.config headers(): a strong CSP for the Next.js App
- * Router relies on a fresh random `nonce` per request. Next reads that nonce from
- * the request's CSP header and stamps it onto every script tag it emits, so we can
- * use `'strict-dynamic'` instead of the weak `'unsafe-inline'` escape hatch — only
- * scripts carrying our nonce (and scripts they load) run. An injected XSS <script>
- * has no nonce, so the browser refuses it.
+ * Uses 'self' + 'unsafe-inline' for script-src rather than strict-dynamic+nonce.
+ * Reason: output:'standalone' (needed for Docker) prevents Next.js from auto-stamping
+ * the nonce onto its own hydration/RSC inline scripts. Without that, strict-dynamic
+ * blocks those scripts and the page hangs. 'self' still blocks scripts from external
+ * origins (the main XSS vector); the nonce is kept for any explicit <Script nonce>
+ * components added in the future.
  */
 export function middleware(request: NextRequest) {
   const isDev = process.env.NODE_ENV === 'development';
@@ -33,7 +33,7 @@ export function middleware(request: NextRequest) {
   const scriptSrc = [
     "'self'",
     `'nonce-${nonce}'`,
-    "'strict-dynamic'",
+    "'unsafe-inline'",
     // Dev only: HMR and React Refresh evaluate code via eval().
     isDev ? "'unsafe-eval'" : '',
   ]
