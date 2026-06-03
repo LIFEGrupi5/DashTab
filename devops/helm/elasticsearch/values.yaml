@@ -4,8 +4,23 @@ image:
   tag: "8.15.3"
   pullPolicy: IfNotPresent
 
-# JVM heap. Container needs ~2x heap. DEV: security off, single node.
+# JVM heap. Container needs ~2x heap. Single node.
 heap: "1g"
+
+# ── Native (X-Pack) security ──────────────────────────────────────────────────
+security:
+  enabled: true
+  # Shared credentials Secret (also consumed by the kibana chart). Created by this
+  # chart and auto-generated on first install; reused on upgrade. Keep the name in
+  # sync with kibana/values.yaml → security.credentialsSecret.
+  credentialsSecret: dashtab-elastic-credentials
+  # Leave blank to auto-generate strong random passwords (recommended — retrieve the
+  # `elastic` login password afterwards with:
+  #   kubectl get secret dashtab-elastic-credentials \
+  #     -o jsonpath='{.data.elastic-password}' | base64 -d
+  # Set explicitly only if you need a known value (e.g. via --set / an uncommitted file).
+  elasticPassword: ""
+  kibanaSystemPassword: ""
 
 persistence:
   size: 5Gi
