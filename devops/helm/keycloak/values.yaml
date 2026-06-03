@@ -7,6 +7,20 @@
 #   2. Realm import only runs on an EMPTY realm — re-importing a changed realm
 #      needs the keycloak PVC/db wiped first.
 # Bitnami moved versioned images to docker.io/bitnamilegacy/ (2025).
+# ── Admin credentials ─────────────────────────────────────────────────────────
+# This wrapper chart creates a Secret holding the Keycloak admin password (kept out
+# of git). The Bitnami subchart reads it via auth.existingSecret below.
+adminSecret:
+  enabled: true
+  name: dashtab-keycloak-admin
+  # Leave blank to auto-generate a strong random password on first install (reused on
+  # upgrade). Retrieve it with:
+  #   kubectl get secret dashtab-keycloak-admin \
+  #     -o jsonpath='{.data.admin-password}' | base64 -d
+  # NOTE: only takes effect when Keycloak bootstraps an EMPTY db. To rotate a live
+  # admin, see DEVOPS_HANDOFF.md → Keycloak admin (kcadm.sh).
+  password: ""
+
 global:
   security:
     allowInsecureImages: true
@@ -22,7 +36,9 @@ keycloak:
 
   auth:
     adminUser: admin
-    adminPassword: admin            # DEV ONLY — see Lecture 7
+    # Password comes from the Secret created above — no plaintext in git.
+    existingSecret: dashtab-keycloak-admin
+    passwordSecretKey: admin-password
 
   # Serve under /auth so the ingress can route there and the issuer is stable.
   httpRelativePath: "/auth/"

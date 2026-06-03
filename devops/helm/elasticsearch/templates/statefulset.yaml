@@ -28,8 +28,27 @@ spec:
           env:
             - name: discovery.type
               value: single-node          # dev mode → skips bootstrap checks (vm.max_map_count)
+            {{- if .Values.security.enabled }}
+            # Native (X-Pack) security: HTTP basic auth required on :9200.
+            - name: xpack.security.enabled
+              value: "true"
+            # HTTP/transport stay plaintext inside the cluster (ClusterIP, single-node).
+            # Auth is still enforced; we skip TLS to avoid cert management on a dev cluster.
+            # The public attack surface is the Kibana ingress, which now sits behind login.
+            - name: xpack.security.http.ssl.enabled
+              value: "false"
+            - name: xpack.security.transport.ssl.enabled
+              value: "false"
+            # Sets the built-in `elastic` superuser password on first bootstrap.
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.security.credentialsSecret }}
+                  key: elastic-password
+            {{- else }}
             - name: xpack.security.enabled
               value: "false"              # DEV ONLY — no auth/TLS
+            {{- end }}
             - name: ES_JAVA_OPTS
               value: "-Xms{{ .Values.heap }} -Xmx{{ .Values.heap }}"
             - name: bootstrap.memory_lock
@@ -43,9 +62,18 @@ spec:
             - name: data
               mountPath: /usr/share/elasticsearch/data
           readinessProbe:
+            {{- if .Values.security.enabled }}
+            # With security on, every HTTP endpoint requires auth (an unauthenticated
+            # /_cluster/health probe would 401 and the pod would never become Ready).
+            # A TCP check confirms the listener is up; the kibana-setup Job and Kibana
+            # itself do the authenticated readiness retry.
+            tcpSocket:
+              port: http
+            {{- else }}
             httpGet:
               path: /_cluster/health?wait_for_status=yellow&timeout=5s
               port: http
+            {{- end }}
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 12

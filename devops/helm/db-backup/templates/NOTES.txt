@@ -1,0 +1,27 @@
+DashTab DB backup installed: {{ include "db-backup.fullname" . }}
+Schedule: {{ .Values.schedule }}  |  Bucket: {{ .Values.minio.bucket }}  |  Retention: {{ .Values.retentionDays }}d
+
+ONE-TIME SETUP (before the first run) — creates the bucket + a scoped, write-only
+MinIO key and stores it in the secret "{{ .Values.minio.credentialsSecret.name }}".
+Run once with your MinIO admin creds (read from the existing dashtab-minio secret):
+
+  # 1. scoped key -> k8s secret
+  SK=$(openssl rand -hex 24)
+  kubectl create secret generic {{ .Values.minio.credentialsSecret.name }} -n {{ .Release.Namespace }} \
+    --from-literal={{ .Values.minio.credentialsSecret.accessKeyKey }}=dashtab-backup \
+    --from-literal={{ .Values.minio.credentialsSecret.secretKeyKey }}="$SK"
+
+  # 2. register bucket + least-privilege policy + scoped user in MinIO
+  #    (policy: devops/helm/db-backup/files/minio-backup-policy.json)
+
+VERIFY / OPERATE:
+  kubectl create job --from=cronjob/{{ include "db-backup.fullname" . }} manual-1 -n {{ .Release.Namespace }}
+  kubectl logs -f job/manual-1 -n {{ .Release.Namespace }}
+
+RESTORE a dump:
+  mc cat store/{{ .Values.minio.bucket }}/<file>.sql.gz | gunzip \
+    | psql -h {{ .Values.postgres.host }} -U {{ .Values.postgres.user }} -d {{ .Values.postgres.database }}
+
+NOTE: backups land in the in-cluster MinIO (same failure domain as the DB) — good
+for bad-migration / accidental-delete recovery, not full-cluster DR. For DR, set
+minio.endpoint to an external S3 bucket and swap minio.credentialsSecret.

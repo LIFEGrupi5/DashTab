@@ -25,6 +25,30 @@ spec:
               value: {{ .Values.elasticsearchUrl | quote }}
             - name: SERVER_PUBLICBASEURL
               value: "https://{{ .Values.ingress.host }}"
+            {{- if .Values.security.enabled }}
+            # Kibana authenticates to ES as the built-in `kibana_system` service user
+            # (NOT the elastic superuser). Its password is set by the kibana-setup Job.
+            - name: ELASTICSEARCH_USERNAME
+              value: "kibana_system"
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.security.credentialsSecret }}
+                  key: kibana-system-password
+            # Persistent encryption keys → user sessions and saved objects survive
+            # pod restarts (without these, Kibana mints a random key each boot and
+            # logs everyone out / warns on every start).
+            - name: XPACK_SECURITY_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.security.credentialsSecret }}
+                  key: kibana-encryption-key
+            - name: XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.security.credentialsSecret }}
+                  key: kibana-savedobjects-key
+            {{- end }}
           ports:
             - name: http
               containerPort: 5601

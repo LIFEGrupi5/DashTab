@@ -7,6 +7,15 @@ image:
 # In-cluster Elasticsearch (from the elasticsearch chart).
 elasticsearchUrl: "http://dashtab-elasticsearch:9200"
 
+# ── Native (X-Pack) security ──────────────────────────────────────────────────
+# Must match the elasticsearch chart. When enabled, Kibana logs in as kibana_system
+# and the kibana-setup hook Job provisions that user's password.
+security:
+  enabled: true
+  credentialsSecret: dashtab-elastic-credentials
+  # Image used by the one-shot Job that sets the kibana_system password via the ES API.
+  setupImage: curlimages/curl:8.10.1
+
 service:
   port: 5601
 

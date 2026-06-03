@@ -48,7 +48,7 @@
 | DO-6 | ELK logging | 🟡 Local done | Compose profile built; in-cluster optional |
 | DO-7 | Uptime Kuma | ❌ Missing | smallest item, fast win |
 | DO-8 | Terraform (live cloud) | ⚪ **Likely waived** | prof provisioned cluster; confirm (see §6) |
-| DO-9 | Security hardening | ❌ Missing | distroless/non-root + Trivy + secret store; overlaps DO-2 |
+| DO-9 | Security hardening | 🟡 Partial | **Kibana/ES now behind X-Pack auth** (see §ELK security); distroless/non-root + Trivy still missing |
 | DO-10 | Nginx + SSL | 🟡 Partial | nginx exists, no SSL/Let's Encrypt |
 | DO-11 | Linux server from scratch | ⬜ Host task | done on a VM, not in repo |
 | DO-12 | AIOps pipeline | ❌ Missing | builds on DO-5 alerts |
@@ -70,6 +70,61 @@
 - elasticsearch + logstash + kibana + filebeat; configs in `devops/docker/elk/`
 - `make up-elk` / `make down-elk`; needs `sudo sysctl -w vm.max_map_count=262144`
 - NOT yet test-run — verify logs land in Kibana (`dashtab-logs-*` data view)
+- ⚠️ Local Compose ELK is still security-OFF (loopback-only) — the hardening below is the **Helm/cluster** stack.
+
+### ELK security (cluster — DO-9)
+
+The in-cluster Kibana at `kibana.project-05.gjirafa.dev` was previously **wide open**
+(TLS at the edge but no login; anyone could read all logs and hit ES via Dev Tools).
+Now secured with native X-Pack auth, off by default only in `security.enabled: false`:
+
+- **ES** (`helm/elasticsearch`): `xpack.security.enabled=true`, `elastic` password from a Secret.
+  HTTP/transport TLS stay off — auth is enforced, ClusterIP only, single-node.
+- **Secret** `dashtab-elastic-credentials`: auto-generated on first install, reused on upgrade
+  (`resource-policy: keep`). Holds `elastic` + `kibana_system` passwords and Kibana encryption keys.
+- **kibana_system password**: set by the `dashtab-kibana-setup` post-install Helm hook Job
+  (the `elastic` bootstrap password alone does not provision it).
+- **Kibana** (`helm/kibana`): logs in as `kibana_system`; users log in at the URL as `elastic`.
+
+Deploy order matters — **elasticsearch chart first** (it creates the shared Secret), then kibana.
+Retrieve the `elastic` login password:
+```bash
+kubectl get secret dashtab-elastic-credentials \
+  -o jsonpath='{.data.elastic-password}' | base64 -d; echo
+```
+Create extra (non-superuser) logins in Kibana → Stack Management → Users/Roles.
+Note: Logstash/Filebeat shippers will need ES creds too once the pipeline runs in-cluster.
+
+### Keycloak admin (cluster — DO-9)
+
+Keycloak was deployed with the default **`admin` / `admin`** while publicly reachable at
+`auth.project-05.gjirafa.dev`. The chart no longer carries a plaintext password:
+
+- `helm/keycloak` creates Secret **`dashtab-keycloak-admin`** (auto-generated, `resource-policy: keep`).
+- The Bitnami subchart reads it via `auth.existingSecret` / `auth.passwordSecretKey`.
+- Get the generated password:
+  ```bash
+  kubectl get secret dashtab-keycloak-admin \
+    -o jsonpath='{.data.admin-password}' | base64 -d; echo
+  ```
+
+⚠️ **Keycloak bootstraps the admin user only on an EMPTY database.** The Helm Secret takes
+effect on a fresh install — it does NOT rotate the already-running admin. To rotate the LIVE
+password to match the Secret (run inside the keycloak pod):
+```bash
+NEWPW=$(kubectl get secret dashtab-keycloak-admin -o jsonpath='{.data.admin-password}' | base64 -d)
+kubectl exec -it deploy/dashtab-keycloak -- bash -c '
+  /opt/bitnami/keycloak/bin/kcadm.sh config credentials \
+    --server http://localhost:8080/auth --realm master --user admin --password admin
+  /opt/bitnami/keycloak/bin/kcadm.sh set-password -r master --username admin --new-password '"$NEWPW"'
+'
+```
+(Adjust `--server` path: `/auth` for local single-host, `/` for the project-05 root overlay.)
+Then restart the deployment so it re-reads the Secret. Alternatively rotate via the Admin
+Console → master realm → Users → admin → Credentials → Reset password.
+
+**Still plaintext (next DO-9 step):** the Keycloak→Postgres password (`keycloak/values.yaml`
+`externalDatabase.password: dashtab`) and the postgresql chart creds — move these to Secrets too.
 
 ---
 
