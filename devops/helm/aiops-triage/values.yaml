@@ -26,3 +26,33 @@ resources:
     memory: 64Mi
   limits:
     memory: 128Mi
+
+# ── Production hardening ──────────────────────────────────────────────────────
+# Image pull secrets — needed once the GHCR images/repo are private. Create the
+# secret in the namespace first (holds a PAT, so it is NOT templated here):
+#   kubectl -n project-05 create secret docker-registry ghcr-pull \
+#     --docker-server=ghcr.io --docker-username=<gh-user> \
+#     --docker-password=<PAT with read:packages>
+imagePullSecrets: []          # e.g. [{ name: ghcr-pull }]
+
+# PodDisruptionBudget — preserves capacity during voluntary disruptions.
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# startupProbe — gives the service time to boot before liveness counts.
+startupProbe:
+  enabled: true
+  failureThreshold: 30
+  periodSeconds: 5
+
+# readOnlyRootFilesystem — when true the root FS is read-only with an emptyDir at
+# /tmp. Verify the service's writable paths before enabling.
+readOnlyRootFilesystem: false
+
+# NetworkPolicy — default-deny + allow-list. Namespaced; only ENFORCED on a CNI
+# that supports it. Off by default. egressInternet is ON here because the triage
+# service calls the LLM provider (Groq) and Slack over the public internet.
+networkPolicy:
+  enabled: false
+  egressInternet: true
