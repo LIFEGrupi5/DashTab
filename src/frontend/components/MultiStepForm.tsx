@@ -3,6 +3,7 @@
 import { useReducer } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Lock } from 'lucide-react';
 import Button from '@/components/Button';
 import TextField from '@/components/TextField';
 import FileUpload from '@/components/FileUpload';
@@ -38,12 +39,12 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
 
   const { register, trigger, getValues, formState: { errors } } = useForm<StaffFormData>({
     resolver: zodResolver(staffSchema),
-    defaultValues: { fullName: '', email: '', role: 'waiter', startDate: '', bio: '' },
+    defaultValues: { fullName: '', email: '', password: '', role: 'waiter', startDate: '', bio: '' },
   });
 
   const next = async () => {
     const fields: (keyof StaffFormData)[][] = [
-      ['fullName', 'email'],
+      ['fullName', 'email', 'password'],
       ['role', 'startDate'],
       ['bio'],
     ];
@@ -108,6 +109,11 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
                 <div>
                   <TextField label="Email" type="email" placeholder="ana@restaurant.com" {...register('email')} />
                   {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>}
+                </div>
+                <div>
+                  <TextField label="Temporary Password" type="password" placeholder="Min. 8 characters" leftIcon={<Lock className="w-4 h-4" />} {...register('password')} />
+                  {errors.password && <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>}
+                  <p className="text-xs text-neutral-400 mt-1">Staff will be prompted to change this on first login.</p>
                 </div>
               </>
             )}
