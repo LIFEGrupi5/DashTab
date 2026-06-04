@@ -1,12 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Plus, Pencil, X } from 'lucide-react';
+import { Plus, Pencil, X, UtensilsCrossed, SlidersHorizontal } from 'lucide-react';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import TextField from '@/components/TextField';
+import EmptyState from '@/components/EmptyState';
 import { useCategories, useCreateMenuItem, useMenu } from '@/hooks/useMenu';
 
 const categories = ['All', 'Appetizer', 'Main Course', 'Salad', 'Dessert', 'Beverage'] as const;
@@ -76,6 +77,15 @@ export default function MenuPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {!isLoading && menuItems.length === 0 ? (
+          <div className="col-span-full">
+            <EmptyState icon={UtensilsCrossed} title="Your menu is empty" description="Add your first item so staff can start taking orders." action={{ label: 'Add item', onClick: () => setOpen(true) }} />
+          </div>
+        ) : !isLoading && filtered.length === 0 ? (
+          <div className="col-span-full">
+            <EmptyState icon={SlidersHorizontal} title="No items in this category" description="Try a different category or add a new item." action={{ label: 'Add item', onClick: () => setOpen(true) }} />
+          </div>
+        ) : null}
         {filtered.map(item => (
           <div
             key={item.id}

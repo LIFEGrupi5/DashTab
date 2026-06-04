@@ -1,8 +1,9 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Clock3, Funnel, Minus, Plus } from 'lucide-react';
+import { Clock3, Funnel, Minus, Plus, ShoppingBag, SlidersHorizontal } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import Button from '@/components/Button';
@@ -17,6 +18,7 @@ import { useMenu } from '@/hooks/useMenu';
 import { useSetOrderStatus } from '@/hooks/useSetOrderStatus';
 import { useCreateOrder } from '@/hooks/useCreateOrder';
 import { useOrderModal } from '@/hooks/useOrderModal';
+import EmptyState from '@/components/EmptyState';
 import type { Order, MenuItem } from '@/lib/api/types';
 
 const TABS = [
@@ -208,6 +210,7 @@ function ManagerView({
   handleModalCreate: () => void;
   handleStatusChange: (id: string, next: 'preparing' | 'ready' | 'completed') => void;
 }) {
+  const router = useRouter();
   const { tabListRef, handleKeyDown } = useTabKeyboard(setActiveTab);
 
   return (
@@ -258,8 +261,10 @@ function ManagerView({
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />)
         ) : filtered.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-sm text-neutral-500 dark:text-muted-foreground">
-            No orders found
+          <div className="col-span-full">
+            {orders.length === 0
+              ? <EmptyState icon={ShoppingBag} title="No orders yet" description="Orders placed by your team will appear here." action={{ label: 'Create first order', onClick: () => router.push('/orders/new') }} />
+              : <EmptyState icon={SlidersHorizontal} title="No orders match this filter" description="Try selecting a different status tab." />}
           </div>
         ) : (
           filtered.map((order, index) => (
@@ -399,6 +404,7 @@ function WaiterView({
   setActiveTab,
   isLoading,
 }: BaseViewProps) {
+  const router = useRouter();
   const { tabListRef, handleKeyDown } = useTabKeyboard(setActiveTab);
 
   return (
@@ -467,8 +473,8 @@ function WaiterView({
         {isLoading ? (
           Array.from({ length: 6 }).map((_, i) => <OrderCardSkeleton key={i} />)
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-sm text-neutral-500 dark:text-muted-foreground col-span-full">
-            No orders found
+          <div className="col-span-full">
+            <EmptyState icon={ShoppingBag} title="No orders yet" description="Orders placed by your team will appear here." action={{ label: 'Create first order', onClick: () => router.push('/orders/new') }} />
           </div>
         ) : (
           filtered.map((order, index) => (
