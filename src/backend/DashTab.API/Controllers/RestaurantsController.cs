@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DashTab.API.Controllers;
 
 [ApiController]
-[Route("api/restaurants")]
+[Route("api/v1/restaurants")]
 public class RestaurantsController(IRestaurantService restaurantService) : ControllerBase
 {
     [HttpPost("register")]
