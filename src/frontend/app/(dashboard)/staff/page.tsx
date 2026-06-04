@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Users } from 'lucide-react';
 import Button from '@/components/Button';
 import MultiStepForm from '@/components/MultiStepForm';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
+import EmptyState from '@/components/EmptyState';
 import { useCreateStaff, useUsers } from '@/hooks/useUsers';
 
 const ROLE_COLORS: Record<string, string> = {
@@ -33,6 +34,14 @@ export default function StaffPage() {
       />
 
       <div className="bg-white dark:bg-card rounded-xl border border-neutral-200 dark:border-border divide-y divide-neutral-100 dark:divide-border">
+        {!isLoading && users.length === 0 && (
+          <EmptyState
+            icon={Users}
+            title="No team members yet"
+            description="Add staff so they can log in and use DashTab."
+            action={{ label: 'Add member', onClick: () => setOpen(true) }}
+          />
+        )}
         {users.map(user => (
           <div key={user.id} className="flex flex-col sm:flex-row sm:items-center gap-4 px-5 py-4">
             <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-950/45 flex items-center justify-center flex-shrink-0">

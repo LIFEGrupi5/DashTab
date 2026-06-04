@@ -258,6 +258,7 @@ builder.Services.AddHostedService<StorageBucketBootstrapper>();
 
 // ── Application services ──────────────────────────────────────────────────────
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IKeycloakAdminService, KeycloakAdminService>();
 builder.Services.AddScoped<IRestaurantService, RestaurantService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();

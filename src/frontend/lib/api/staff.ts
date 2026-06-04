@@ -8,6 +8,7 @@ export const fetchStaffMember = (id: string) => apiGet<StaffUser>(`/users/${id}`
 export const createStaffMember = (req: {
   fullName: string;
   email: string;
+  password: string;
   role: string;
   startDate?: string;
   bio?: string;
