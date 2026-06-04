@@ -48,8 +48,6 @@ secrets:
   ConnectionStrings__RabbitMQ: "amqp://dashtab:dashtab@dashtab-rabbitmq:5672"
   Storage__AccessKey: "dashtab"
   Storage__SecretKey: "dashtabsecret"
-  Keycloak__AdminUsername: "admin"
-  Keycloak__AdminPassword: "project05-Life"
 
 # Probes. type: tcp (default) just checks the port is accepting connections —
 # correct while DashTab.API exposes NO health endpoints. Switch to type: http

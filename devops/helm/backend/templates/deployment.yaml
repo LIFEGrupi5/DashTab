@@ -65,6 +65,14 @@ spec:
                 name: {{ include "backend.fullname" . }}-config
             - secretRef:
                 name: {{ include "backend.fullname" . }}-secret
+          env:
+            - name: Keycloak__AdminUsername
+              value: "admin"
+            - name: Keycloak__AdminPassword
+              valueFrom:
+                secretKeyRef:
+                  name: dashtab-keycloak-admin
+                  key: admin-password
           # Readiness gates traffic during rolling updates; liveness restarts hung pods.
           # type: tcp = just check the port is accepting (app has no /health endpoint yet);
           # type: http = hit the paths below (switch to this once ASP.NET health checks exist).
