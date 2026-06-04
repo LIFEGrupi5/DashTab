@@ -23,8 +23,8 @@ export default function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const setAuth = useAppStore((s) => s.setAuth);
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail]       = useState<string>(demoAccounts[0].email);
+  const [password, setPassword] = useState<string>(demoAccounts[0].password);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -83,15 +83,16 @@ export default function LoginPage() {
               <Zap className="w-4 h-4 text-orange-400" />
               <span className="text-xs font-semibold text-neutral-400 uppercase tracking-widest">Quick demo access</span>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-1.5">
               {demoAccounts.map((acc) => (
                 <button
                   key={acc.role}
                   type="button"
                   onClick={() => fillDemo(acc)}
-                  className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-orange-500/20 border border-white/10 hover:border-orange-500/40 text-sm text-neutral-300 hover:text-orange-300 transition font-medium"
+                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 hover:bg-orange-500/20 border border-white/10 hover:border-orange-500/40 text-sm transition"
                 >
-                  {acc.role}
+                  <span className="text-neutral-300 hover:text-orange-300">{acc.email}</span>
+                  <span className="text-xs font-semibold text-orange-400/80 ml-3">{acc.role}</span>
                 </button>
               ))}
             </div>
