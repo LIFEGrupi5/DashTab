@@ -22,7 +22,8 @@ public partial class OrderMapper
             order.Items.Select(MapItem),
             FormatIso(order.PlacedAt),
             FormatIso(order.StageEnteredAt),
-            IsDelayed(order, now)
+            IsDelayed(order, now),
+            order.RestaurantId
         );
 
     [MapProperty(nameof(OrderItem.MenuItemNameSnapshot), nameof(OrderItemDto.MenuItemName))]

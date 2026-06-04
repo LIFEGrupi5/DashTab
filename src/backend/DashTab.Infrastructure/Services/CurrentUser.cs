@@ -13,4 +13,8 @@ public class CurrentUser(IHttpContextAccessor accessor) : ICurrentUser
     public string? Email => User?.FindFirstValue("email");
 
     public IReadOnlyList<string> Roles => User?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList() ?? [];
+
+    public Guid RestaurantId =>
+        accessor.HttpContext?.Items.TryGetValue("RestaurantId", out var v) == true && v is Guid rid
+            ? rid : Guid.Empty;
 }

@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class UserService(DashTabDbContext _context, UserMapper mapper) : IUserService
+public class UserService(DashTabDbContext _context, UserMapper mapper, ICurrentUser currentUser) : IUserService
 {
     public async Task<IEnumerable<StaffUserDto>> ListAsync()
     {
@@ -29,6 +29,7 @@ public class UserService(DashTabDbContext _context, UserMapper mapper) : IUserSe
         user.IsActive = true;
         user.CreatedAt = now;
         user.UpdatedAt = now;
+        user.RestaurantId = currentUser.RestaurantId;
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
         return mapper.ToDto(user);

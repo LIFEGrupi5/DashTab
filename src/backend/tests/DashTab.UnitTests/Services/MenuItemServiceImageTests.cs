@@ -70,8 +70,16 @@ public class MenuItemServiceImageTests
         return item;
     }
 
+    private sealed class StubCurrentUser : ICurrentUser
+    {
+        public Guid Id { get; } = Guid.NewGuid();
+        public string? Email => "test@example.com";
+        public IReadOnlyList<string> Roles => [];
+        public Guid RestaurantId { get; } = Guid.NewGuid();
+    }
+
     private static MenuItemService NewSut(DashTabDbContext db, FakeStorageService storage)
-        => new(db, new NoopCacheService(), new MenuItemMapper(), storage);
+        => new(db, new NoopCacheService(), new MenuItemMapper(), storage, new StubCurrentUser());
 
     [Fact]
     public async Task RequestImageUpload_ItemNotFound_ReturnsNull()
