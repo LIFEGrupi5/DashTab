@@ -12,7 +12,8 @@ public record OrderDto(
     IEnumerable<OrderItemDto> Items,
     string PlacedAtIso,
     string StageEnteredAtIso,
-    bool Delayed);
+    bool Delayed,
+    Guid RestaurantId);
 
 // Shape matches frontend OrderLineItem: { menuItemName, quantity, amount }
 public record OrderItemDto(string MenuItemName, int Quantity, decimal Amount);

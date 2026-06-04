@@ -26,6 +26,9 @@ public class MenuItem
 
     public string? ImageObjectKey { get; set; }
 
+    public Guid RestaurantId { get; set; }
+    public Restaurant Restaurant { get; set; } = null!;
+
     public MenuCategory Category { get; set; } = null!;
     public ICollection<OrderItem> OrderItems { get; set; } = [];
 }

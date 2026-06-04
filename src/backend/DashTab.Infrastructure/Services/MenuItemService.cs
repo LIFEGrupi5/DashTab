@@ -9,7 +9,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemMapper mapper, IStorageService storage) : IMenuItemService
+public class MenuItemService(
+    DashTabDbContext db,
+    ICacheService cache,
+    MenuItemMapper mapper,
+    IStorageService storage,
+    ICurrentUser currentUser) : IMenuItemService
 {
     private static readonly TimeSpan ItemTtl = TimeSpan.FromMinutes(5);
 
@@ -23,10 +28,11 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
 
     public async Task<IEnumerable<MenuItemDto>> ListAsync(Guid? categoryId = null, string? search = null, bool? available = null)
     {
+        var rid = currentUser.RestaurantId;
         var canCache = string.IsNullOrWhiteSpace(search) && !available.HasValue;
         var cacheKey = categoryId.HasValue
-            ? CacheKeys.MenuItemsByCategory(categoryId.Value)
-            : CacheKeys.MenuItemsAll;
+            ? CacheKeys.MenuItemsByCategory(rid, categoryId.Value)
+            : CacheKeys.MenuItemsAll(rid);
 
         if (canCache)
         {
@@ -58,7 +64,7 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
 
     public async Task<MenuItemDto?> GetByIdAsync(Guid id)
     {
-        var key = CacheKeys.MenuItem(id);
+        var key = CacheKeys.MenuItem(currentUser.RestaurantId, id);
         var cached = await cache.GetAsync<MenuItemDto>(key);
         if (cached is not null) return cached;
 
@@ -77,14 +83,16 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
         item.Id = Guid.NewGuid();
         item.CreatedAt = now;
         item.UpdatedAt = now;
+        item.RestaurantId = currentUser.RestaurantId;
         db.MenuItems.Add(item);
         await db.SaveChangesAsync();
         await db.Entry(item).Reference(m => m.Category).LoadAsync();
 
+        var rid = currentUser.RestaurantId;
         await cache.RemoveManyAsync(new[]
         {
-            CacheKeys.MenuItemsAll,
-            CacheKeys.MenuItemsByCategory(item.CategoryId)
+            CacheKeys.MenuItemsAll(rid),
+            CacheKeys.MenuItemsByCategory(rid, item.CategoryId),
         });
 
         return ToDto(item);
@@ -104,14 +112,15 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
         if (item.Category.Id != request.CategoryId)
             await db.Entry(item).Reference(m => m.Category).LoadAsync();
 
+        var rid = currentUser.RestaurantId;
         var keys = new List<string>
         {
-            CacheKeys.MenuItemsAll,
-            CacheKeys.MenuItem(id),
-            CacheKeys.MenuItemsByCategory(item.CategoryId)
+            CacheKeys.MenuItemsAll(rid),
+            CacheKeys.MenuItem(rid, id),
+            CacheKeys.MenuItemsByCategory(rid, item.CategoryId),
         };
         if (oldCategoryId != item.CategoryId)
-            keys.Add(CacheKeys.MenuItemsByCategory(oldCategoryId));
+            keys.Add(CacheKeys.MenuItemsByCategory(rid, oldCategoryId));
         await cache.RemoveManyAsync(keys);
 
         return ToDto(item);
@@ -126,11 +135,12 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
         item.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
+        var rid = currentUser.RestaurantId;
         await cache.RemoveManyAsync(new[]
         {
-            CacheKeys.MenuItemsAll,
-            CacheKeys.MenuItemsByCategory(item.CategoryId),
-            CacheKeys.MenuItem(id)
+            CacheKeys.MenuItemsAll(rid),
+            CacheKeys.MenuItemsByCategory(rid, item.CategoryId),
+            CacheKeys.MenuItem(rid, id),
         });
 
         return ToDto(item);
@@ -141,8 +151,6 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
         var item = await db.MenuItems.FindAsync(id);
         if (item is null) return false;
 
-        // Remove the object from storage so a soft-deleted item's image is no longer
-        // publicly reachable via its presigned/public URL.
         if (item.ImageObjectKey is not null)
         {
             await storage.DeleteAsync(StorageBuckets.MenuImages, item.ImageObjectKey);
@@ -153,11 +161,12 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
         item.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
+        var rid = currentUser.RestaurantId;
         await cache.RemoveManyAsync(new[]
         {
-            CacheKeys.MenuItemsAll,
-            CacheKeys.MenuItemsByCategory(item.CategoryId),
-            CacheKeys.MenuItem(id)
+            CacheKeys.MenuItemsAll(rid),
+            CacheKeys.MenuItemsByCategory(rid, item.CategoryId),
+            CacheKeys.MenuItem(rid, id),
         });
 
         return true;
@@ -165,7 +174,6 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
 
     public async Task<PresignedUploadUrl?> RequestImageUploadAsync(Guid id, string fileExtension, CancellationToken ct = default)
     {
-        // Validator rejects unsupported extensions at the controller boundary; this is a defensive guard.
         var contentType = ImagePolicy.ResolveContentType(fileExtension)
             ?? throw new InvalidOperationException($"Unsupported image extension: '{fileExtension}'.");
 
@@ -181,8 +189,6 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
 
     public async Task<MenuItemDto?> ConfirmImageAsync(Guid id, string objectKey, CancellationToken ct = default)
     {
-        // The object key embeds the menu item ID (see RequestImageUploadAsync). Reject any key
-        // that doesn't belong to this item to prevent cross-item key reuse by authenticated callers.
         if (!objectKey.StartsWith($"menu-items/{id}/", StringComparison.Ordinal))
             return null;
 
@@ -212,7 +218,8 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
         item.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        await cache.RemoveManyAsync([CacheKeys.MenuItemsAll, CacheKeys.MenuItem(id), CacheKeys.MenuItemsByCategory(item.CategoryId)]);
+        var rid = currentUser.RestaurantId;
+        await cache.RemoveManyAsync([CacheKeys.MenuItemsAll(rid), CacheKeys.MenuItem(rid, id), CacheKeys.MenuItemsByCategory(rid, item.CategoryId)]);
 
         return ToDto(item);
     }
@@ -229,7 +236,8 @@ public class MenuItemService(DashTabDbContext db, ICacheService cache, MenuItemM
         item.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        await cache.RemoveManyAsync([CacheKeys.MenuItemsAll, CacheKeys.MenuItem(id), CacheKeys.MenuItemsByCategory(item.CategoryId)]);
+        var rid = currentUser.RestaurantId;
+        await cache.RemoveManyAsync([CacheKeys.MenuItemsAll(rid), CacheKeys.MenuItem(rid, id), CacheKeys.MenuItemsByCategory(rid, item.CategoryId)]);
 
         return true;
     }

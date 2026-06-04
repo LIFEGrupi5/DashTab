@@ -16,5 +16,8 @@ public class MenuCategory
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; } = false;
 
+    public Guid RestaurantId { get; set; }
+    public Restaurant Restaurant { get; set; } = null!;
+
     public ICollection<MenuItem> MenuItems { get; set; } = [];
 }

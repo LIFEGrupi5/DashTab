@@ -16,7 +16,8 @@ public class OrderService(
     DashTabDbContext db,
     OrderMapper mapper,
     IBackgroundJobClient backgroundJobs,
-    IEventPublisher events) : IOrderService
+    IEventPublisher events,
+    ICurrentUser currentUser) : IOrderService
 {
     private static readonly Dictionary<OrderStatus, OrderStatus[]> AllowedTransitions = new()
     {
@@ -88,6 +89,7 @@ public class OrderService(
             CreatedAt    = now,
             UpdatedAt    = now,
             Items        = orderItems,
+            RestaurantId = currentUser.RestaurantId,
         };
 
         db.Orders.Add(order);

@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using DashTab.API.Middleware;
 using DashTab.API.Realtime;
+using DashTab.Infrastructure.Middleware;
 using DashTab.Application.Interfaces;
 using DashTab.Application.Mappings;
 using DashTab.Application.Validators;
@@ -310,6 +311,7 @@ app.UseSerilogRequestLogging();
 app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
+app.UseMiddleware<RestaurantContextMiddleware>();
 app.UseAuthorization();
 app.UseHangfireDashboard("/hangfire", new DashboardOptions
 {

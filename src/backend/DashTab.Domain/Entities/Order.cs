@@ -35,6 +35,9 @@ public class Order
 
     public bool IsDeleted { get; set; } = false;
 
+    public Guid RestaurantId { get; set; }
+    public Restaurant Restaurant { get; set; } = null!;
+
     public User CreatedBy { get; set; } = null!;
     public ICollection<OrderItem> Items { get; set; } = [];
 }

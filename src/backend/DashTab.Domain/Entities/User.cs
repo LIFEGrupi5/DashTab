@@ -24,5 +24,8 @@ public class User
     public DateTime UpdatedAt { get; set; }
     public bool IsDeleted { get; set; } = false;
 
+    public Guid RestaurantId { get; set; }
+    public Restaurant Restaurant { get; set; } = null!;
+
     public ICollection<Order> Orders { get; set; } = [];
 }

@@ -8,25 +8,30 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
 
-public class CategoryService(DashTabDbContext db, ICacheService cache, MenuCategoryMapper mapper) : ICategoryService
+public class CategoryService(
+    DashTabDbContext db,
+    ICacheService cache,
+    MenuCategoryMapper mapper,
+    ICurrentUser currentUser) : ICategoryService
 {
     private static readonly TimeSpan CategoryTtl = TimeSpan.FromMinutes(15);
 
     public async Task<IEnumerable<MenuCategoryDto>> ListAsync()
     {
-        var cached = await cache.GetAsync<List<MenuCategoryDto>>(CacheKeys.MenuCategoriesAll);
+        var key = CacheKeys.MenuCategoriesAll(currentUser.RestaurantId);
+        var cached = await cache.GetAsync<List<MenuCategoryDto>>(key);
         if (cached is not null) return cached;
 
         var cats = await db.MenuCategories.OrderBy(c => c.DisplayOrder).ToListAsync();
         var dtos = cats.Select(mapper.ToDto).ToList();
 
-        await cache.SetAsync(CacheKeys.MenuCategoriesAll, dtos, CategoryTtl);
+        await cache.SetAsync(key, dtos, CategoryTtl);
         return dtos;
     }
 
     public async Task<MenuCategoryDto?> GetByIdAsync(Guid id)
     {
-        var key = CacheKeys.MenuCategory(id);
+        var key = CacheKeys.MenuCategory(currentUser.RestaurantId, id);
         var cached = await cache.GetAsync<MenuCategoryDto>(key);
         if (cached is not null) return cached;
 
@@ -46,10 +51,11 @@ public class CategoryService(DashTabDbContext db, ICacheService cache, MenuCateg
         cat.IsDeleted = false;
         cat.CreatedAt = now;
         cat.UpdatedAt = now;
+        cat.RestaurantId = currentUser.RestaurantId;
         db.MenuCategories.Add(cat);
         await db.SaveChangesAsync();
 
-        await cache.RemoveAsync(CacheKeys.MenuCategoriesAll);
+        await cache.RemoveAsync(CacheKeys.MenuCategoriesAll(currentUser.RestaurantId));
 
         return mapper.ToDto(cat);
     }
@@ -63,13 +69,13 @@ public class CategoryService(DashTabDbContext db, ICacheService cache, MenuCateg
         cat.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
-        // MenuItemDto.Category is the denormalized name — invalidate item caches too.
+        var rid = currentUser.RestaurantId;
         await cache.RemoveManyAsync(new[]
         {
-            CacheKeys.MenuCategoriesAll,
-            CacheKeys.MenuCategory(id),
-            CacheKeys.MenuItemsAll,
-            CacheKeys.MenuItemsByCategory(id)
+            CacheKeys.MenuCategoriesAll(rid),
+            CacheKeys.MenuCategory(rid, id),
+            CacheKeys.MenuItemsAll(rid),
+            CacheKeys.MenuItemsByCategory(rid, id),
         });
 
         return mapper.ToDto(cat);
@@ -88,10 +94,11 @@ public class CategoryService(DashTabDbContext db, ICacheService cache, MenuCateg
         cat.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
 
+        var rid = currentUser.RestaurantId;
         await cache.RemoveManyAsync(new[]
         {
-            CacheKeys.MenuCategoriesAll,
-            CacheKeys.MenuCategory(id)
+            CacheKeys.MenuCategoriesAll(rid),
+            CacheKeys.MenuCategory(rid, id),
         });
 
         return true;

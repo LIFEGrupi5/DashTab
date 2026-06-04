@@ -11,11 +11,11 @@ public sealed class KdsBroadcaster(IHubContext<KdsHub> hub) : IKdsBroadcaster
     public const string OrderCancelledEvent     = "orderCancelled";
 
     public Task OrderPlacedAsync(OrderDto order, CancellationToken ct = default) =>
-        hub.Clients.Group(KdsHub.KitchenGroup).SendAsync(OrderPlacedEvent, order, ct);
+        hub.Clients.Group(KdsHub.KitchenGroup(order.RestaurantId)).SendAsync(OrderPlacedEvent, order, ct);
 
     public Task OrderStatusChangedAsync(OrderDto order, string previousStatus, CancellationToken ct = default) =>
-        hub.Clients.Group(KdsHub.KitchenGroup).SendAsync(OrderStatusChangedEvent, order, previousStatus, ct);
+        hub.Clients.Group(KdsHub.KitchenGroup(order.RestaurantId)).SendAsync(OrderStatusChangedEvent, order, previousStatus, ct);
 
     public Task OrderCancelledAsync(OrderDto order, string previousStatus, CancellationToken ct = default) =>
-        hub.Clients.Group(KdsHub.KitchenGroup).SendAsync(OrderCancelledEvent, order, previousStatus, ct);
+        hub.Clients.Group(KdsHub.KitchenGroup(order.RestaurantId)).SendAsync(OrderCancelledEvent, order, previousStatus, ct);
 }
