@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.0](https://github.com/LIFEGrupi5/DashTab/compare/v0.2.0...v0.3.0) (2026-06-03)
+
+
+### Features
+
+* **devops:** add scheduled Postgres backup chart (pg_dump → MinIO) ([33e1457](https://github.com/LIFEGrupi5/DashTab/commit/33e14576b2c7d7616959253045d985fc1a40bf82))
+* **devops:** add scheduled Postgres backup chart (pg_dump → MinIO) ([7f58d35](https://github.com/LIFEGrupi5/DashTab/commit/7f58d35adb83c5b0a6aa80df6ab72a8f3011d03f))
+* **devops:** production-harden app helm charts ([9ecae4b](https://github.com/LIFEGrupi5/DashTab/commit/9ecae4b92f1844f8523e636dcd58730da48937a2))
+* **devops:** production-harden app helm charts ([1fed982](https://github.com/LIFEGrupi5/DashTab/commit/1fed982d209620c2dce42e1734dd711917a27cf4))
+* **devops:** secure Kibana/Elasticsearch and Keycloak admin (DO-9) ([32a17ad](https://github.com/LIFEGrupi5/DashTab/commit/32a17adc2fea1d95b9e712dd7b52e0d81ba0cdf8))
+
+
+### Bug Fixes
+
+* **frontend:** drop nonce from script-src to allow unsafe-inline ([36a0190](https://github.com/LIFEGrupi5/DashTab/commit/36a01900ebe94fee29a8395eba0e40d4133fb832))
+* **frontend:** replace strict-dynamic with unsafe-inline in CSP ([61e3ba6](https://github.com/LIFEGrupi5/DashTab/commit/61e3ba64810c59078944d688676077526ae71915))
+* **frontend:** replace strict-dynamic with unsafe-inline in CSP ([b120fb5](https://github.com/LIFEGrupi5/DashTab/commit/b120fb5e08b2235189ff05ef914712a5264d76db))
+
 ## [0.2.0](https://github.com/LIFEGrupi5/DashTab/compare/v0.1.0...v0.2.0) (2026-06-01)
 
 
