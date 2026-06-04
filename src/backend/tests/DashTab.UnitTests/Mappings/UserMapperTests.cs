@@ -51,7 +51,7 @@ public class UserMapperTests
     [Fact]
     public void ToEntity_ParsesRoleAndStartDate()
     {
-        var req = new CreateStaffRequest("Carol", "carol@example.com", "Manager", "2025-03-15", "Bio text");
+        var req = new CreateStaffRequest("Carol", "carol@example.com", "TempPass1!", "Manager", "2025-03-15", "Bio text");
 
         var user = _mapper.ToEntity(req);
 
@@ -65,7 +65,7 @@ public class UserMapperTests
     [Fact]
     public void ToEntity_NullStartDate_BecomesNullDateOnly()
     {
-        var req = new CreateStaffRequest("Dave", "dave@example.com", "kitchen", null, null);
+        var req = new CreateStaffRequest("Dave", "dave@example.com", "TempPass1!", "kitchen", null, null);
 
         var user = _mapper.ToEntity(req);
 
@@ -76,7 +76,7 @@ public class UserMapperTests
     [Fact]
     public void ToEntity_InvalidStartDateString_BecomesNull()
     {
-        var req = new CreateStaffRequest("Eve", "eve@example.com", "owner", "not-a-date", null);
+        var req = new CreateStaffRequest("Eve", "eve@example.com", "TempPass1!", "owner", "not-a-date", null);
 
         var user = _mapper.ToEntity(req);
 
