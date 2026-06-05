@@ -10,8 +10,27 @@ namespace DashTab.Infrastructure.Services;
 
 public class RestaurantService(
     DashTabDbContext db,
-    IKeycloakAdminService keycloak) : IRestaurantService
+    IKeycloakAdminService keycloak,
+    ICurrentUser currentUser) : IRestaurantService
 {
+    public async Task<RestaurantDto?> GetCurrentAsync(CancellationToken ct = default)
+    {
+        var r = await db.Restaurants
+            .FirstOrDefaultAsync(x => x.Id == currentUser.RestaurantId, ct);
+        return r is null ? null : new RestaurantDto(r.Id, r.Name, r.Slug, r.CreatedAt);
+    }
+
+    public async Task<RestaurantDto?> UpdateAsync(UpdateRestaurantRequest request, CancellationToken ct = default)
+    {
+        var r = await db.Restaurants
+            .FirstOrDefaultAsync(x => x.Id == currentUser.RestaurantId, ct);
+        if (r is null) return null;
+
+        r.Name = request.Name;
+        await db.SaveChangesAsync(ct);
+        return new RestaurantDto(r.Id, r.Name, r.Slug, r.CreatedAt);
+    }
+
     public async Task<RegisterRestaurantResponse> RegisterAsync(
         RegisterRestaurantRequest request, CancellationToken ct = default)
     {
