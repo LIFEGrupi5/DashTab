@@ -157,6 +157,8 @@ services:
       Keycloak__Authority: "http://localhost:8080/realms/dashtab"
       Keycloak__ValidIssuer: "http://localhost:8080/realms/dashtab"
       Keycloak__InternalUrl: "http://keycloak:8080/realms/dashtab"
+      Keycloak__AdminUsername: ${KEYCLOAK_ADMIN}
+      Keycloak__AdminPassword: ${KEYCLOAK_ADMIN_PASSWORD}
     ports:
       - "${BACKEND_PORT:-5000}:5000"
     depends_on:

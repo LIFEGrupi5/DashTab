@@ -11,12 +11,13 @@ public class KeycloakAdminService(IHttpClientFactory httpFactory, IConfiguration
 {
     private (string BaseUrl, string Realm) KeycloakConfig()
     {
-        var authority = config["Keycloak:Authority"]
-            ?? throw new InvalidOperationException("Keycloak:Authority is not configured.");
+        var url = config["Keycloak:InternalUrl"]
+               ?? config["Keycloak:Authority"]
+               ?? throw new InvalidOperationException("Keycloak:Authority is not configured.");
         const string separator = "/realms/";
-        var idx = authority.LastIndexOf(separator, StringComparison.Ordinal);
-        if (idx < 0) throw new InvalidOperationException("Cannot parse Keycloak:Authority — expected '/realms/' segment.");
-        return (authority[..idx], authority[(idx + separator.Length)..]);
+        var idx = url.LastIndexOf(separator, StringComparison.Ordinal);
+        if (idx < 0) throw new InvalidOperationException("Cannot parse Keycloak URL — expected '/realms/' segment.");
+        return (url[..idx], url[(idx + separator.Length)..]);
     }
 
     private async Task<string> GetAdminTokenAsync(CancellationToken ct)
