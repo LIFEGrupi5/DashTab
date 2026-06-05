@@ -8,16 +8,20 @@ namespace DashTab.Infrastructure.Services;
 
 public class StripeService : IStripeService
 {
-    private readonly StripeClient _client;
     private readonly IConfiguration _config;
+    private StripeClient? _client;
 
     public StripeService(IConfiguration config)
     {
         _config = config;
-        var key = config["Stripe:SecretKey"]
-            ?? throw new InvalidOperationException("Stripe:SecretKey is not configured.");
-        _client = new StripeClient(key);
     }
+
+    // Built lazily so merely resolving this service (e.g. the gate middleware
+    // pulling in ISubscriptionService) never fails when no Stripe key is set.
+    // Only an actual checkout/confirm call requires the key.
+    private StripeClient Client => _client ??= new StripeClient(
+        _config["Stripe:SecretKey"]
+        ?? throw new InvalidOperationException("Stripe:SecretKey is not configured."));
 
     private string PriceId(Plan plan) => (plan switch
     {
@@ -57,13 +61,13 @@ public class StripeService : IStripeService
             },
         };
 
-        var session = await new SessionService(_client).CreateAsync(options, cancellationToken: ct);
+        var session = await new SessionService(Client).CreateAsync(options, cancellationToken: ct);
         return session.Url;
     }
 
     public async Task<StripeSessionResult> GetSessionResultAsync(string sessionId, CancellationToken ct = default)
     {
-        var session = await new SessionService(_client).GetAsync(sessionId, cancellationToken: ct);
+        var session = await new SessionService(Client).GetAsync(sessionId, cancellationToken: ct);
 
         var paid =
             string.Equals(session.PaymentStatus, "paid", StringComparison.OrdinalIgnoreCase) ||
