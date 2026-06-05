@@ -28,6 +28,10 @@ config:
   Cors__AllowedOrigins__0: "https://app.project-05.gjirafa.dev"
   # Ship logs to in-cluster Elasticsearch (Serilog ES sink activates when set).
   Elasticsearch__Uri: "http://dashtab-elasticsearch:9200"
+  # Stripe redirect targets — must be the public app origin. {CHECKOUT_SESSION_ID}
+  # is a literal template Stripe substitutes into the URL on successful payment.
+  Stripe__SuccessUrl: "https://app.project-05.gjirafa.dev/subscribe/success?session_id={CHECKOUT_SESSION_ID}"
+  Stripe__CancelUrl: "https://app.project-05.gjirafa.dev/subscribe"
 
 # Connection strings keep the in-cluster service names from the base values
 # (dashtab-pgbouncer, dashtab-redis-master, …) — those resolve inside project-05.

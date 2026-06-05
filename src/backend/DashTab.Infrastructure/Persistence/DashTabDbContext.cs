@@ -14,6 +14,7 @@ public class DashTabDbContext : DbContext
     public DashTabDbContext(DbContextOptions<DashTabDbContext> options) : base(options) { }
 
     public DbSet<Restaurant> Restaurants { get; set; } = null!;
+    public DbSet<Subscription> Subscriptions { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<MenuCategory> MenuCategories { get; set; } = null!;
     public DbSet<MenuItem> MenuItems { get; set; } = null!;
@@ -102,6 +103,21 @@ public class DashTabDbContext : DbContext
 
         modelBuilder.Entity<AuditLog>()
             .HasQueryFilter(a => CurrentTenantId == null || a.RestaurantId == CurrentTenantId);
+
+        // One subscription per restaurant. Not tenant-filtered: it is always queried
+        // by an explicit RestaurantId (including from the gate, before/at tenant
+        // resolution), so a global filter would only get in the way.
+        modelBuilder.Entity<Subscription>()
+            .HasIndex(s => s.RestaurantId).IsUnique();
+        modelBuilder.Entity<Subscription>()
+            .Property(s => s.Plan).HasConversion<string>();
+        modelBuilder.Entity<Subscription>()
+            .Property(s => s.Status).HasConversion<string>();
+        modelBuilder.Entity<Subscription>()
+            .HasOne(s => s.Restaurant)
+            .WithMany()
+            .HasForeignKey(s => s.RestaurantId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

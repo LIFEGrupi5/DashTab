@@ -82,6 +82,16 @@ async function request<T>(
     return request<T>(path, init, true);
   }
 
+  // 402 = no active subscription. Send the user to the plan-selection page.
+  if (
+    res.status === 402 &&
+    typeof window !== "undefined" &&
+    !window.location.pathname.startsWith("/subscribe")
+  ) {
+    window.location.replace("/subscribe");
+    throw new ApiError(402, { error: "Subscription required." });
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
     throw new ApiError(res.status, body);
