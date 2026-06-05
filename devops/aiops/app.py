@@ -177,6 +177,77 @@ def healthz():
     return jsonify({"status": "ok", "provider": LLM_PROVIDER, "model": model}), 200
 
 
+# ── Revenue forecast (ML) ─────────────────────────────────────────────────────
+# Stateless least-squares model: fits a trend + day-of-week seasonality on a
+# restaurant's daily revenue history and projects the next N days. The backend
+# (which owns the data + tenancy) sends the already tenant-scoped history here;
+# this service never touches the database. NumPy only — no scipy/scikit needed,
+# so it installs cleanly on the Alpine image (musllinux wheels).
+import numpy as np  # noqa: E402
+from datetime import datetime, timedelta  # noqa: E402
+
+_WEEKDAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+
+def _feature_row(index: int, dt: datetime) -> list:
+    # [intercept, trend index, Mon..Sat one-hot] — Sunday is the baseline.
+    dow = dt.weekday()
+    onehot = [1.0 if dow == k else 0.0 for k in range(6)]
+    return [1.0, float(index)] + onehot
+
+
+@app.post("/forecast")
+def forecast():
+    """Revenue forecast.
+
+    Expects: { "history": [{"date": "2026-05-01", "revenue": 1234.5}, ...],
+               "horizon": 7 }
+    Returns: { "forecast": [{"date","day","predicted","lower","upper"}], "message": null }
+    """
+    body = request.get_json(force=True, silent=True) or {}
+    history = body.get("history", [])
+    try:
+        horizon = max(1, min(31, int(body.get("horizon", 7))))
+    except (TypeError, ValueError):
+        horizon = 7
+
+    valid = [h for h in history if h.get("date") and h.get("revenue") is not None]
+    if len(valid) < 5:
+        return jsonify({"forecast": [], "message": "Not enough order history yet to forecast."}), 200
+
+    try:
+        valid.sort(key=lambda h: h["date"])
+        dates = [datetime.fromisoformat(str(h["date"])[:10]) for h in valid]
+        y = np.array([float(h["revenue"]) for h in valid], dtype=float)
+        n = len(y)
+
+        X = np.array([_feature_row(i, dates[i]) for i in range(n)])
+        beta, *_ = np.linalg.lstsq(X, y, rcond=None)
+
+        resid = y - X @ beta
+        std = float(np.sqrt(np.mean(resid**2))) if n > 2 else 0.0
+        margin = 1.96 * std  # ~95% band
+
+        last = dates[-1]
+        out = []
+        for step in range(1, horizon + 1):
+            fdate = last + timedelta(days=step)
+            row = np.array(_feature_row(n + step - 1, fdate))
+            pred = max(0.0, float(row @ beta))
+            out.append({
+                "date": fdate.strftime("%Y-%m-%d"),
+                "day": _WEEKDAY_ABBR[fdate.weekday()],
+                "predicted": round(pred, 2),
+                "lower": round(max(0.0, pred - margin), 2),
+                "upper": round(pred + margin, 2),
+            })
+
+        return jsonify({"forecast": out, "message": None}), 200
+    except Exception as e:  # noqa: BLE001 — never 500 the dashboard over a bad series
+        log.exception("forecast failed: %s", e)
+        return jsonify({"forecast": [], "message": "Could not compute a forecast."}), 200
+
+
 if __name__ == "__main__":
     # Dev only; in the container gunicorn serves app:app.
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8080")))
