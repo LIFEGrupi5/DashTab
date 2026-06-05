@@ -2,6 +2,7 @@ using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
 using DashTab.Application.Mappings;
 using DashTab.Domain.Entities;
+using DashTab.Domain.Enums;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,6 +28,21 @@ public class UserService(
 
     public async Task<StaffUserDto> CreateAsync(CreateStaffRequest request)
     {
+        var rid = currentUser.RestaurantId;
+
+        // Enforce the plan's staff cap before creating anything in Keycloak.
+        var sub = await _context.Subscriptions.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.RestaurantId == rid);
+        if (sub is not null)
+        {
+            var limit   = PlanLimits.MaxStaff(sub.Plan);
+            var current = await _context.Users.IgnoreQueryFilters()
+                .CountAsync(u => u.RestaurantId == rid && !u.IsDeleted);
+            if (current >= limit)
+                throw new InvalidOperationException(
+                    $"Your {sub.Plan} plan allows up to {limit} staff members. Upgrade your plan to add more.");
+        }
+
         var keycloakId = await keycloak.CreateUserAsync(
             request.Email,
             request.FullName,
