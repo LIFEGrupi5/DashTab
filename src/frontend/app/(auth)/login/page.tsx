@@ -27,11 +27,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState<string>(demoAccounts[0].password);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const performLogin = async (emailVal: string, passwordVal: string) => {
     setIsLoading(true);
     try {
-      const session = await login(email, password);
+      const session = await login(emailVal, passwordVal);
       const claims  = decodeJwt<Record<string, unknown>>(session.accessToken);
       const user    = claimsToAuthUser(claims);
       setAuth(user, session.accessToken, session.refreshToken);
@@ -44,9 +43,15 @@ export default function LoginPage() {
     }
   };
 
+  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await performLogin(email, password);
+  };
+
   const fillDemo = (acc: typeof demoAccounts[number]) => {
     setEmail(acc.email);
     setPassword(acc.password);
+    void performLogin(acc.email, acc.password);
   };
 
   return (

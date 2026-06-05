@@ -14,11 +14,11 @@ public class AuthService(IHttpClientFactory
   httpClientFactory, IConfiguration config,
   DashTabDbContext db, UserMapper userMapper) : IAuthService
 {
-   private string TokenEndpoint =>
-       $"{config["Keycloak:Authority"]}/protocol/openid-connect/token";
+   private string KeycloakBase =>
+       config["Keycloak:InternalUrl"] ?? config["Keycloak:Authority"]!;
 
-   private string LogoutEndpoint =>
-       $"{config["Keycloak:Authority"]}/protocol/openid-connect/logout";
+   private string TokenEndpoint  => $"{KeycloakBase}/protocol/openid-connect/token";
+   private string LogoutEndpoint => $"{KeycloakBase}/protocol/openid-connect/logout";
 
    public async Task<TokenResponse> LoginAsync(LoginRequest req)
    {

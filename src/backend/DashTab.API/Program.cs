@@ -124,17 +124,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         opts.RequireHttpsMetadata = false;
         opts.MapInboundClaims = false;
         opts.TokenValidationParameters.RoleClaimType = "roles";
-        // In Docker the API talks to keycloak:8080 internally, but Keycloak always puts
-        // localhost:8080 in the discovery doc (issuer + jwks_uri). We fix both:
-        // 1. Override ValidIssuer so the token's iss (localhost:8080) is accepted.
-        // 2. Rewrite backchannel requests so jwks_uri fetches succeed via keycloak:8080.
-        var validIssuer = builder.Configuration["Keycloak:ValidIssuer"];
+        // In Docker, Authority must match the issuer in tokens (public localhost:8080 URL).
+        // Backchannel requests (discovery, JWKS) are rewritten to the internal keycloak:8080
+        // hostname so they succeed from inside the container.
+        var validIssuer  = builder.Configuration["Keycloak:ValidIssuer"];
+        var internalUrl  = builder.Configuration["Keycloak:InternalUrl"];
         if (!string.IsNullOrEmpty(validIssuer))
         {
             opts.TokenValidationParameters.ValidIssuer = validIssuer;
             opts.BackchannelHttpHandler = new KeycloakBackchannelHandler(
-                publicBase: validIssuer,
-                internalBase: opts.Authority!);
+                publicBase:   validIssuer,
+                internalBase: !string.IsNullOrEmpty(internalUrl) ? internalUrl : opts.Authority!);
         }
 
         // SignalR's JS client cannot set Authorization headers on the WebSocket
