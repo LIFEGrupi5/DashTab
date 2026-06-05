@@ -79,7 +79,7 @@ public class AuthService(IHttpClientFactory
    {
       if (current.Id == Guid.Empty) return null;
 
-      var user = await db.Users.FirstOrDefaultAsync(u => u.Email == current.Email);
+      var user = await db.Users.FirstOrDefaultAsync(u => u.Id == current.Id);
       if (user is null) return null;
 
       return userMapper.ToDto(user);

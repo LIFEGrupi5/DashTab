@@ -38,8 +38,10 @@ public class DashTabDbContext : DbContext
             .HasForeignKey(u => u.RestaurantId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Category names are unique PER RESTAURANT, not globally — otherwise two
+        // restaurants could not both have e.g. a "Drinks" category.
         modelBuilder.Entity<MenuCategory>()
-            .HasIndex(c => c.Name).IsUnique();
+            .HasIndex(c => new { c.RestaurantId, c.Name }).IsUnique();
         modelBuilder.Entity<MenuCategory>()
             .Property(c => c.IsDeleted).HasDefaultValue(false);
         modelBuilder.Entity<MenuCategory>()

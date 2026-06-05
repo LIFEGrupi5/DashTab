@@ -22,7 +22,7 @@ public class UserService(
 
     public async Task<StaffUserDto?> GetByIdAsync(Guid id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
         return user is null ? null : mapper.ToDto(user);
     }
 
@@ -72,7 +72,7 @@ public class UserService(
 
     public async Task<StaffUserDto?> UpdateAsync(Guid id, UpdateStaffRequest request)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
         if (user is null) return null;
 
         var emailChanged = !string.Equals(user.Email, request.Email, StringComparison.OrdinalIgnoreCase);
@@ -89,7 +89,7 @@ public class UserService(
 
     public async Task<StaffUserDto?> SetActiveAsync(Guid id, bool active)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
         if (user is null) return null;
 
         user.IsActive  = active;
@@ -103,7 +103,7 @@ public class UserService(
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
         if (user is null) return false;
 
         user.IsDeleted = true;
