@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashtab-uptime-kuma
+  labels:
+    app.kubernetes.io/name: uptime-kuma
+    app.kubernetes.io/part-of: dashtab
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: uptime-kuma
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http

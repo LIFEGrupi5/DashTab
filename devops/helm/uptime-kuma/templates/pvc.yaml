@@ -1,0 +1,15 @@
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dashtab-uptime-kuma
+  labels:
+    app.kubernetes.io/name: uptime-kuma
+    app.kubernetes.io/part-of: dashtab
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size }}
+{{- end }}
