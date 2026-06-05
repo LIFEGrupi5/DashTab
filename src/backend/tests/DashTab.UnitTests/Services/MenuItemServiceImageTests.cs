@@ -45,14 +45,22 @@ public class MenuItemServiceImageTests
         public Task RemoveManyAsync(IEnumerable<string> keys, CancellationToken ct = default) => Task.CompletedTask;
     }
 
-    private static DashTabDbContext NewDb() =>
-        new(new DbContextOptionsBuilder<DashTabDbContext>()
+    // Fixed tenant shared by the seeded data, the DbContext filter, and the current user
+    // so the strict tenant query filter (RestaurantId == CurrentTenantId) resolves.
+    private static readonly Guid TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    private static DashTabDbContext NewDb()
+    {
+        var db = new DashTabDbContext(new DbContextOptionsBuilder<DashTabDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options);
+        db.CurrentTenantId = TenantId;
+        return db;
+    }
 
     private static MenuItem SeedItem(DashTabDbContext db, string? imageKey = null)
     {
-        var category = new MenuCategory { Id = Guid.NewGuid(), Name = "Drinks", DisplayOrder = 1 };
+        var category = new MenuCategory { Id = Guid.NewGuid(), Name = "Drinks", DisplayOrder = 1, RestaurantId = TenantId };
         var item = new MenuItem
         {
             Id = Guid.NewGuid(),
@@ -63,6 +71,7 @@ public class MenuItemServiceImageTests
             IsAvailable = true,
             ImageObjectKey = imageKey,
             Category = category,
+            RestaurantId = TenantId,
         };
         db.MenuCategories.Add(category);
         db.MenuItems.Add(item);
@@ -75,7 +84,7 @@ public class MenuItemServiceImageTests
         public Guid Id { get; } = Guid.NewGuid();
         public string? Email => "test@example.com";
         public IReadOnlyList<string> Roles => [];
-        public Guid RestaurantId { get; } = Guid.NewGuid();
+        public Guid RestaurantId => TenantId;
     }
 
     private static MenuItemService NewSut(DashTabDbContext db, FakeStorageService storage)
