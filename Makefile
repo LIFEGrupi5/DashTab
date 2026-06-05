@@ -19,7 +19,7 @@ help:
 	@printf "  ├───────────────────────────────────────────┼──────────────────────────┤\n"
 	@printf "  │ docker compose --profile backend up       │ postgres, redis, backend │\n"
 	@printf "  ├───────────────────────────────────────────┼──────────────────────────┤\n"
-	@printf "  │ docker compose --profile observability up │ loki, grafana            │\n"
+	@printf "  │ docker compose --profile observability up │ loki, grafana, uptime-kuma│\n"
 	@printf "  ├───────────────────────────────────────────┼──────────────────────────┤\n"
 	@printf "  │ docker compose --profile elk up           │ ELK logging stack        │\n"
 	@printf "  ├───────────────────────────────────────────┼──────────────────────────┤\n"

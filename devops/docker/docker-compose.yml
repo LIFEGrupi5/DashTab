@@ -250,6 +250,21 @@ services:
       loki:
         condition: service_healthy
 
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    restart: unless-stopped
+    profiles: [observability, full]
+    volumes:
+      - uptimekuma_data:/app/data
+    ports:
+      - "${UPTIME_KUMA_PORT:-3002}:3001"
+    healthcheck:
+      test: ["CMD-SHELL", "extra/healthcheck || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   # ── Centralized Logging — ELK (Elasticsearch + Logstash + Kibana) ───────────
   # Heavy stack (~3GB RAM). On-demand only: `docker compose --profile elk up`.
   # Host prereq once per machine:  sudo sysctl -w vm.max_map_count=262144
@@ -324,3 +339,4 @@ volumes:
   loki_data:
   grafana_data:
   elasticsearch_data:
+  uptimekuma_data:
