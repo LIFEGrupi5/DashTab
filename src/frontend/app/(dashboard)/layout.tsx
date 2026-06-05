@@ -11,6 +11,7 @@ import {
   Monitor,
   BarChart3,
   Users,
+  Settings,
   LogOut,
   PanelLeft,
   Moon,
@@ -26,6 +27,7 @@ const MODULE_COLORS: Record<string, string> = {
   '/kitchen':    '#269271',
   '/overview':   '#c74a2d',
   '/staff':      '#c14b7b',
+  '/settings':   '#6b7280',
 };
 
 const waiterNavItems = [
@@ -75,6 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href: '/kitchen', label: 'Kitchen', icon: Monitor },
       { href: '/overview', label: 'Overview', icon: BarChart3 },
       { href: '/staff', label: 'Staff', icon: Users },
+      { href: '/settings', label: 'Settings', icon: Settings },
     ] as const;
   }, [isWaiter, isKitchenStaff]);
 

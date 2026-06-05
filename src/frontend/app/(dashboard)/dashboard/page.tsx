@@ -6,6 +6,7 @@ import { CheckCircle2, ChefHat, Clock3 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import Button from '@/components/Button';
 import IsometricLauncher from '@/components/IsometricLauncher';
+import OnboardingChecklist from '@/components/OnboardingChecklist';
 import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { useOrders } from '@/hooks/useOrders';
@@ -83,6 +84,7 @@ export default function DashboardPage() {
     return (
       <div className="h-full flex flex-col overflow-hidden">
         <IsometricLauncher />
+        <OnboardingChecklist />
       </div>
     );
   }

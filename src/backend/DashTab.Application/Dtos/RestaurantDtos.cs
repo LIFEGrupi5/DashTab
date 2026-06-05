@@ -10,3 +10,11 @@ public record RegisterRestaurantResponse(
     Guid RestaurantId,
     string RestaurantName,
     string Slug);
+
+public record RestaurantDto(
+    Guid Id,
+    string Name,
+    string Slug,
+    DateTime CreatedAt);
+
+public record UpdateRestaurantRequest(string Name);

@@ -17,4 +17,20 @@ public class RestaurantsController(IRestaurantService restaurantService) : Contr
         var result = await restaurantService.RegisterAsync(request, ct);
         return Ok(result);
     }
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> Me(CancellationToken ct)
+    {
+        var dto = await restaurantService.GetCurrentAsync(ct);
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
+    [HttpPut("me")]
+    [Authorize(Roles = "Owner,Manager")]
+    public async Task<IActionResult> UpdateMe(UpdateRestaurantRequest request, CancellationToken ct)
+    {
+        var dto = await restaurantService.UpdateAsync(request, ct);
+        return dto is null ? NotFound() : Ok(dto);
+    }
 }
