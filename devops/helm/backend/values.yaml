@@ -42,12 +42,14 @@ config:
 # Secrets → rendered into a Secret, injected via envFrom. Connection strings
 # embed passwords, so they live here, not in the ConfigMap.
 # NOTE: backend talks to PgBouncer (:6432), not Postgres directly.
+# PROD: values are empty here — injected at deploy time from Azure Key Vault
+# (kv-dashtab-p05) via `helm --set` in cd.yml (DO-9). Local dev: use docker-compose.
 secrets:
-  ConnectionStrings__Default: "Host=dashtab-pgbouncer;Port=6432;Database=dashtab;Username=dashtab;Password=dashtab"
-  ConnectionStrings__Redis: "dashtab-redis-master:6379,password=dashtab"
-  ConnectionStrings__RabbitMQ: "amqp://dashtab:dashtab@dashtab-rabbitmq:5672"
-  Storage__AccessKey: "dashtab"
-  Storage__SecretKey: "dashtabsecret"
+  ConnectionStrings__Default: ""
+  ConnectionStrings__Redis: ""
+  ConnectionStrings__RabbitMQ: ""
+  Storage__AccessKey: ""
+  Storage__SecretKey: ""
 
 # Probes. type: tcp (default) just checks the port is accepting connections —
 # correct while DashTab.API exposes NO health endpoints. Switch to type: http

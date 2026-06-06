@@ -48,6 +48,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: src/backend
@@ -57,6 +58,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Scan image with Trivy (DO-9)
+        uses: aquasecurity/trivy-action@0.28.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-backend@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
 
   build-frontend:
     name: Build & Push Frontend
@@ -93,6 +106,7 @@ jobs:
       # Dockerfile/source defaults; pass --build-arg here once the cluster's real
       # API/Keycloak URLs are known (requires matching ARGs in the Dockerfile).
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: src/frontend
@@ -107,6 +121,18 @@ jobs:
           # from it. Change if the api.* hostname changes.
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=https://api.project-05.gjirafa.dev/api/v1
+
+      - name: Scan image with Trivy (DO-9)
+        uses: aquasecurity/trivy-action@0.28.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-frontend@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
 
   # AIOps alert-triage service (DO-12). Small Python webhook image.
   build-aiops:
@@ -141,6 +167,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: devops/aiops
@@ -150,6 +177,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Scan image with Trivy (DO-9)
+        uses: aquasecurity/trivy-action@0.28.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-aiops-triage@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
 
   # ── Phase 2: DEPLOY (gated) ────────────────────────────────────────────────
   # Deploys the freshly-built app images to the project-05 namespace, pinned to
@@ -195,11 +234,41 @@ jobs:
       - name: Resolve immutable image tag
         run: echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
+      # ── Azure Key Vault secret fetch (DO-9) ───────────────────────────────────
+      # Pulls all runtime secrets from the vault so nothing sensitive lives in
+      # values.yaml or GitHub repo secrets. ::add-mask:: redacts each value from
+      # the Actions log before it's written to $GITHUB_ENV.
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Fetch secrets from Azure Key Vault (DO-9)
+        run: |
+          VAULT=kv-dashtab-p05
+          get() { az keyvault secret show --vault-name "$VAULT" -n "$1" --query value -o tsv; }
+
+          echo "::add-mask::$(get backend-conn-default)"
+          echo "BACKEND_CONN_DEFAULT=$(get backend-conn-default)"     >> "$GITHUB_ENV"
+          echo "::add-mask::$(get backend-conn-redis)"
+          echo "BACKEND_CONN_REDIS=$(get backend-conn-redis)"         >> "$GITHUB_ENV"
+          echo "::add-mask::$(get backend-conn-rabbitmq)"
+          echo "BACKEND_CONN_RABBITMQ=$(get backend-conn-rabbitmq)"   >> "$GITHUB_ENV"
+          echo "::add-mask::$(get backend-storage-accesskey)"
+          echo "BACKEND_STORAGE_ACCESSKEY=$(get backend-storage-accesskey)" >> "$GITHUB_ENV"
+          echo "::add-mask::$(get backend-storage-secretkey)"
+          echo "BACKEND_STORAGE_SECRETKEY=$(get backend-storage-secretkey)" >> "$GITHUB_ENV"
+
       - name: Deploy backend
         run: |
           helm upgrade --install dashtab-backend devops/helm/backend \
             -n project-05 -f devops/helm/backend/values-project05.yaml \
             --set image.tag="$IMAGE_TAG" \
+            --set "secrets.ConnectionStrings__Default=$BACKEND_CONN_DEFAULT" \
+            --set "secrets.ConnectionStrings__Redis=$BACKEND_CONN_REDIS" \
+            --set "secrets.ConnectionStrings__RabbitMQ=$BACKEND_CONN_RABBITMQ" \
+            --set "secrets.Storage__AccessKey=$BACKEND_STORAGE_ACCESSKEY" \
+            --set "secrets.Storage__SecretKey=$BACKEND_STORAGE_SECRETKEY" \
             --wait --timeout 5m
 
       - name: Deploy frontend
