@@ -34,7 +34,7 @@
     "cmdk": "^1.1.1",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.8.0",
-    "next": "^15.3.1",
+    "next": "^15.5.19",
     "next-themes": "^0.4.6",
     "react": "^19.2.4",
     "react-day-picker": "^9.14.0",
@@ -64,7 +64,7 @@
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.5.0",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^15.3.1",
+    "eslint-config-next": "^15.5.19",
     "jest": "^30.3.0",
     "jest-axe": "^10.0.0",
     "jest-environment-jsdom": "^30.3.0",
@@ -73,5 +73,11 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.7.2",
     "web-vitals": "^4.2.4"
+  },
+  "overrides": {
+    "cross-spawn": "^7.0.5",
+    "minimatch": "^9.0.6",
+    "glob": "^10.5.0",
+    "tar": "^7.5.11"
   }
 }
