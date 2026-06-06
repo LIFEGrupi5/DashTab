@@ -48,6 +48,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: src/backend
@@ -57,6 +58,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Scan image with Trivy (DO-9)
+        uses: aquasecurity/trivy-action@0.28.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-backend@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
 
   build-frontend:
     name: Build & Push Frontend
@@ -93,6 +106,7 @@ jobs:
       # Dockerfile/source defaults; pass --build-arg here once the cluster's real
       # API/Keycloak URLs are known (requires matching ARGs in the Dockerfile).
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: src/frontend
@@ -107,6 +121,18 @@ jobs:
           # from it. Change if the api.* hostname changes.
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=https://api.project-05.gjirafa.dev/api/v1
+
+      - name: Scan image with Trivy (DO-9)
+        uses: aquasecurity/trivy-action@0.28.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-frontend@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
 
   # AIOps alert-triage service (DO-12). Small Python webhook image.
   build-aiops:
@@ -141,6 +167,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: devops/aiops
@@ -150,6 +177,18 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Scan image with Trivy (DO-9)
+        uses: aquasecurity/trivy-action@0.28.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-aiops-triage@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
 
   # ── Phase 2: DEPLOY (gated) ────────────────────────────────────────────────
   # Deploys the freshly-built app images to the project-05 namespace, pinned to
