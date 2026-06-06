@@ -133,6 +133,10 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           format: table
+          # Skip npm's own bundled packages — these are part of the base image's
+          # system npm, not our application code. Our app runs as `node server.js`
+          # and never invokes npm at runtime.
+          skip-dirs: /usr/local/lib/node_modules/npm
 
   # AIOps alert-triage service (DO-12). Small Python webhook image.
   build-aiops:
