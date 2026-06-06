@@ -148,7 +148,7 @@ public class MenuItemService(
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var item = await db.MenuItems.FindAsync(id);
+        var item = await db.MenuItems.FirstOrDefaultAsync(m => m.Id == id);
         if (item is null) return false;
 
         if (item.ImageObjectKey is not null)
@@ -226,7 +226,7 @@ public class MenuItemService(
 
     public async Task<bool> RemoveImageAsync(Guid id, CancellationToken ct = default)
     {
-        var item = await db.MenuItems.FindAsync([id], ct);
+        var item = await db.MenuItems.FirstOrDefaultAsync(m => m.Id == id, ct);
         if (item is null) return false;
         if (item.ImageObjectKey is null) return false;
 

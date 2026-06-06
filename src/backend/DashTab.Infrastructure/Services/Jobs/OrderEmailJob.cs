@@ -10,9 +10,12 @@ public class OrderEmailJob(DashTabDbContext db, IEmailService email)
     [AutomaticRetry(Attempts = 3, DelaysInSeconds = new[] { 30, 60, 300 })]
     public async Task SendOrderConfirmation(Guid orderId)
     {
+        // Runs in a background (Hangfire) scope with no tenant context, so the strict
+        // tenant query filter would exclude everything — bypass it and fetch by id.
         var order = await db.Orders
+            .IgnoreQueryFilters()
             .Include(o => o.Items)
-            .FirstOrDefaultAsync(o => o.Id == orderId);
+            .FirstOrDefaultAsync(o => o.Id == orderId && !o.IsDeleted);
 
         if (order is null) return;
 

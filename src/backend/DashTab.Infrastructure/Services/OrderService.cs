@@ -48,7 +48,7 @@ public class OrderService(
 
     public async Task<OrderDto> CreateAsync(CreateOrderRequest request, Guid createdById)
     {
-        var user = await db.Users.FindAsync(createdById)
+        var user = await db.Users.FirstOrDefaultAsync(u => u.Id == createdById)
             ?? throw new InvalidOperationException("User not found.");
 
         var itemIds    = request.Items.Select(i => i.MenuItemId).ToList();

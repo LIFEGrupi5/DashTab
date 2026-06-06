@@ -31,19 +31,21 @@ public class DashTabDbContext : DbContext
         modelBuilder.Entity<User>()
             .Property(u => u.IsDeleted).HasDefaultValue(false);
         modelBuilder.Entity<User>()
-            .HasQueryFilter(u => !u.IsDeleted && (CurrentTenantId == null || u.RestaurantId == CurrentTenantId));
+            .HasQueryFilter(u => !u.IsDeleted && u.RestaurantId == CurrentTenantId);
         modelBuilder.Entity<User>()
             .HasOne(u => u.Restaurant)
             .WithMany()
             .HasForeignKey(u => u.RestaurantId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Category names are unique PER RESTAURANT, not globally — otherwise two
+        // restaurants could not both have e.g. a "Drinks" category.
         modelBuilder.Entity<MenuCategory>()
-            .HasIndex(c => c.Name).IsUnique();
+            .HasIndex(c => new { c.RestaurantId, c.Name }).IsUnique();
         modelBuilder.Entity<MenuCategory>()
             .Property(c => c.IsDeleted).HasDefaultValue(false);
         modelBuilder.Entity<MenuCategory>()
-            .HasQueryFilter(c => !c.IsDeleted && (CurrentTenantId == null || c.RestaurantId == CurrentTenantId));
+            .HasQueryFilter(c => !c.IsDeleted && c.RestaurantId == CurrentTenantId);
         modelBuilder.Entity<MenuCategory>()
             .HasOne(c => c.Restaurant)
             .WithMany()
@@ -58,7 +60,7 @@ public class DashTabDbContext : DbContext
         modelBuilder.Entity<MenuItem>()
             .Property(m => m.IsDeleted).HasDefaultValue(false);
         modelBuilder.Entity<MenuItem>()
-            .HasQueryFilter(m => !m.IsDeleted && (CurrentTenantId == null || m.RestaurantId == CurrentTenantId));
+            .HasQueryFilter(m => !m.IsDeleted && m.RestaurantId == CurrentTenantId);
         modelBuilder.Entity<MenuItem>()
             .HasIndex(m => m.IsAvailable);
         modelBuilder.Entity<MenuItem>()
@@ -77,7 +79,7 @@ public class DashTabDbContext : DbContext
         modelBuilder.Entity<Order>()
             .Property(o => o.IsDeleted).HasDefaultValue(false);
         modelBuilder.Entity<Order>()
-            .HasQueryFilter(o => !o.IsDeleted && (CurrentTenantId == null || o.RestaurantId == CurrentTenantId));
+            .HasQueryFilter(o => !o.IsDeleted && o.RestaurantId == CurrentTenantId);
         modelBuilder.Entity<Order>()
             .HasIndex(o => o.Status);
         modelBuilder.Entity<Order>()
@@ -102,7 +104,7 @@ public class DashTabDbContext : DbContext
             .OnDelete(DeleteBehavior.SetNull);
 
         modelBuilder.Entity<AuditLog>()
-            .HasQueryFilter(a => CurrentTenantId == null || a.RestaurantId == CurrentTenantId);
+            .HasQueryFilter(a => a.RestaurantId == CurrentTenantId);
 
         // One subscription per restaurant. Not tenant-filtered: it is always queried
         // by an explicit RestaurantId (including from the gate, before/at tenant

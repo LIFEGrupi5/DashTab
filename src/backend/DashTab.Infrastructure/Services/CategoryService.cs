@@ -35,7 +35,7 @@ public class CategoryService(
         var cached = await cache.GetAsync<MenuCategoryDto>(key);
         if (cached is not null) return cached;
 
-        var cat = await db.MenuCategories.FindAsync(id);
+        var cat = await db.MenuCategories.FirstOrDefaultAsync(c => c.Id == id);
         if (cat is null) return null;
 
         var dto = mapper.ToDto(cat);
@@ -62,7 +62,7 @@ public class CategoryService(
 
     public async Task<MenuCategoryDto?> UpdateAsync(Guid id, UpdateCategoryRequest request)
     {
-        var cat = await db.MenuCategories.FindAsync(id);
+        var cat = await db.MenuCategories.FirstOrDefaultAsync(c => c.Id == id);
         if (cat is null) return null;
 
         mapper.Update(request, cat);
@@ -83,7 +83,7 @@ public class CategoryService(
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var cat = await db.MenuCategories.FindAsync(id);
+        var cat = await db.MenuCategories.FirstOrDefaultAsync(c => c.Id == id);
         if (cat is null) return false;
 
         var hasItems = await db.MenuItems.AnyAsync(m => m.CategoryId == id);
