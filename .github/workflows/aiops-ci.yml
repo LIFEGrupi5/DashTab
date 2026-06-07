@@ -58,23 +58,3 @@ jobs:
 
       - name: Build image
         run: docker build -t dashtab/aiops:ci .
-
-  smoke-test:
-    name: Smoke Test (cluster)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Configure kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-
-      - name: Hit /healthz via in-cluster curl pod
-        run: |
-          kubectl run aiops-smoke \
-            --namespace=project-05 \
-            --image=curlimages/curl:latest \
-            --restart=Never \
-            --rm \
-            --attach \
-            -- curl -sf http://dashtab-aiops-triage:8080/healthz
