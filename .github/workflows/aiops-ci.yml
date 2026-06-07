@@ -50,8 +50,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-  docker-smoke:
-    name: Docker Build & Smoke Test
+  docker-build:
+    name: Docker Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,26 +59,22 @@ jobs:
       - name: Build image
         run: docker build -t dashtab/aiops:ci .
 
-      - name: Start container
+  smoke-test:
+    name: Smoke Test (cluster)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure kubeconfig
         run: |
-          docker run -d --name aiops \
-            -p 8080:8080 \
-            -e LLM_PROVIDER=gemini \
-            -e GEMINI_API_KEY=dummy \
-            -e SLACK_WEBHOOK_URL=http://localhost \
-            dashtab/aiops:ci
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
 
-      - name: Wait for container to be healthy
+      - name: Hit /healthz via in-cluster curl pod
         run: |
-          for i in $(seq 1 10); do
-            if docker exec aiops wget -qO- http://localhost:8080/healthz; then
-              echo "healthy"; exit 0
-            fi
-            sleep 1
-          done
-          docker logs aiops
-          exit 1
-
-      - name: Stop container
-        if: always()
-        run: docker rm -f aiops
+          kubectl run aiops-smoke \
+            --namespace=project-05 \
+            --image=curlimages/curl:latest \
+            --restart=Never \
+            --rm \
+            --attach \
+            -- curl -sf http://dashtab-aiops-triage:8080/healthz
