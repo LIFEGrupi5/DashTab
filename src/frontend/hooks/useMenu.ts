@@ -40,11 +40,27 @@ export function useCreateCategory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (name: string) => createCategory(name),
+    // Optimistically add a placeholder chip immediately — the chip appears the
+    // moment the user hits "Add Category" with no waiting for the server.
+    onMutate: async (name: string) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.categories.all });
+      const previous = queryClient.getQueryData<MenuCategory[]>(queryKeys.categories.all);
+      queryClient.setQueryData<MenuCategory[]>(queryKeys.categories.all, old => [
+        ...(old ?? []),
+        { id: `optimistic-${Date.now()}`, name, displayOrder: 0 },
+      ]);
+      return { previous };
+    },
+    // On success replace the placeholder with the real record from the server.
     onSuccess: (category: MenuCategory) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.categories.all });
+      queryClient.setQueryData<MenuCategory[]>(queryKeys.categories.all, old =>
+        (old ?? []).map(c => (c.id.startsWith('optimistic-') ? category : c)),
+      );
       toast.success(`Category "${category.name}" added`);
     },
-    onError: () => {
+    // On error roll back the optimistic chip.
+    onError: (_err, _name, ctx) => {
+      queryClient.setQueryData(queryKeys.categories.all, ctx?.previous);
       toast.error('Failed to add category. Please try again.');
     },
   });

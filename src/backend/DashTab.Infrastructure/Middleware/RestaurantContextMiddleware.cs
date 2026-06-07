@@ -32,30 +32,61 @@ public class RestaurantContextMiddleware(RequestDelegate next)
     {
         if (ctx.User.Identity?.IsAuthenticated == true)
         {
+            // Resolve the tenant and check the subscription in ONE query by joining
+            // Users → Subscriptions. Previously this was 2–3 sequential DB round-trips
+            // (sub lookup + optional email fallback + IsActiveAsync), each costing
+            // ~1–2 s RTT on a cloud-hosted Postgres. One joined query drops that to a
+            // single round-trip regardless of code path.
             Guid? restaurantId = null;
+            bool   hasActiveSub = false;
+            bool   needsSubCheck = RequiresSubscription(ctx.Request);
 
-            // Primary: the JWT subject. For every user we create, User.Id == Keycloak
-            // sub, and sub is always present in the access token (email often isn't).
-            if (Guid.TryParse(ctx.User.FindFirst("sub")?.Value, out var userId))
+            var subClaim = ctx.User.FindFirst("sub")?.Value;
+            var emailClaim = ctx.User.FindFirst("email")?.Value;
+
+            if (subClaim is not null || emailClaim is not null)
             {
-                restaurantId = await db.Users
+                var now = DateTime.UtcNow;
+                var row = await db.Users
                     .IgnoreQueryFilters()
-                    .Where(u => u.Id == userId && !u.IsDeleted)
-                    .Select(u => (Guid?)u.RestaurantId)
+                    .Where(u => !u.IsDeleted &&
+                                (subClaim != null
+                                    ? u.Id == Guid.Parse(subClaim)
+                                    : u.Email == emailClaim))
+                    .Select(u => new
+                    {
+                        RestaurantId = (Guid?)u.RestaurantId,
+                        HasActiveSub = needsSubCheck
+                            ? db.Subscriptions.Any(s =>
+                                s.RestaurantId == u.RestaurantId &&
+                                s.Status == Domain.Enums.SubscriptionStatus.Active &&
+                                (s.CurrentPeriodEnd == null || s.CurrentPeriodEnd > now))
+                            : true          // skip the sub join for allow-listed paths
+                    })
                     .FirstOrDefaultAsync();
-            }
 
-            // Fallback: email (covers any legacy user whose Id != sub).
-            if (restaurantId is null)
-            {
-                var email = ctx.User.FindFirst("email")?.Value;
-                if (!string.IsNullOrEmpty(email))
+                restaurantId = row?.RestaurantId;
+                hasActiveSub = row?.HasActiveSub ?? false;
+
+                // Email fallback: only if sub-based lookup returned nothing.
+                if (restaurantId is null && subClaim is not null && emailClaim is not null)
                 {
-                    restaurantId = await db.Users
+                    var fallback = await db.Users
                         .IgnoreQueryFilters()
-                        .Where(u => u.Email == email && !u.IsDeleted)
-                        .Select(u => (Guid?)u.RestaurantId)
+                        .Where(u => u.Email == emailClaim && !u.IsDeleted)
+                        .Select(u => new
+                        {
+                            RestaurantId = (Guid?)u.RestaurantId,
+                            HasActiveSub = needsSubCheck
+                                ? db.Subscriptions.Any(s =>
+                                    s.RestaurantId == u.RestaurantId &&
+                                    s.Status == Domain.Enums.SubscriptionStatus.Active &&
+                                    (s.CurrentPeriodEnd == null || s.CurrentPeriodEnd > now))
+                                : true
+                        })
                         .FirstOrDefaultAsync();
+                    restaurantId = fallback?.RestaurantId;
+                    hasActiveSub = fallback?.HasActiveSub ?? false;
                 }
             }
 
@@ -64,8 +95,7 @@ public class RestaurantContextMiddleware(RequestDelegate next)
                 db.CurrentTenantId = restaurantId.Value;
                 ctx.Items["RestaurantId"] = restaurantId.Value;
 
-                if (RequiresSubscription(ctx.Request)
-                    && !await subscriptions.IsActiveAsync(restaurantId.Value))
+                if (needsSubCheck && !hasActiveSub)
                 {
                     ctx.Response.StatusCode = StatusCodes.Status402PaymentRequired;
                     ctx.Response.ContentType = "application/json";
