@@ -51,6 +51,8 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
     const valid = await trigger(fields[step]);
     if (!valid) return;
     if (step === LAST_STEP) {
+      const allValid = await trigger();
+      if (!allValid) return;
       onSubmit(getValues());
     } else {
       dispatch({ type: 'next' });

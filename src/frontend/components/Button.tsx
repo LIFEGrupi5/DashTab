@@ -1,5 +1,6 @@
 'use client';
 
+import { twMerge } from 'tailwind-merge';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'success' | 'warning';
@@ -42,9 +43,13 @@ export default function Button({
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center gap-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 ${VARIANT_STYLES[variant]} ${SIZE_STYLES[size]} ${
-        fullWidth ? 'w-full' : ''
-      } ${className}`.trim()}
+      className={twMerge(
+        'inline-flex items-center justify-center gap-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2',
+        VARIANT_STYLES[variant],
+        SIZE_STYLES[size],
+        fullWidth && 'w-full',
+        className,
+      )}
       {...props}
     >
       {children}
