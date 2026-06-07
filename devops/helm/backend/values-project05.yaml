@@ -32,6 +32,8 @@ config:
   # is a literal template Stripe substitutes into the URL on successful payment.
   Stripe__SuccessUrl: "https://app.project-05.gjirafa.dev/subscribe/success?session_id={CHECKOUT_SESSION_ID}"
   Stripe__CancelUrl: "https://app.project-05.gjirafa.dev/subscribe"
+  # In-cluster Python ML service for revenue forecasting (DO-12 aiops image).
+  Aiops__BaseUrl: "http://dashtab-aiops-triage:8080"
 
 # Connection strings keep the in-cluster service names from the base values
 # (dashtab-pgbouncer, dashtab-redis-master, …) — those resolve inside project-05.

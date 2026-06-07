@@ -29,6 +29,9 @@ export const test = base.extend({
     await page.route('**/api/v1/users**', route =>
       route.fulfill({ status: 200, json: [] })
     );
+    await page.route('**/api/v1/analytics/forecast**', route =>
+      route.fulfill({ status: 200, json: { forecast: [], message: null } })
+    );
     await apply(page);
   },
 });

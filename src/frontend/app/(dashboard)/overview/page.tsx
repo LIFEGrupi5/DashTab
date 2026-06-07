@@ -6,6 +6,7 @@ import { TrendingUp, ShoppingBag, CheckCircle2, Clock, Wallet } from 'lucide-rea
 import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
 import { useOrders } from '@/hooks/useOrders';
+import { useForecast } from '@/hooks/useForecast';
 
 const OverviewCharts = dynamic(() => import('@/components/OverviewCharts'), {
   ssr: false,
@@ -21,6 +22,7 @@ const HOUR_RANGE = Array.from({ length: 15 }, (_, i) => i + 8); // 8–22
 
 export default function OverviewPage() {
   const { data: orders = [], isLoading } = useOrders();
+  const { data: forecastData, isLoading: forecastLoading } = useForecast();
 
   const stats = useMemo(() => {
     const completed = orders.filter(o => o.status === 'completed');
@@ -119,6 +121,9 @@ export default function OverviewPage() {
           revenueByHour={revenueByHour}
           peakRevenueHour={peakRevenueHour}
           isLoading={isLoading}
+          forecast={forecastData?.forecast ?? []}
+          forecastLoading={forecastLoading}
+          forecastMessage={forecastData?.message}
         />
       </div>
 
