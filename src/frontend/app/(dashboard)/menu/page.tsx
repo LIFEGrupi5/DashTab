@@ -1,26 +1,53 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Plus, Pencil, X, UtensilsCrossed, SlidersHorizontal } from 'lucide-react';
+import { Plus, Pencil, X, UtensilsCrossed, SlidersHorizontal, FolderPlus } from 'lucide-react';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import TextField from '@/components/TextField';
 import EmptyState from '@/components/EmptyState';
-import { useCategories, useCreateMenuItem, useMenu } from '@/hooks/useMenu';
-
-const categories = ['All', 'Appetizer', 'Main Course', 'Salad', 'Dessert', 'Beverage'] as const;
+import { useCategories, useCreateCategory, useCreateMenuItem, useMenu } from '@/hooks/useMenu';
+import { useAuth } from '@/hooks/useAuth';
 
 const EMPTY_FORM = { name: '', categoryId: '', price: '', description: '', available: true };
 
 export default function MenuPage() {
+  const { user } = useAuth();
+  // Only Owner/Manager may create categories — mirrors the backend
+  // [Authorize(Roles = "Owner,Manager")] on POST /menu-categories.
+  const canManageCategories = user?.role === 'owner' || user?.role === 'manager';
+
   const { data: menuItems = [], isLoading } = useMenu();
   const { data: categoryOptions = [] } = useCategories();
   const createItem = useCreateMenuItem();
-  const [activeCategory, setActiveCategory] = useState<(typeof categories)[number]>('All');
+  const createCategory = useCreateCategory();
+
+  // Filter chips are derived from the real categories the restaurant created
+  // (no hard-coded list), with "All" prepended.
+  const filterChips = useMemo(
+    () => ['All', ...categoryOptions.map(c => c.name)],
+    [categoryOptions],
+  );
+
+  const [activeCategory, setActiveCategory] = useState<string>('All');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const canCreateCategory = categoryName.trim() !== '';
+
+  const handleCreateCategory = () => {
+    if (!canCreateCategory) return;
+    createCategory.mutate(categoryName.trim(), {
+      onSuccess: () => {
+        setCategoryName('');
+        setCategoryOpen(false);
+      },
+    });
+  };
 
   const canCreate = form.name.trim() !== '' && form.categoryId !== '' && form.price !== '';
 
@@ -60,8 +87,8 @@ export default function MenuPage() {
         }
       />
 
-      <div className="flex gap-2 flex-wrap mb-5">
-        {categories.map(cat => (
+      <div className="flex gap-2 flex-wrap mb-5 items-center">
+        {filterChips.map(cat => (
           <button
             key={cat}
             onClick={() => setActiveCategory(cat)}
@@ -74,6 +101,14 @@ export default function MenuPage() {
             {cat}
           </button>
         ))}
+        {canManageCategories && (
+          <button
+            onClick={() => setCategoryOpen(true)}
+            className="px-3 py-1.5 rounded-full text-sm font-medium transition border border-dashed border-neutral-300 dark:border-border text-neutral-500 dark:text-muted-foreground hover:border-orange-400 hover:text-orange-600 dark:hover:text-orange-400 inline-flex items-center gap-1"
+          >
+            <FolderPlus className="w-4 h-4" /> Add Category
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -188,6 +223,33 @@ export default function MenuPage() {
             />
             <span className="text-sm text-neutral-700 dark:text-muted-foreground">Available</span>
           </label>
+        </Modal>
+      )}
+
+      {categoryOpen && canManageCategories && (
+        <Modal
+          title="Add Category"
+          onClose={() => setCategoryOpen(false)}
+          footer={
+            <Button
+              fullWidth
+              onClick={handleCreateCategory}
+              disabled={!canCreateCategory || createCategory.isPending}
+            >
+              {createCategory.isPending ? 'Adding…' : 'Add Category'}
+            </Button>
+          }
+        >
+          <TextField
+            label="Category name"
+            value={categoryName}
+            onChange={e => setCategoryName(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleCreateCategory();
+            }}
+            placeholder="e.g. Appetizers"
+            className="py-2"
+          />
         </Modal>
       )}
     </div>

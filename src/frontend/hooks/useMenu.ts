@@ -2,8 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { createMenuItem, fetchCategories, fetchMenuItems } from '@/lib/api/menu';
-import type { MenuItem } from '@/lib/api/types';
+import { createCategory, createMenuItem, fetchCategories, fetchMenuItems } from '@/lib/api/menu';
+import type { MenuCategory, MenuItem } from '@/lib/api/types';
 import { queryKeys } from '@/lib/queryKeys';
 
 export function useMenu() {
@@ -32,6 +32,20 @@ export function useCreateMenuItem() {
     },
     onError: () => {
       toast.error('Failed to add item. Please try again.');
+    },
+  });
+}
+
+export function useCreateCategory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => createCategory(name),
+    onSuccess: (category: MenuCategory) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.categories.all });
+      toast.success(`Category "${category.name}" added`);
+    },
+    onError: () => {
+      toast.error('Failed to add category. Please try again.');
     },
   });
 }
