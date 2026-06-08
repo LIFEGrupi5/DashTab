@@ -45,7 +45,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push
         id: build
@@ -100,7 +100,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # NOTE: NEXT_PUBLIC_* are baked at build time. This image ships the
       # Dockerfile/source defaults; pass --build-arg here once the cluster's real
@@ -168,7 +168,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push
         id: build
