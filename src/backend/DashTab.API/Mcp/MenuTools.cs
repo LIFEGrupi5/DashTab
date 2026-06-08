@@ -22,8 +22,8 @@ public static class MenuTools
         int take = 50)
     {
         take = Math.Clamp(take, 1, 200);
-        var result = await menu.ListAsync(categoryId, search, available);
-        return result.Take(take);
+        var result = await menu.ListAsync(categoryId, search, available, skip: 0, take: take);
+        return result.Items;
     }
 
     [McpServerTool(Name = "get_menu_item")]

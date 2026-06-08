@@ -28,16 +28,18 @@ public class OrderService(
         [OrderStatus.Cancelled] = [],
     };
 
-    public async Task<IEnumerable<OrderDto>> ListAsync(string? status = null)
+    public async Task<PagedResult<OrderDto>> ListAsync(string? status = null, int skip = 0, int take = 50)
     {
         var query = db.Orders.Include(o => o.Items).AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<OrderStatus>(status, ignoreCase: true, out var s))
             query = query.Where(o => o.Status == s);
 
-        var orders = await query.OrderByDescending(o => o.PlacedAt).ToListAsync();
+        var ordered = query.OrderByDescending(o => o.PlacedAt);
+        var total = await ordered.CountAsync();
+        var orders = await ordered.Skip(skip).Take(take).ToListAsync();
         var now = DateTime.UtcNow;
-        return orders.Select(o => mapper.ToDto(o, now));
+        return new PagedResult<OrderDto>(orders.Select(o => mapper.ToDto(o, now)), total, skip, take);
     }
 
     public async Task<OrderDto?> GetByIdAsync(Guid id)

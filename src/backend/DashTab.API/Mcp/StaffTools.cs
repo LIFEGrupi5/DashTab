@@ -20,12 +20,13 @@ public static class StaffTools
         int take = 50)
     {
         take = Math.Clamp(take, 1, 200);
-        var result = await users.ListAsync();
+        var result = await users.ListAsync(skip: 0, take: 200);
+        var items = result.Items;
         if (!string.IsNullOrWhiteSpace(role))
-            result = result.Where(u => string.Equals(u.Role, role, StringComparison.OrdinalIgnoreCase));
+            items = items.Where(u => string.Equals(u.Role, role, StringComparison.OrdinalIgnoreCase));
         if (active is { } a)
-            result = result.Where(u => u.Active == a);
-        return result.Take(take);
+            items = items.Where(u => u.Active == a);
+        return items.Take(take);
     }
 
     [McpServerTool(Name = "get_staff_member")]

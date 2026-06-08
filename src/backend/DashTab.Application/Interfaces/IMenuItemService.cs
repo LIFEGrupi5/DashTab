@@ -4,7 +4,7 @@ namespace DashTab.Application.Interfaces;
 
 public interface IMenuItemService
 {
-    Task<IEnumerable<MenuItemDto>> ListAsync(Guid? categoryId = null, string? search = null, bool? available = null);
+    Task<PagedResult<MenuItemDto>> ListAsync(Guid? categoryId = null, string? search = null, bool? available = null, int skip = 0, int take = 50);
     Task<MenuItemDto?> GetByIdAsync(Guid id);
     Task<MenuItemDto> CreateAsync(CreateMenuItemRequest request);
     Task<MenuItemDto?> UpdateAsync(Guid id, UpdateMenuItemRequest request);

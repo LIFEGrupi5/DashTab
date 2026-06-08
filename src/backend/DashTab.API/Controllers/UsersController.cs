@@ -11,8 +11,10 @@ namespace DashTab.API.Controllers;
 public class UsersController(IUserService userService) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll() =>
-        Ok(await userService.ListAsync());
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 50)
+        => Ok(await userService.ListAsync(skip, take));
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)

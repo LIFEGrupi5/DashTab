@@ -14,8 +14,10 @@ public class MenuItemsController(IMenuItemService menuItemService) : ControllerB
     public async Task<IActionResult> GetAll(
         [FromQuery] Guid? categoryId,
         [FromQuery] string? search,
-        [FromQuery] bool? available)
-        => Ok(await menuItemService.ListAsync(categoryId, search, available));
+        [FromQuery] bool? available,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 50)
+        => Ok(await menuItemService.ListAsync(categoryId, search, available, skip, take));
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
