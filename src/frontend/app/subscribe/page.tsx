@@ -20,6 +20,18 @@ export default function SubscribePage() {
     if (hydrated && !user) router.replace('/login');
   }, [hydrated, user, router]);
 
+  // If the user arrived via a marketing pricing CTA (/register?plan=pro),
+  // the plan key was saved to sessionStorage. Auto-start checkout for it.
+  useEffect(() => {
+    if (!hydrated || !user) return;
+    const plan = sessionStorage.getItem('selectedPlan');
+    if (plan) {
+      sessionStorage.removeItem('selectedPlan');
+      void choose(plan);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, user]);
+
   const choose = async (plan: string) => {
     setLoading(plan);
     try {

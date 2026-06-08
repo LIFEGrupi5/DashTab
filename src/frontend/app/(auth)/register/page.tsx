@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ChefHat, Mail, Lock, User, Store, ArrowRight, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import Button from '@/components/Button';
@@ -9,8 +9,16 @@ import TextField from '@/components/TextField';
 import { registerRestaurant } from '@/lib/api/auth';
 import { toast } from 'sonner';
 
-export default function RegisterPage() {
-  const router = useRouter();
+function RegisterForm() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+
+  // Persist the ?plan= from marketing pricing so /subscribe can pre-select it.
+  useEffect(() => {
+    const plan = searchParams.get('plan');
+    if (plan) sessionStorage.setItem('selectedPlan', plan);
+  }, [searchParams]);
+
   const [isLoading, setIsLoading]   = useState(false);
   const [done, setDone]             = useState(false);
   const [restaurantName, setRestaurantName] = useState('');
@@ -221,5 +229,14 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// useSearchParams requires a Suspense boundary during prerender.
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }
