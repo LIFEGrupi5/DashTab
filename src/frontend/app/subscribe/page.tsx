@@ -7,34 +7,8 @@ import Button from '@/components/Button';
 import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { createCheckout } from '@/lib/api/subscriptions';
+import { PLANS } from '@/lib/plans';
 import { toast } from 'sonner';
-
-// Display copy only — the actual amount charged comes from the Stripe price IDs.
-// Adjust these numbers to match what you configured in the Stripe dashboard.
-const PLANS = [
-  {
-    key: 'basic',
-    name: 'Basic',
-    price: '€29',
-    staff: 'Up to 10 staff members',
-    features: ['Orders & kitchen display', 'Menu management', 'Up to 10 staff', 'Email support'],
-  },
-  {
-    key: 'pro',
-    name: 'Pro',
-    price: '€79',
-    staff: 'Up to 25 staff members',
-    features: ['Everything in Basic', 'Up to 25 staff', 'Analytics & reports', 'Priority support'],
-    highlight: true,
-  },
-  {
-    key: 'enterprise',
-    name: 'Enterprise',
-    price: '€199',
-    staff: 'Up to 100 staff members',
-    features: ['Everything in Pro', 'Up to 100 staff', 'Dedicated support', 'Custom onboarding'],
-  },
-] as const;
 
 export default function SubscribePage() {
   const router = useRouter();
