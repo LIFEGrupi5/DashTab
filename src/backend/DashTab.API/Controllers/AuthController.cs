@@ -1,6 +1,8 @@
 using System.IdentityModel.Tokens.Jwt;
 using DashTab.Application.Dtos;
-using DashTab.Application.Interfaces;
+using DashTab.Application.Features.Auth.Commands;
+using DashTab.Application.Features.Auth.Queries;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,8 +11,7 @@ namespace DashTab.API.Controllers;
 [ApiController]
 [Route("api/v1/auth")]
 public class AuthController(
-    IAuthService _service,
-    ICurrentUser currentUser,
+    ISender sender,
     IWebHostEnvironment env) : ControllerBase
 {
     // Tokens live in httpOnly cookies — JS cannot read them, which prevents
@@ -22,7 +23,7 @@ public class AuthController(
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var tokens = await _service.LoginAsync(request);
+        var tokens = await sender.Send(new LoginCommand(request));
         AppendTokenCookies(tokens);
         // Decode the user from the access token claims — no DB lookup needed and
         // works at [AllowAnonymous] time (ICurrentUser.Id is not yet set).
@@ -38,7 +39,7 @@ public class AuthController(
         if (string.IsNullOrEmpty(refreshToken))
             return Unauthorized(new { error = "No refresh token cookie present." });
 
-        var tokens = await _service.RefreshAsync(new RefreshRequest(refreshToken));
+        var tokens = await sender.Send(new RefreshTokenCommand(refreshToken));
         AppendTokenCookies(tokens);
         return Ok(UserFromToken(tokens.AccessToken));
     }
@@ -49,7 +50,7 @@ public class AuthController(
     {
         var refreshToken = Request.Cookies["refresh_token"] ?? string.Empty;
         if (!string.IsNullOrEmpty(refreshToken))
-            await _service.LogoutAsync(new LogoutRequest(refreshToken));
+            await sender.Send(new LogoutCommand(refreshToken));
 
         // Delete must use the same Domain/Path/SameSite as Append or the browser
         // won't clear the cookie.
@@ -63,7 +64,7 @@ public class AuthController(
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {
-        var user = await _service.GetCurrentUserAsync(currentUser);
+        var user = await sender.Send(new GetCurrentUserQuery());
         return user is null ? NotFound() : Ok(user);
     }
 

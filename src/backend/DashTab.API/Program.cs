@@ -274,7 +274,6 @@ builder.Services.AddScoped<IStorageService, MinioStorageService>();
 builder.Services.AddHostedService<StorageBucketBootstrapper>();
 
 // ── Application services ──────────────────────────────────────────────────────
-builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IKeycloakAdminService, KeycloakAdminService>();
 builder.Services.AddScoped<IStripeService, StripeService>();
 builder.Services.AddScoped<IForecastService, ForecastService>();
