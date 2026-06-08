@@ -1,40 +1,50 @@
 using System.Text.RegularExpressions;
 using DashTab.Application.Dtos;
+using DashTab.Application.Features.Restaurants.Commands;
+using DashTab.Application.Features.Restaurants.Queries;
 using DashTab.Application.Interfaces;
 using DashTab.Domain.Entities;
 using DashTab.Domain.Enums;
 using DashTab.Infrastructure.Persistence;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace DashTab.Infrastructure.Services;
+namespace DashTab.Infrastructure.Features.Restaurants;
 
-public class RestaurantService(
-    DashTabDbContext db,
-    IKeycloakAdminService keycloak,
-    ICurrentUser currentUser) : IRestaurantService
+public class GetCurrentRestaurantHandler(DashTabDbContext db, ICurrentUser currentUser)
+    : IRequestHandler<GetCurrentRestaurantQuery, RestaurantDto?>
 {
-    public async Task<RestaurantDto?> GetCurrentAsync(CancellationToken ct = default)
+    public async Task<RestaurantDto?> Handle(GetCurrentRestaurantQuery request, CancellationToken cancellationToken)
     {
         var r = await db.Restaurants
-            .FirstOrDefaultAsync(x => x.Id == currentUser.RestaurantId, ct);
+            .FirstOrDefaultAsync(x => x.Id == currentUser.RestaurantId, cancellationToken);
         return r is null ? null : new RestaurantDto(r.Id, r.Name, r.Slug, r.CreatedAt);
     }
+}
 
-    public async Task<RestaurantDto?> UpdateAsync(UpdateRestaurantRequest request, CancellationToken ct = default)
+public class UpdateRestaurantHandler(DashTabDbContext db, ICurrentUser currentUser)
+    : IRequestHandler<UpdateRestaurantCommand, RestaurantDto?>
+{
+    public async Task<RestaurantDto?> Handle(UpdateRestaurantCommand command, CancellationToken cancellationToken)
     {
         var r = await db.Restaurants
-            .FirstOrDefaultAsync(x => x.Id == currentUser.RestaurantId, ct);
+            .FirstOrDefaultAsync(x => x.Id == currentUser.RestaurantId, cancellationToken);
         if (r is null) return null;
 
-        r.Name = request.Name;
-        await db.SaveChangesAsync(ct);
+        r.Name = command.Request.Name;
+        await db.SaveChangesAsync(cancellationToken);
         return new RestaurantDto(r.Id, r.Name, r.Slug, r.CreatedAt);
     }
+}
 
-    public async Task<RegisterRestaurantResponse> RegisterAsync(
-        RegisterRestaurantRequest request, CancellationToken ct = default)
+public class RegisterRestaurantHandler(DashTabDbContext db, IKeycloakAdminService keycloak)
+    : IRequestHandler<RegisterRestaurantCommand, RegisterRestaurantResponse>
+{
+    public async Task<RegisterRestaurantResponse> Handle(RegisterRestaurantCommand command, CancellationToken cancellationToken)
     {
-        if (await db.Users.IgnoreQueryFilters().AnyAsync(u => u.Email == request.OwnerEmail, ct))
+        var request = command.Request;
+
+        if (await db.Users.IgnoreQueryFilters().AnyAsync(u => u.Email == request.OwnerEmail, cancellationToken))
             throw new InvalidOperationException($"Email '{request.OwnerEmail}' is already registered.");
 
         var slug = GenerateSlug(request.RestaurantName);
@@ -51,7 +61,7 @@ public class RestaurantService(
 
         var keycloakUserId = await keycloak.CreateUserAsync(
             request.OwnerEmail, request.OwnerFullName, request.OwnerPassword,
-            roleName: "Owner", temporaryPassword: false, ct);
+            roleName: "Owner", temporaryPassword: false, cancellationToken);
 
         try
         {
@@ -67,11 +77,11 @@ public class RestaurantService(
                 CreatedAt    = now,
                 UpdatedAt    = now,
             });
-            await db.SaveChangesAsync(ct);
+            await db.SaveChangesAsync(cancellationToken);
         }
         catch
         {
-            await keycloak.DeleteUserAsync(keycloakUserId, ct);
+            await keycloak.DeleteUserAsync(keycloakUserId, cancellationToken);
             throw;
         }
 

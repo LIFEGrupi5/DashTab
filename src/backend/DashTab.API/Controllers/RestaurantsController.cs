@@ -1,5 +1,7 @@
 using DashTab.Application.Dtos;
-using DashTab.Application.Interfaces;
+using DashTab.Application.Features.Restaurants.Commands;
+using DashTab.Application.Features.Restaurants.Queries;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,14 +9,14 @@ namespace DashTab.API.Controllers;
 
 [ApiController]
 [Route("api/v1/restaurants")]
-public class RestaurantsController(IRestaurantService restaurantService) : ControllerBase
+public class RestaurantsController(ISender sender) : ControllerBase
 {
     [HttpPost("register")]
     [AllowAnonymous]
     public async Task<IActionResult> Register(
         RegisterRestaurantRequest request, CancellationToken ct)
     {
-        var result = await restaurantService.RegisterAsync(request, ct);
+        var result = await sender.Send(new RegisterRestaurantCommand(request), ct);
         return Ok(result);
     }
 
@@ -22,7 +24,7 @@ public class RestaurantsController(IRestaurantService restaurantService) : Contr
     [Authorize]
     public async Task<IActionResult> Me(CancellationToken ct)
     {
-        var dto = await restaurantService.GetCurrentAsync(ct);
+        var dto = await sender.Send(new GetCurrentRestaurantQuery(), ct);
         return dto is null ? NotFound() : Ok(dto);
     }
 
@@ -30,7 +32,7 @@ public class RestaurantsController(IRestaurantService restaurantService) : Contr
     [Authorize(Roles = "Owner,Manager")]
     public async Task<IActionResult> UpdateMe(UpdateRestaurantRequest request, CancellationToken ct)
     {
-        var dto = await restaurantService.UpdateAsync(request, ct);
+        var dto = await sender.Send(new UpdateRestaurantCommand(request), ct);
         return dto is null ? NotFound() : Ok(dto);
     }
 }
