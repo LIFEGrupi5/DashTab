@@ -11,7 +11,6 @@ using DashTab.Infrastructure.Messaging;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
 using FluentValidation;
-using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -74,8 +73,19 @@ else
     builder.Services.AddDistributedMemoryCache();
 
 // ── Validation ────────────────────────────────────────────────────────────────
+// Validators are registered for the MediatR ValidationBehavior (below), which is
+// the single validation path now that every endpoint dispatches a command/query.
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
-builder.Services.AddFluentValidationAutoValidation();
+
+// ── MediatR (CQRS) + validation pipeline ──────────────────────────────────────
+builder.Services.AddMediatR(cfg =>
+{
+    // Requests/queries live in Application; their handlers live in Infrastructure
+    // (they depend on DashTabDbContext), so scan both assemblies.
+    cfg.RegisterServicesFromAssemblyContaining<DashTab.Application.IApplicationMarker>();
+    cfg.RegisterServicesFromAssemblyContaining<DashTab.Infrastructure.IInfrastructureMarker>();
+    cfg.AddOpenBehavior(typeof(DashTab.Application.Behaviors.ValidationBehavior<,>));
+});
 
 // ── JSON: camelCase property names + lowercase string enums ───────────────────
 builder.Services.AddControllers().AddJsonOptions(o =>
@@ -261,16 +271,8 @@ builder.Services.AddScoped<IStorageService, MinioStorageService>();
 builder.Services.AddHostedService<StorageBucketBootstrapper>();
 
 // ── Application services ──────────────────────────────────────────────────────
-builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IKeycloakAdminService, KeycloakAdminService>();
-builder.Services.AddScoped<IRestaurantService, RestaurantService>();
 builder.Services.AddScoped<IStripeService, StripeService>();
-builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
-builder.Services.AddScoped<IForecastService, ForecastService>();
-builder.Services.AddScoped<IUserService, UserService>();
-builder.Services.AddScoped<ICategoryService, CategoryService>();
-builder.Services.AddScoped<IMenuItemService, MenuItemService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton<ICacheService, CacheService>();
 builder.Services.AddHangfire(cfg => cfg

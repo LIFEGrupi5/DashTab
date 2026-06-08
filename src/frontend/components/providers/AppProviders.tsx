@@ -10,6 +10,7 @@ const ReactQueryDevtools = dynamic(
   { ssr: false }
 );
 import { useAuth } from '@/hooks/useAuth';
+import { PostHogProvider } from '@/components/providers/PostHogProvider';
 
 function DarkModeRoot() {
   const darkMode = useAppStore(s => s.darkMode);
@@ -33,13 +34,15 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <DarkModeRoot />
-      <AuthQueryWarmup />
-      {children}
-      {process.env.NODE_ENV === 'development' ? (
-        <ReactQueryDevtools buttonPosition="bottom-left" initialIsOpen={false} />
-      ) : null}
-    </QueryClientProvider>
+    <PostHogProvider>
+      <QueryClientProvider client={queryClient}>
+        <DarkModeRoot />
+        <AuthQueryWarmup />
+        {children}
+        {process.env.NODE_ENV === 'development' ? (
+          <ReactQueryDevtools buttonPosition="bottom-left" initialIsOpen={false} />
+        ) : null}
+      </QueryClientProvider>
+    </PostHogProvider>
   );
 }
