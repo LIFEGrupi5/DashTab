@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using DashTab.Application.Dtos;
+using DashTab.Application.Features.Categories.Queries;
 using DashTab.Application.Features.MenuItems.Queries;
-using DashTab.Application.Interfaces;
 using MediatR;
 using ModelContextProtocol.Server;
 
@@ -37,6 +37,6 @@ public static class MenuTools
 
     [McpServerTool(Name = "list_categories")]
     [Description("List all menu categories in display order.")]
-    public static Task<IEnumerable<MenuCategoryDto>> ListCategories(ICategoryService categories) =>
-        categories.ListAsync();
+    public static Task<IEnumerable<MenuCategoryDto>> ListCategories(ISender sender) =>
+        sender.Send(new ListCategoriesQuery());
 }
