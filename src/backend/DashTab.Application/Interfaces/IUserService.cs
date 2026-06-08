@@ -4,7 +4,7 @@ namespace DashTab.Application.Interfaces;
 
 public interface IUserService
 {
-    Task<IEnumerable<StaffUserDto>> ListAsync();
+    Task<PagedResult<StaffUserDto>> ListAsync(int skip = 0, int take = 50);
     Task<StaffUserDto?> GetByIdAsync(Guid id);
     Task<StaffUserDto> CreateAsync(CreateStaffRequest request);
     Task<StaffUserDto?> UpdateAsync(Guid id, UpdateStaffRequest request);

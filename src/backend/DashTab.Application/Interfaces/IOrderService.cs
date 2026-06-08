@@ -4,7 +4,7 @@ namespace DashTab.Application.Interfaces;
 
 public interface IOrderService
 {
-    Task<IEnumerable<OrderDto>> ListAsync(string? status = null);
+    Task<PagedResult<OrderDto>> ListAsync(string? status = null, int skip = 0, int take = 50);
     Task<OrderDto?> GetByIdAsync(Guid id);
     Task<OrderDto> CreateAsync(CreateOrderRequest request, Guid createdById);
     Task<OrderDto?> UpdateStatusAsync(Guid id, string newStatus);

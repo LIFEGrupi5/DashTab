@@ -12,8 +12,11 @@ namespace DashTab.API.Controllers;
 public class OrdersController(IOrderService orderService, ICurrentUser currentUser) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] string? status)
-        => Ok(await orderService.ListAsync(status));
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? status,
+        [FromQuery] int skip = 0,
+        [FromQuery] int take = 50)
+        => Ok(await orderService.ListAsync(status, skip, take));
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)

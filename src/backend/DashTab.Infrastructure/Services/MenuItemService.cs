@@ -26,7 +26,7 @@ public class MenuItemService(
                 : storage.GetPublicUrl(StorageBuckets.MenuImages, item.ImageObjectKey)
         };
 
-    public async Task<IEnumerable<MenuItemDto>> ListAsync(Guid? categoryId = null, string? search = null, bool? available = null)
+    public async Task<PagedResult<MenuItemDto>> ListAsync(Guid? categoryId = null, string? search = null, bool? available = null, int skip = 0, int take = 50)
     {
         var rid = currentUser.RestaurantId;
         var canCache = string.IsNullOrWhiteSpace(search) && !available.HasValue;
@@ -34,10 +34,13 @@ public class MenuItemService(
             ? CacheKeys.MenuItemsByCategory(rid, categoryId.Value)
             : CacheKeys.MenuItemsAll(rid);
 
+        // Cache stores the full ordered list; pagination is applied in-memory after
+        // the cache read so we don't need a separate entry per skip/take combination.
         if (canCache)
         {
             var cached = await cache.GetAsync<List<MenuItemDto>>(cacheKey);
-            if (cached is not null) return cached;
+            if (cached is not null)
+                return new PagedResult<MenuItemDto>(cached.Skip(skip).Take(take), cached.Count, skip, take);
         }
 
         var query = db.MenuItems.Include(m => m.Category).AsQueryable();
@@ -49,17 +52,15 @@ public class MenuItemService(
         if (available.HasValue)
             query = query.Where(m => m.IsAvailable == available.Value);
 
-        var items = await query
-            .OrderBy(m => m.Category.DisplayOrder)
-            .ThenBy(m => m.Name)
-            .ToListAsync();
-
+        var ordered = query.OrderBy(m => m.Category.DisplayOrder).ThenBy(m => m.Name);
+        var total = await ordered.CountAsync();
+        var items = await ordered.Skip(skip).Take(take).ToListAsync();
         var dtos = items.Select(ToDto).ToList();
 
-        if (canCache)
+        if (canCache && skip == 0 && take >= total)
             await cache.SetAsync(cacheKey, dtos, ItemTtl);
 
-        return dtos;
+        return new PagedResult<MenuItemDto>(dtos, total, skip, take);
     }
 
     public async Task<MenuItemDto?> GetByIdAsync(Guid id)

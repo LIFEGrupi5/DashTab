@@ -14,10 +14,12 @@ public class UserService(
     ICurrentUser currentUser,
     IKeycloakAdminService keycloak) : IUserService
 {
-    public async Task<IEnumerable<StaffUserDto>> ListAsync()
+    public async Task<PagedResult<StaffUserDto>> ListAsync(int skip = 0, int take = 50)
     {
-        var users = await _context.Users.OrderBy(u => u.FullName).ToListAsync();
-        return users.Select(mapper.ToDto);
+        var query = _context.Users.OrderBy(u => u.FullName);
+        var total = await query.CountAsync();
+        var users  = await query.Skip(skip).Take(take).ToListAsync();
+        return new PagedResult<StaffUserDto>(users.Select(mapper.ToDto), total, skip, take);
     }
 
     public async Task<StaffUserDto?> GetByIdAsync(Guid id)
