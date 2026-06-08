@@ -2,8 +2,7 @@
 
 import { useAppStore } from "@/stores/useAppStore";
 
-export function useAuth() { 
+export function useAuth() {
   const user = useAppStore(s => s.user);
-  const token = useAppStore(s => s.token);
-  return {user, token , isAuthenticated: !!user};
+  return { user, isAuthenticated: !!user };
 }
