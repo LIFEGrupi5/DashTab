@@ -8,8 +8,10 @@ import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { identifyUser, resetIdentity } from '@/lib/analytics';
 
-if (typeof window !== 'undefined') {
-  posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+
+if (typeof window !== 'undefined' && POSTHOG_KEY) {
+  posthog.init(POSTHOG_KEY, {
     // Production: route through /ingest proxy (same-origin, bypasses ad blockers).
     // Development: connect directly — the Next.js dev server proxy causes ECONNRESET.
     api_host: process.env.NODE_ENV === 'production' ? '/ingest' : 'https://us.i.posthog.com',
