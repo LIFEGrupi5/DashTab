@@ -1,7 +1,8 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from './client';
-import type { StaffUser } from './types';
+import type { PagedResult, StaffUser } from './types';
 
-export const fetchStaff = () => apiGet<StaffUser[]>('/users');
+export const fetchStaff = () =>
+  apiGet<PagedResult<StaffUser>>('/users').then(r => r.items);
 
 export const fetchStaffMember = (id: string) => apiGet<StaffUser>(`/users/${id}`);
 
