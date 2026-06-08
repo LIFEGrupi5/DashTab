@@ -75,12 +75,17 @@ public class AuthController(
             CookieWith(TimeSpan.FromDays(30)));
     }
 
+    // In Development AND Test environments: no Secure flag (plain http works) and
+    // no Domain restriction (test HttpClient hits http://localhost, which would
+    // reject a cookie scoped to .project-05.gjirafa.dev).
+    private bool IsLocalEnv => env.IsDevelopment() || env.IsEnvironment("Test");
+
     private CookieOptions CookieWith(TimeSpan maxAge) => new()
     {
         HttpOnly = true,
-        Secure   = !env.IsDevelopment(),
+        Secure   = !IsLocalEnv,
         SameSite = SameSiteMode.Lax,
-        Domain   = env.IsDevelopment() ? null : ".project-05.gjirafa.dev",
+        Domain   = IsLocalEnv ? null : ".project-05.gjirafa.dev",
         Path     = "/",
         MaxAge   = maxAge,
     };
