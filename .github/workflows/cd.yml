@@ -34,7 +34,7 @@ jobs:
 
       - name: Compute tags & labels
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/lifegrupi5/dashtab-backend
           tags: |
@@ -89,7 +89,7 @@ jobs:
 
       - name: Compute tags & labels
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/lifegrupi5/dashtab-frontend
           tags: |
@@ -157,7 +157,7 @@ jobs:
 
       - name: Compute tags & labels
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/lifegrupi5/dashtab-aiops-triage
           tags: |
