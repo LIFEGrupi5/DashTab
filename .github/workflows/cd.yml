@@ -49,7 +49,7 @@ jobs:
 
       - name: Build and push
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: src/backend
           file: src/backend/Dockerfile
@@ -107,7 +107,7 @@ jobs:
       # API/Keycloak URLs are known (requires matching ARGs in the Dockerfile).
       - name: Build and push
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: src/frontend
           file: src/frontend/Dockerfile
@@ -172,7 +172,7 @@ jobs:
 
       - name: Build and push
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: devops/aiops
           file: devops/aiops/Dockerfile
