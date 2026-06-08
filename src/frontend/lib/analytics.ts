@@ -61,6 +61,19 @@ export const analytics = {
     });
   },
 
+  // ── North Star Metric ─────────────────────────────────────────────────────
+  // NSM: completed orders per restaurant per 7-day rolling window.
+  // Fired in addition to order_status_changed so PostHog insights can use
+  // this single event without filter conditions. See lib/northStarMetric.ts.
+  nsmOrderCompleted(props: { orderId: string; totalAmount: number; itemCount: number }) {
+    if (!ready()) return;
+    posthog.capture('nsm_order_completed', {
+      order_id: props.orderId,
+      total_amount: props.totalAmount,
+      item_count: props.itemCount,
+    });
+  },
+
   // Menu
   menuItemCreated(props: { category: string; price: number }) {
     if (!ready()) return;

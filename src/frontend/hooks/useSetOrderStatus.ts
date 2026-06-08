@@ -15,6 +15,13 @@ export function useSetOrderStatus() {
       queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
       toast.success(`Order marked as ${order.status}`);
       analytics.orderStatusChanged({ orderId: variables.id, toStatus: variables.status });
+      if (variables.status === 'completed') {
+        analytics.nsmOrderCompleted({
+          orderId: variables.id,
+          totalAmount: order.totalAmount,
+          itemCount: order.items.reduce((n, i) => n + i.quantity, 0),
+        });
+      }
     },
     onError: () => {
       toast.error('Failed to update order status.');
