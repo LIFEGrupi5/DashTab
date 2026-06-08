@@ -1,11 +1,10 @@
 using DashTab.Application.Dtos;
-using DashTab.Application.Features.MenuItems.Commands;
 using DashTab.Application.Interfaces;
 using DashTab.Application.Mappings;
 using DashTab.Application.Storage;
 using DashTab.Domain.Entities;
-using DashTab.Infrastructure.Features.MenuItems;
 using DashTab.Infrastructure.Persistence;
+using DashTab.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.UnitTests.Services;
@@ -88,33 +87,8 @@ public class MenuItemServiceImageTests
         public Guid RestaurantId => TenantId;
     }
 
-    // Adapter that exposes the old MenuItemService method surface but delegates to
-    // the CQRS handlers, so the existing test bodies/assertions are unchanged.
-    private sealed class MenuItemImageSut(DashTabDbContext db, FakeStorageService storage)
-    {
-        private readonly ICacheService _cache = new NoopCacheService();
-        private readonly MenuItemMapper _mapper = new();
-        private readonly ICurrentUser _currentUser = new StubCurrentUser();
-
-        public Task<PresignedUploadUrl?> RequestImageUploadAsync(Guid id, string ext) =>
-            new RequestMenuItemImageUploadHandler(db, storage)
-                .Handle(new RequestMenuItemImageUploadCommand(id, new ImageUploadRequest(ext)), default);
-
-        public Task<MenuItemDto?> ConfirmImageAsync(Guid id, string key) =>
-            new ConfirmMenuItemImageHandler(db, _cache, _mapper, storage, _currentUser)
-                .Handle(new ConfirmMenuItemImageCommand(id, key), default);
-
-        public Task<bool> RemoveImageAsync(Guid id) =>
-            new RemoveMenuItemImageHandler(db, _cache, storage, _currentUser)
-                .Handle(new RemoveMenuItemImageCommand(id), default);
-
-        public Task<bool> DeleteAsync(Guid id) =>
-            new DeleteMenuItemHandler(db, _cache, storage, _currentUser)
-                .Handle(new DeleteMenuItemCommand(id), default);
-    }
-
-    private static MenuItemImageSut NewSut(DashTabDbContext db, FakeStorageService storage)
-        => new(db, storage);
+    private static MenuItemService NewSut(DashTabDbContext db, FakeStorageService storage)
+        => new(db, new NoopCacheService(), new MenuItemMapper(), storage, new StubCurrentUser());
 
     [Fact]
     public async Task RequestImageUpload_ItemNotFound_ReturnsNull()

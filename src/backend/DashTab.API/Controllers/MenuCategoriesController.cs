@@ -1,7 +1,5 @@
 using DashTab.Application.Dtos;
-using DashTab.Application.Features.Categories.Commands;
-using DashTab.Application.Features.Categories.Queries;
-using MediatR;
+using DashTab.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,16 +8,16 @@ namespace DashTab.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/v1/menu-categories")]
-public class MenuCategoriesController(ISender sender) : ControllerBase
+public class MenuCategoriesController(ICategoryService categoryService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll() =>
-        Ok(await sender.Send(new ListCategoriesQuery()));
+        Ok(await categoryService.ListAsync());
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var cat = await sender.Send(new GetCategoryByIdQuery(id));
+        var cat = await categoryService.GetByIdAsync(id);
         return cat is null ? NotFound() : Ok(cat);
     }
 
@@ -27,7 +25,7 @@ public class MenuCategoriesController(ISender sender) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCategoryRequest request)
     {
-        var cat = await sender.Send(new CreateCategoryCommand(request));
+        var cat = await categoryService.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = cat.Id }, cat);
     }
 
@@ -35,7 +33,7 @@ public class MenuCategoriesController(ISender sender) : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCategoryRequest request)
     {
-        var cat = await sender.Send(new UpdateCategoryCommand(id, request));
+        var cat = await categoryService.UpdateAsync(id, request);
         return cat is null ? NotFound() : Ok(cat);
     }
 
@@ -45,7 +43,7 @@ public class MenuCategoriesController(ISender sender) : ControllerBase
     {
         try
         {
-            var deleted = await sender.Send(new DeleteCategoryCommand(id));
+            var deleted = await categoryService.DeleteAsync(id);
             return deleted ? NoContent() : NotFound();
         }
         catch (InvalidOperationException ex)

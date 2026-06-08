@@ -1,7 +1,5 @@
 using DashTab.Application.Dtos;
-using DashTab.Application.Features.MenuItems.Commands;
-using DashTab.Application.Features.MenuItems.Queries;
-using MediatR;
+using DashTab.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,7 +8,7 @@ namespace DashTab.API.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/v1/menu-items")]
-public class MenuItemsController(ISender sender) : ControllerBase
+public class MenuItemsController(IMenuItemService menuItemService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll(
@@ -19,12 +17,12 @@ public class MenuItemsController(ISender sender) : ControllerBase
         [FromQuery] bool? available,
         [FromQuery] int skip = 0,
         [FromQuery] int take = 50)
-        => Ok(await sender.Send(new ListMenuItemsQuery(categoryId, search, available, skip, take)));
+        => Ok(await menuItemService.ListAsync(categoryId, search, available, skip, take));
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var item = await sender.Send(new GetMenuItemByIdQuery(id));
+        var item = await menuItemService.GetByIdAsync(id);
         return item is null ? NotFound() : Ok(item);
     }
 
@@ -32,7 +30,7 @@ public class MenuItemsController(ISender sender) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateMenuItemRequest request)
     {
-        var item = await sender.Send(new CreateMenuItemCommand(request));
+        var item = await menuItemService.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
     }
 
@@ -40,7 +38,7 @@ public class MenuItemsController(ISender sender) : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateMenuItemRequest request)
     {
-        var item = await sender.Send(new UpdateMenuItemCommand(id, request));
+        var item = await menuItemService.UpdateAsync(id, request);
         return item is null ? NotFound() : Ok(item);
     }
 
@@ -48,7 +46,7 @@ public class MenuItemsController(ISender sender) : ControllerBase
     [HttpPatch("{id:guid}/availability")]
     public async Task<IActionResult> ToggleAvailability(Guid id, [FromBody] ToggleAvailabilityRequest request)
     {
-        var item = await sender.Send(new ToggleMenuItemAvailabilityCommand(id, request.Available));
+        var item = await menuItemService.ToggleAvailabilityAsync(id, request.Available);
         return item is null ? NotFound() : Ok(item);
     }
 
@@ -56,7 +54,7 @@ public class MenuItemsController(ISender sender) : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var deleted = await sender.Send(new DeleteMenuItemCommand(id));
+        var deleted = await menuItemService.DeleteAsync(id);
         return deleted ? NoContent() : NotFound();
     }
 
@@ -64,7 +62,7 @@ public class MenuItemsController(ISender sender) : ControllerBase
     [HttpPost("{id:guid}/image/upload-url")]
     public async Task<IActionResult> RequestImageUpload(Guid id, [FromBody] ImageUploadRequest request, CancellationToken ct)
     {
-        var result = await sender.Send(new RequestMenuItemImageUploadCommand(id, request), ct);
+        var result = await menuItemService.RequestImageUploadAsync(id, request.FileExtension, ct);
         return result is null ? NotFound() : Ok(result);
     }
 
@@ -72,7 +70,7 @@ public class MenuItemsController(ISender sender) : ControllerBase
     [HttpPut("{id:guid}/image")]
     public async Task<IActionResult> ConfirmImage(Guid id, [FromBody] CommitImageRequest request, CancellationToken ct)
     {
-        var item = await sender.Send(new ConfirmMenuItemImageCommand(id, request.ObjectKey), ct);
+        var item = await menuItemService.ConfirmImageAsync(id, request.ObjectKey, ct);
         return item is null ? NotFound() : Ok(item);
     }
 
@@ -80,7 +78,7 @@ public class MenuItemsController(ISender sender) : ControllerBase
     [HttpDelete("{id:guid}/image")]
     public async Task<IActionResult> RemoveImage(Guid id, CancellationToken ct)
     {
-        var removed = await sender.Send(new RemoveMenuItemImageCommand(id), ct);
+        var removed = await menuItemService.RemoveImageAsync(id, ct);
         return removed ? NoContent() : NotFound();
     }
 }

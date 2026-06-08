@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using DashTab.Application.Dtos;
-using DashTab.Application.Features.Staff.Queries;
-using MediatR;
+using DashTab.Application.Interfaces;
 using ModelContextProtocol.Server;
 
 namespace DashTab.API.Mcp;
@@ -12,7 +11,7 @@ public static class StaffTools
     [McpServerTool(Name = "list_staff")]
     [Description("List staff users. Optionally filter by role or active status.")]
     public static async Task<IEnumerable<StaffUserDto>> ListStaff(
-        ISender sender,
+        IUserService users,
         [Description("Filter by role (e.g. Owner, Manager, Kitchen, Waiter). Case-insensitive. Omit for all roles.")]
         string? role = null,
         [Description("Filter by active status. true = only active, false = only inactive, omit for both.")]
@@ -21,7 +20,7 @@ public static class StaffTools
         int take = 50)
     {
         take = Math.Clamp(take, 1, 200);
-        var result = await sender.Send(new ListStaffQuery(Skip: 0, Take: 200));
+        var result = await users.ListAsync(skip: 0, take: 200);
         var items = result.Items;
         if (!string.IsNullOrWhiteSpace(role))
             items = items.Where(u => string.Equals(u.Role, role, StringComparison.OrdinalIgnoreCase));
@@ -33,7 +32,7 @@ public static class StaffTools
     [McpServerTool(Name = "get_staff_member")]
     [Description("Get a single staff user by their id.")]
     public static Task<StaffUserDto?> GetStaffMember(
-        ISender sender,
+        IUserService users,
         [Description("Staff user id (GUID).")] Guid id) =>
-        sender.Send(new GetStaffByIdQuery(id));
+        users.GetByIdAsync(id);
 }

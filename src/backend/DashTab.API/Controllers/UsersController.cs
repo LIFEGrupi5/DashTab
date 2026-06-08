@@ -1,7 +1,5 @@
 using DashTab.Application.Dtos;
-using DashTab.Application.Features.Staff.Commands;
-using DashTab.Application.Features.Staff.Queries;
-using MediatR;
+using DashTab.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,18 +8,18 @@ namespace DashTab.API.Controllers;
 [Authorize(Roles = "Owner,Manager")]
 [ApiController]
 [Route("api/v1/users")]
-public class UsersController(ISender sender) : ControllerBase
+public class UsersController(IUserService userService) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] int skip = 0,
         [FromQuery] int take = 50)
-        => Ok(await sender.Send(new ListStaffQuery(skip, take)));
+        => Ok(await userService.ListAsync(skip, take));
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var user = await sender.Send(new GetStaffByIdQuery(id));
+        var user = await userService.GetByIdAsync(id);
         return user is null ? NotFound() : Ok(user);
     }
 
@@ -29,7 +27,7 @@ public class UsersController(ISender sender) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateStaffRequest request)
     {
-        var user = await sender.Send(new CreateStaffCommand(request));
+        var user = await userService.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = user.Id }, user);
     }
 
@@ -37,7 +35,7 @@ public class UsersController(ISender sender) : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateStaffRequest request)
     {
-        var user = await sender.Send(new UpdateStaffCommand(id, request));
+        var user = await userService.UpdateAsync(id, request);
         return user is null ? NotFound() : Ok(user);
     }
 
@@ -45,7 +43,7 @@ public class UsersController(ISender sender) : ControllerBase
     [HttpPatch("{id:guid}/active")]
     public async Task<IActionResult> SetActive(Guid id, [FromBody] SetActiveRequest request)
     {
-        var user = await sender.Send(new SetStaffActiveCommand(id, request.Active));
+        var user = await userService.SetActiveAsync(id, request.Active);
         return user is null ? NotFound() : Ok(user);
     }
 
@@ -53,7 +51,7 @@ public class UsersController(ISender sender) : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var deleted = await sender.Send(new DeleteStaffCommand(id));
+        var deleted = await userService.DeleteAsync(id);
         return deleted ? NoContent() : NotFound();
     }
 }
