@@ -10,6 +10,7 @@ import TextField from '@/components/TextField';
 import { useAppStore } from '@/stores/useAppStore';
 import { login } from '@/lib/api/auth';
 import { toast } from 'sonner';
+import { analytics, identifyUser } from '@/lib/analytics';
 
 const demoAccounts = [
   { email: 'owner@dashtab.dev',   password: 'Owner1!',   role: 'Owner' },
@@ -34,6 +35,8 @@ export default function LoginPage() {
       // Tokens are set as httpOnly cookies by the server — never touch JS.
       const user = await login(email, password);
       setAuth(user);
+      identifyUser(user);
+      analytics.userSignedIn(user.role);
       void queryClient.invalidateQueries({ queryKey: ['auth'] });
       router.push(user.role === 'kitchen' ? '/kitchen' : '/dashboard');
     } catch {

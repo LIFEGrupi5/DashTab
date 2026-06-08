@@ -21,8 +21,25 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  // Required for PostHog /ingest proxy — prevents Next.js stripping the trailing slash
+  // which breaks the PostHog event endpoint matching.
+  skipTrailingSlashRedirect: true,
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
+  },
+  async rewrites() {
+    return [
+      // Proxy PostHog through /ingest so requests are same-origin (bypasses ad
+      // blockers that block app.posthog.com, and avoids CSP connect-src issues).
+      {
+        source: '/ingest/static/:path*',
+        destination: 'https://us-assets.i.posthog.com/static/:path*',
+      },
+      {
+        source: '/ingest/:path*',
+        destination: 'https://us.i.posthog.com/:path*',
+      },
+    ];
   },
   experimental: {
     optimizePackageImports: [

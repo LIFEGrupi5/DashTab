@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
+import { analytics, resetIdentity } from '@/lib/analytics';
 
 const MODULE_COLORS: Record<string, string> = {
   '/dashboard':  '#8a7f6f',
@@ -201,7 +202,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ) : null}
           <Link
             href="/login"
-            onClick={() => clearAuth()}
+            onClick={() => {
+              analytics.userSignedOut();
+              resetIdentity();
+              clearAuth();
+            }}
             className="flex items-center justify-center sm:justify-start gap-0 sm:gap-3 w-full px-0 sm:px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition border border-transparent"
           >
             <LogOut className="w-4 h-4 shrink-0" />

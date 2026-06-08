@@ -121,6 +121,7 @@ jobs:
           # from it. Change if the api.* hostname changes.
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=https://api.project-05.gjirafa.dev/api/v1
+            NEXT_PUBLIC_POSTHOG_KEY=${{ secrets.POSTHOG_KEY }}
 
       - name: Scan image with Trivy (DO-9)
         uses: aquasecurity/trivy-action@v0.36.0
