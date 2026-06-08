@@ -39,6 +39,10 @@ export const analytics = {
     if (!ready()) return;
     posthog.capture('subscription_checkout_started', { plan, price });
   },
+  subscriptionCheckoutCompleted(plan: string, status: string) {
+    if (!ready()) return;
+    posthog.capture('subscription_checkout_completed', { plan, status });
+  },
 
   // Orders
   orderCreated(props: { tableNumber: string; itemCount: number; totalAmount: number }) {

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import Button from '@/components/Button';
 import { confirmCheckout } from '@/lib/api/subscriptions';
+import { analytics } from '@/lib/analytics';
 
 function SuccessInner() {
   const router = useRouter();
@@ -22,7 +23,8 @@ function SuccessInner() {
       return;
     }
     confirmCheckout(sessionId)
-      .then(() => {
+      .then(subscription => {
+        analytics.subscriptionCheckoutCompleted(subscription.plan, subscription.status);
         setState('done');
         setTimeout(() => router.replace('/dashboard'), 1500);
       })
