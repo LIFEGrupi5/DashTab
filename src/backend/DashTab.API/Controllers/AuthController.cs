@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -23,9 +24,9 @@ public class AuthController(
     {
         var tokens = await _service.LoginAsync(request);
         AppendTokenCookies(tokens);
-        // Return only the user — raw tokens stay in httpOnly cookies, invisible to JS.
-        var user = await _service.GetCurrentUserAsync(currentUser);
-        return Ok(user);
+        // Decode the user from the access token claims — no DB lookup needed and
+        // works at [AllowAnonymous] time (ICurrentUser.Id is not yet set).
+        return Ok(UserFromToken(tokens.AccessToken));
     }
 
     [AllowAnonymous]
@@ -39,8 +40,7 @@ public class AuthController(
 
         var tokens = await _service.RefreshAsync(new RefreshRequest(refreshToken));
         AppendTokenCookies(tokens);
-        var user = await _service.GetCurrentUserAsync(currentUser);
-        return Ok(user);
+        return Ok(UserFromToken(tokens.AccessToken));
     }
 
     [AllowAnonymous]
@@ -65,6 +65,26 @@ public class AuthController(
     {
         var user = await _service.GetCurrentUserAsync(currentUser);
         return user is null ? NotFound() : Ok(user);
+    }
+
+    // Decode a minimal user object from the Keycloak access token so the
+    // frontend gets id/email/name/role immediately after login — without a
+    // DB round-trip and without requiring an authenticated HttpContext (the
+    // login endpoint is [AllowAnonymous] so ICurrentUser.Id is not set yet).
+    private static object UserFromToken(string accessToken)
+    {
+        var jwt   = new JwtSecurityTokenHandler().ReadJwtToken(accessToken);
+        var sub   = jwt.Subject ?? string.Empty;
+        var email = jwt.Claims.FirstOrDefault(c => c.Type == "email")?.Value
+                 ?? jwt.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
+                 ?? string.Empty;
+        var name  = jwt.Claims.FirstOrDefault(c => c.Type == "name")?.Value ?? email;
+        // Keycloak emits realm roles under realm_access.roles. JwtSecurityTokenHandler
+        // flattens nested objects, so the claim type becomes "realm_access/roles".
+        // We fall back to the plain "roles" claim (set by the TestAuthHandler in tests).
+        var role  = jwt.Claims.FirstOrDefault(c => c.Type is "realm_access/roles" or "roles")?.Value
+                 ?? "waiter";
+        return new { id = sub, email, name, role = role.ToLower() };
     }
 
     private void AppendTokenCookies(TokenResponse tokens)
