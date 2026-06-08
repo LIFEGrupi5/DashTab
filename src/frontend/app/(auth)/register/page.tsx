@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import TextField from '@/components/TextField';
 import { registerRestaurant } from '@/lib/api/auth';
 import { toast } from 'sonner';
+import { analytics } from '@/lib/analytics';
 
 function RegisterForm() {
   const router       = useRouter();
@@ -42,6 +43,7 @@ function RegisterForm() {
     setIsLoading(true);
     try {
       await registerRestaurant({ restaurantName, ownerFullName, ownerEmail, ownerPassword });
+      analytics.restaurantRegistered(restaurantName);
       setDone(true);
     } catch (err: unknown) {
       const body = (err as { body?: { title?: string; errors?: Record<string, string[]> } })?.body;

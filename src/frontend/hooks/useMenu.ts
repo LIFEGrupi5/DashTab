@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { createCategory, createMenuItem, fetchCategories, fetchMenuItems } from '@/lib/api/menu';
 import type { MenuCategory, MenuItem } from '@/lib/api/types';
 import { queryKeys } from '@/lib/queryKeys';
+import { analytics } from '@/lib/analytics';
 
 export function useMenu() {
   return useQuery({ queryKey: queryKeys.menu.all, queryFn: () => fetchMenuItems() });
@@ -29,6 +30,7 @@ export function useCreateMenuItem() {
     onSuccess: (item: MenuItem) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.menu.all });
       toast.success(`${item.name} added to the menu`);
+      analytics.menuItemCreated({ category: item.category, price: item.price });
     },
     onError: () => {
       toast.error('Failed to add item. Please try again.');
@@ -57,6 +59,7 @@ export function useCreateCategory() {
         (old ?? []).map(c => (c.id.startsWith('optimistic-') ? category : c)),
       );
       toast.success(`Category "${category.name}" added`);
+      analytics.categoryCreated(category.name);
     },
     // On error roll back the optimistic chip.
     onError: (_err, _name, ctx) => {

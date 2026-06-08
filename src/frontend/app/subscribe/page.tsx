@@ -9,6 +9,7 @@ import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { createCheckout } from '@/lib/api/subscriptions';
 import { PLANS } from '@/lib/plans';
 import { toast } from 'sonner';
+import { analytics } from '@/lib/analytics';
 
 export default function SubscribePage() {
   const router = useRouter();
@@ -35,6 +36,8 @@ export default function SubscribePage() {
   const choose = async (plan: string) => {
     setLoading(plan);
     try {
+      const planData = PLANS.find(p => p.key === plan);
+      analytics.subscriptionCheckoutStarted(plan, planData?.price ?? '');
       const { url } = await createCheckout(plan);
       window.location.href = url; // hand off to Stripe-hosted Checkout
     } catch {
