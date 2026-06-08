@@ -1,0 +1,69 @@
+name: CodeQL
+
+# DO-9 / FS-5 — source-code static analysis (SAST). Finds vulnerable code
+# patterns: injection, XSS, path traversal, unsafe deserialization, auth bypasses.
+# Complements the rest of the security stack — Trivy scans image layers (cd.yml),
+# Dependabot scans dependencies, TruffleHog scans for committed secrets.
+# Findings surface in the repo Security -> Code scanning tab. Free on this public repo.
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+  schedule:
+    - cron: '27 3 * * 1'   # weekly Mon 03:27 UTC — re-scan against new CodeQL rules
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write   # upload SARIF results to the Security tab
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: csharp                  # backend (DashTab.sln) — needs a build
+            build-mode: manual
+          - language: javascript-typescript   # frontend (Next.js) — analyzed from source
+            build-mode: none
+          - language: python                  # aiops service — analyzed from source
+            build-mode: none
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      # C# is the only language that needs compiling. Mirror backend-ci.yml so the
+      # CodeQL build behaves identically to the known-green CI build.
+      - name: Set up .NET
+        if: matrix.language == 'csharp'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      - name: Cache NuGet
+        if: matrix.language == 'csharp'
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Build backend (CodeQL manual build)
+        if: matrix.language == 'csharp'
+        run: |
+          dotnet restore src/backend/DashTab.sln
+          dotnet build src/backend/DashTab.sln --no-restore --configuration Release
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
