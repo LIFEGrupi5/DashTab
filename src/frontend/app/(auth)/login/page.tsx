@@ -106,18 +106,18 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right panel — form ── */}
-      <div className="flex-1 flex flex-col justify-center px-8 sm:px-16 py-12 bg-white dark:bg-background">
+      <div className="flex-1 flex flex-col justify-center px-5 sm:px-10 lg:px-16 py-8 sm:py-12 bg-white dark:bg-background">
         {/* mobile logo */}
-        <div className="flex lg:hidden items-center gap-2.5 mb-10">
+        <div className="flex lg:hidden items-center gap-2.5 mb-8">
           <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center">
             <ChefHat className="w-5 h-5 text-white" />
           </div>
           <span className="font-bold text-lg text-neutral-900 dark:text-foreground">DashTab</span>
         </div>
 
-        <div className="w-full max-w-sm mx-auto space-y-8">
+        <div className="w-full max-w-sm mx-auto space-y-6 sm:space-y-8">
           <div className="space-y-1.5">
-            <h2 className="text-3xl font-extrabold text-neutral-900 dark:text-foreground tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 dark:text-foreground tracking-tight">
               Welcome back
             </h2>
             <p className="text-sm text-neutral-500 dark:text-muted-foreground">

@@ -146,36 +146,41 @@ export default function KitchenBoard() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-200 px-2.5 py-1 border border-blue-100 dark:border-blue-900/50">
-                <span className="text-blue-600 dark:text-blue-300">{counts.new}</span> NEW
+          <div className="flex items-center justify-between gap-2 sm:gap-3">
+            {/* Status count badges — compact on mobile */}
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs font-bold flex-wrap">
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-200 px-2 sm:px-2.5 py-1 border border-blue-100 dark:border-blue-900/50">
+                <span className="text-blue-600 dark:text-blue-300">{counts.new}</span>
+                <span className="hidden sm:inline">NEW</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/35 text-amber-800 dark:text-amber-200 px-2.5 py-1 border border-amber-100 dark:border-amber-900/45">
-                <span className="text-amber-600 dark:text-amber-300">{counts.preparing}</span> PREPARING
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/35 text-amber-800 dark:text-amber-200 px-2 sm:px-2.5 py-1 border border-amber-100 dark:border-amber-900/45">
+                <span className="text-amber-600 dark:text-amber-300">{counts.preparing}</span>
+                <span className="hidden sm:inline">PREP</span>
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 dark:bg-green-950/35 text-green-800 dark:text-green-200 px-2.5 py-1 border border-green-100 dark:border-green-900/50">
-                <span className="text-green-600 dark:text-green-300">{counts.ready}</span> READY
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-50 dark:bg-green-950/35 text-green-800 dark:text-green-200 px-2 sm:px-2.5 py-1 border border-green-100 dark:border-green-900/50">
+                <span className="text-green-600 dark:text-green-300">{counts.ready}</span>
+                <span className="hidden sm:inline">READY</span>
               </span>
             </div>
 
-            <div className="flex items-center gap-2 ml-auto sm:ml-0">
+            {/* Controls — icon-only on mobile, label on sm+ */}
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
               <button
                 type="button"
                 onClick={() => setDarkMode(!darkMode)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-secondary px-3 py-2 text-xs font-semibold text-neutral-700 dark:text-muted-foreground hover:bg-neutral-100 dark:hover:bg-muted/30 transition"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-secondary px-2 sm:px-3 py-2 text-xs font-semibold text-neutral-700 dark:text-muted-foreground hover:bg-neutral-100 dark:hover:bg-muted/30 transition"
               >
                 {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                {darkMode ? 'Light' : 'Dark'}
+                <span className="hidden sm:inline">{darkMode ? 'Light' : 'Dark'}</span>
               </button>
               {isKitchenStaff ? (
                 <Link
                   href="/login"
                   onClick={() => clearAuth()}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-xs font-semibold text-neutral-700 dark:text-foreground hover:bg-neutral-50 dark:hover:bg-muted/25 transition"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-neutral-200 dark:border-border bg-white dark:bg-card px-2 sm:px-3 py-2 text-xs font-semibold text-neutral-700 dark:text-foreground hover:bg-neutral-50 dark:hover:bg-muted/25 transition"
                 >
                   <LogOut className="w-4 h-4" />
-                  Sign out
+                  <span className="hidden sm:inline">Sign out</span>
                 </Link>
               ) : null}
             </div>
