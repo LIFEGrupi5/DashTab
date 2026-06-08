@@ -91,9 +91,12 @@ export default function OverviewPage() {
         className="mb-8"
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+      {/* Horizontal scroll on mobile so all 5 KPI cards stay readable without cramping */}
+      <div className="flex gap-3 overflow-x-auto pb-1 mb-8 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0 lg:grid-cols-5">
         {statCards.map(stat => (
-          <StatCard key={stat.label} {...stat} />
+          <div key={stat.label} className="shrink-0 w-36 sm:w-auto">
+            <StatCard {...stat} />
+          </div>
         ))}
       </div>
 

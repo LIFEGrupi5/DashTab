@@ -21,32 +21,32 @@ function Hero() {
       <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-orange-500/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-32 right-0 w-[400px] h-[400px] bg-orange-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-28 pb-24 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400 text-xs font-semibold mb-6">
+      <div className="relative z-10 max-w-5xl mx-auto px-5 sm:px-6 pt-24 sm:pt-28 pb-16 sm:pb-24 text-center">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-400 text-xs font-semibold mb-5 sm:mb-6">
           <Zap className="w-3.5 h-3.5" /> Built for modern restaurants
         </div>
-        <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-5 sm:mb-6">
           Run your restaurant<br />
           <span className="text-orange-400">smarter.</span>
         </h1>
-        <p className="text-lg text-neutral-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+        <p className="text-base sm:text-lg text-neutral-400 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed">
           DashTab is the all-in-one operating system for restaurants. Real-time orders, kitchen display, staff management and analytics — no paper, no WhatsApp, no chaos.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link href="/register"
-            className="px-7 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-base transition shadow-lg shadow-orange-500/30 w-full sm:w-auto">
-            Start for free
-          </Link>
           <Link href="/login?demo=1"
-            className="px-7 py-3.5 rounded-xl border border-white/15 hover:border-white/30 text-white font-semibold text-base transition w-full sm:w-auto">
+            className="px-7 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-base transition shadow-lg shadow-orange-500/30 w-full sm:w-auto">
             Explore live demo →
+          </Link>
+          <Link href="/pricing"
+            className="px-7 py-3.5 rounded-xl border border-white/15 hover:border-white/30 text-white font-semibold text-base transition w-full sm:w-auto">
+            See pricing
           </Link>
         </div>
 
         {/* Tech credibility strip */}
-        <div className="mt-16 flex flex-wrap items-center justify-center gap-4 text-xs text-neutral-500 font-mono">
+        <div className="mt-10 sm:mt-16 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs text-neutral-500 font-mono">
           {['Next.js 15', '.NET 10', 'Kubernetes', 'Real-time SignalR', 'Multi-tenant', 'Stripe payments'].map(t => (
-            <span key={t} className="px-3 py-1 rounded-full border border-neutral-800 bg-neutral-900/60">{t}</span>
+            <span key={t} className="px-2.5 sm:px-3 py-1 rounded-full border border-neutral-800 bg-neutral-900/60">{t}</span>
           ))}
         </div>
       </div>
@@ -91,7 +91,7 @@ const FEATURES = [
 
 function Features() {
   return (
-    <section id="features" className="py-24 px-6 bg-white dark:bg-background">
+    <section id="features" className="py-16 sm:py-24 px-5 sm:px-6 bg-white dark:bg-background">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-foreground tracking-tight">
@@ -121,10 +121,10 @@ function Features() {
 
 function PricingTeaser() {
   return (
-    <section className="py-24 px-6 bg-neutral-50 dark:bg-card">
+    <section className="py-16 sm:py-24 px-5 sm:px-6 bg-neutral-50 dark:bg-card">
       <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 dark:text-foreground tracking-tight">
+        <div className="text-center mb-10 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-neutral-900 dark:text-foreground tracking-tight">
             Simple, transparent pricing
           </h2>
           <p className="text-neutral-500 dark:text-muted-foreground mt-3">No hidden fees. Cancel any time.</p>
@@ -287,12 +287,12 @@ function FinalCTA() {
           Ready to run your restaurant smarter?
         </h2>
         <p className="text-neutral-400 mb-8 text-lg">
-          Join restaurants already using DashTab. Start for free, no credit card required.
+          Join restaurants already using DashTab. Try a live demo or explore our plans.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link href="/register"
+          <Link href="/login?demo=1"
             className="px-8 py-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-base transition shadow-lg shadow-orange-500/30 w-full sm:w-auto">
-            Get started free
+            Explore live demo
           </Link>
           <Link href="/contact"
             className="px-8 py-3.5 rounded-xl border border-white/15 hover:border-white/30 text-white font-semibold text-base transition w-full sm:w-auto">

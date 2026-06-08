@@ -279,18 +279,21 @@
 
   /* Status strip */
   .iso-stat-strip {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
     gap: 10px;
     padding: 16px 20px 0;
     width: 100%;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
     flex-shrink: 0;
   }
-  .iso-stat-strip::-webkit-scrollbar { display: none; }
+  @media (max-width: 640px) {
+    .iso-stat-strip {
+      grid-template-columns: repeat(2, 1fr);
+      padding: 12px 12px 0;
+      gap: 8px;
+    }
+  }
   .iso-stat {
-    flex: 1;
     min-width: 0;
     background: color-mix(in oklab, hsl(var(--card)) 85%, transparent);
     backdrop-filter: blur(8px);
