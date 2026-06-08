@@ -4,73 +4,85 @@
 
 ```
 devops/
-  docker/        # Dockerfiles live next to each service; compose + service configs here
-    docker-compose.yml   # Local full-stack orchestration (profiles: backend, full, observability)
+  docker/        # Local full-stack orchestration
+    docker-compose.yml   # Profiles: backend, full, observability, elk
     nginx/               # Reverse-proxy config (full profile)
     postgres/            # init.sql bootstrap
-    grafana/ loki/ promtail/   # Observability stack config
+    grafana/ loki/ promtail/ elk/  # Observability stack configs
   keycloak/      # realm-export.json (imported on Keycloak startup)
-  helm/          # Per-service Helm charts (see devops/helm/README.md)
-    backend/ frontend/        # hand-written app charts (rolling deploy, ingress)
+  helm/          # 15 Helm charts deployed to project-05 namespace
+    backend/ frontend/        # Hand-written app charts (HPA, NetworkPolicy, PDB, ingress)
+    aiops-triage/             # AIOps Flask service chart
+    db-backup/                # CronJob: pg_dump → MinIO
+    uptime-kuma/              # Uptime monitoring + status page
+    prometheus/ grafana/      # Metrics + dashboards
+    elasticsearch/ kibana/    # Centralised log aggregation
     postgresql/ pgbouncer/ redis/ rabbitmq/ minio/ keycloak/  # Bitnami wrappers
-  k8s/
-    base/        # Legacy Kustomize placeholder (.gitkeep) — superseded by helm/
-    overlays/    # Legacy Kustomize placeholders (.gitkeep)
-  ci/            # Placeholder (.gitkeep) — actual pipelines live in /.github/workflows/
-  infra/         # Infrastructure as Code (Terraform / Bicep) — not yet populated
+  aiops/         # AIOps triage service (Flask webhook → Groq LLM → Slack)
+  k8s/           # Legacy Kustomize placeholders — superseded by helm/
+  infra/         # IaC placeholder (Terraform/Bicep — not yet populated)
 ```
 
-> CI/CD pipelines live in **`.github/workflows/`** (`backend-ci.yml`, `frontend-ci.yml`),
-> not in `devops/ci/`.
+> CI/CD pipelines live in **`.github/workflows/`** — not in `devops/ci/`.
 
 ## Current State
 
-**Local Docker is fully working.** `devops/docker/docker-compose.yml` orchestrates the
-whole stack via profiles. Kubernetes overlays and `infra/` are still empty placeholders.
+Everything is deployed and running on the shared AKS cluster (`life-cluster`, namespace `project-05`). Local Docker Compose is also fully working.
+
+Production URLs: `api.project-05.gjirafa.dev` · `app.project-05.gjirafa.dev` · `auth.project-05.gjirafa.dev` · `grafana.project-05.gjirafa.dev` · `kibana.project-05.gjirafa.dev`
 
 ### Compose profiles
 
-| Profile | Brings up |
-|---------|-----------|
-| `backend` | postgres, redis, keycloak, rabbitmq, minio, mailhog, backend |
-| `full` | everything in `backend` + frontend + nginx + observability |
-| `observability` | loki, promtail, grafana |
+| Profile | Command | Brings up |
+|---------|---------|-----------|
+| `backend` | `make up-backend` | postgres, redis, keycloak, rabbitmq, minio, mailhog, backend |
+| `full` | `make up` | everything in `backend` + frontend + nginx |
+| `observability` | `make up-observability` | loki, promtail, grafana, uptime-kuma |
+| `elk` | `make up-elk` | elasticsearch, logstash, kibana, filebeat (heavy, ~3GB RAM) |
 
+### Services & default ports (local)
+
+| Service | Port(s) | Notes |
+|---------|---------|-------|
+| postgres | 5432 | shared by app + Keycloak |
+| redis | 6379 | cache + SignalR backplane |
+| keycloak | 8080 | realm `dashtab`; admin at `/admin/` (admin / admin_dev) |
+| rabbitmq | 5672 / 15672 | broker + management UI (dashtab / rabbit_dev) |
+| minio | 9000 / 9001 | S3 storage + console (dashtab / minio_dev_password) |
+| mailhog | 1025 / 8025 | dev SMTP catcher + UI |
+| backend | 5000 | .NET 10 API + `/swagger` |
+| frontend | 3000 | Next.js app |
+| nginx | 80 | reverse proxy (full profile) |
+| grafana | 3001 | dashboards (admin / grafana_dev) |
+| loki | 3100 | log ingestion |
+| uptime-kuma | 3002 | uptime monitoring (admin account set on first run) |
+| kibana | 5601 | log search UI (elastic / elastic_dev) — elk profile |
+| elasticsearch | 9200 | log storage — elk profile |
+
+### Helm (Kubernetes)
+
+All charts are in `devops/helm/`. Deploy to the cluster via:
 ```bash
-cd devops/docker
-docker compose --profile backend up        # API + its dependencies
-docker compose --profile full up            # full stack behind nginx on :80
+# Lint all charts
+make helm-lint
+
+# Deploy infra + app charts
+make helm-up
+
+# Deploy observability charts (prometheus, grafana, elk, uptime-kuma)
+make helm-up-obs
+
+# Check what's running
+make helm-status
 ```
 
-Environment values come from `devops/docker/.env` (not committed).
+Secrets are injected at deploy time from **Azure Key Vault** (`kv-dashtab-p05`) — never committed to git. See `cd.yml` for the fetch pattern.
 
-### Services & default ports
+### CI/CD (`.github/workflows/`)
 
-| Service | Image | Port(s) | Notes |
-|---------|-------|---------|-------|
-| postgres | postgres:16-alpine | 5432 | shared by app + Keycloak |
-| redis | redis:7-alpine | 6379 | cache + SignalR backplane |
-| keycloak | keycloak:25.0 | 8080 | realm `dashtab`, local login works; Google IdP needs creds |
-| rabbitmq | rabbitmq:3-management | 5672 / 15672 | broker + management UI |
-| minio | minio/minio | 9000 / 9001 | S3-compatible storage + console |
-| mailhog | mailhog/mailhog | 1025 / 8025 | dev SMTP catcher + UI |
-| backend | built from `src/backend` | 5000 | .NET 10 API |
-| frontend | built from `src/frontend` | 3000 | Next.js (full profile) |
-| nginx | nginx:1.27-alpine | 80 | reverse proxy (full profile) |
-| loki / promtail / grafana | grafana stack | 3100 / – / 3001 | logs aggregation + dashboards |
-
-## Intended Setup (not yet built)
-
-**CI/CD** (GitHub Actions, in `.github/workflows/`)
-- On PR: lint, test, build for backend and frontend
-
-**Kubernetes (Helm — `devops/helm/`)**
-- Per-service charts, each released independently (`make helm-deps` then `make helm-up`)
-- Apps (`backend`, `frontend`) are hand-written with rolling deploys + ingress on `dashtab.local`
-- Infra (`postgresql`, `pgbouncer`, `redis`, `rabbitmq`, `minio`, `keycloak`) are thin Bitnami wrappers
-- Prometheus exporters enabled on infra; `serviceMonitor` off until the Operator lands (Lecture 5)
-- Targets local minikube; secrets are dev-only plaintext pending a secret store (Lecture 7)
-- The old `k8s/` Kustomize dirs are superseded — left as empty placeholders
-
-**Infrastructure**
-- Provision cloud resources (cluster, database, storage) via IaC
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `backend-ci.yml` | push/PR on `src/backend/**` | restore → build → test |
+| `frontend-ci.yml` | push/PR on `src/frontend/**` | lint → build → unit → e2e → Lighthouse |
+| `cd.yml` | push to `development` or `v*` tag | build 3 images → Trivy scan → gated deploy to project-05 |
+| `release.yml` | push to `development` | release-please: bump version + generate CHANGELOG |

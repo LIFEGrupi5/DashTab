@@ -1,60 +1,49 @@
 # DashTab
 
-DashTab is a full-featured restaurant operating system built to handle everything a modern restaurant needs — from point-of-sale and payments to inventory management, staff operations, and real-time analytics.
+DashTab is a full-featured restaurant operating system — point-of-sale, real-time kitchen display, staff management, menu, subscriptions and analytics in one place.
 
 ## Features
 
-DashTab is under active development. Status reflects what is wired end-to-end today.
-
-- **Menu Management** — Categories, items, and pricing ✅ implemented
-- **Order Management / POS** — Create and track orders for dine-in/takeout ✅ implemented
-- **Kitchen Display (KDS)** — Real-time kitchen board over SignalR ✅ implemented
-- **Staff Management** — Roles and access control (Owner / Manager / Kitchen) via Keycloak ✅ implemented
-- **Analytics & Reporting** — Dashboards on sales, revenue, and trends 🚧 in progress
-- **Payments** — Integrated payment processing 🗓️ planned
-- **Inventory & Stock** — Ingredient tracking, low-stock alerts, suppliers 🗓️ planned
-- **Table Management** — Floor plan with live table status 🗓️ planned
+- **Menu Management** — Categories, items, pricing, images (MinIO) ✅
+- **Order Management / POS** — Create and track orders for dine-in/takeout ✅
+- **Kitchen Display (KDS)** — Real-time kitchen board over SignalR ✅
+- **Staff Management** — Roles (Owner/Manager/Waiter/Kitchen) via Keycloak ✅
+- **Restaurant Onboarding** — Self-service restaurant registration + owner account creation ✅
+- **Subscriptions** — Stripe-backed plans (Basic/Pro/Enterprise), staff-limit gating, 402 gate ✅
+- **Multi-tenancy** — Fully isolated per-restaurant data ✅
+- **Analytics & Reporting** — Sales dashboards and revenue charts 🚧
+- **Inventory & Table Management** — 🗓️ planned
 
 ## Tech Stack
 
-| Layer    | Technology                                                                 |
-|----------|----------------------------------------------------------------------------|
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind, React Query, Zustand, SignalR  |
-| Backend  | .NET 10, Clean Architecture, EF Core 9 + PostgreSQL, MediatR, Mapperly     |
-| Auth     | Keycloak (OAuth2 / JWT)                                                     |
-| Infra    | Redis, RabbitMQ, MinIO, Hangfire, Serilog + Loki/Grafana                    |
-| DevOps   | Docker / docker-compose; Kubernetes (Kustomize) planned                    |
+| Layer    | Technology                                                                           |
+|----------|--------------------------------------------------------------------------------------|
+| Frontend | Next.js 15, React 19, TypeScript, Tailwind, TanStack Query, Zustand, Framer Motion  |
+| Backend  | .NET 10, Clean Architecture, EF Core 9 + PostgreSQL, Mapperly, FluentValidation      |
+| Auth     | Keycloak (JWT, httpOnly cookies, Google OAuth2 SSO)                                  |
+| Payments | Stripe (subscription checkout)                                                       |
+| Infra    | Redis, RabbitMQ, MinIO, Hangfire, Serilog + Loki/Grafana + Elasticsearch/Kibana      |
+| DevOps   | Docker Compose (local) · Kubernetes via Helm (15 charts on project-05) · GitHub Actions |
 
 ## Getting Started
 
-The fastest path is Docker — it brings up the API and all its dependencies.
-
 ```bash
-# 1. Configure environment (copy and fill in secrets)
-cp devops/docker/.env.example devops/docker/.env   # if an example exists; otherwise create .env
+# 1. Copy env template
+cp devops/docker/.env.example devops/docker/.env
 
-# 2. Start the backend stack (API + Postgres + Redis + Keycloak + RabbitMQ + MinIO + MailHog)
-cd devops/docker
-docker compose --profile backend up
+# 2a. Backend stack only (API + Postgres + Redis + Keycloak + RabbitMQ + MinIO + MailHog)
+make up-backend
 
-# …or the full stack (adds frontend + nginx + observability), reachable on http://localhost
-docker compose --profile full up
+# 2b. Full stack (+ frontend + nginx on :80)
+make up
+
+# 2c. Observability (+ Loki + Grafana + Uptime Kuma)
+make up-observability
 ```
 
-API: `http://localhost:5000` · Frontend (full profile): `http://localhost:3000` · Keycloak: `http://localhost:8080`
+API: `http://localhost:5000/swagger` · Frontend: `http://localhost:3000` · Keycloak admin: `http://localhost:8080/admin` (admin / admin_dev) · MailHog: `http://localhost:8025` · Grafana: `http://localhost:3001` (admin / grafana_dev) · Uptime Kuma: `http://localhost:3002` · RabbitMQ UI: `http://localhost:15672` (dashtab / rabbit_dev)
 
-### Running services individually
-
-```bash
-# Backend (.NET 10) — set the DB connection string via user secrets first (see src/backend/CLAUDE.md)
-cd src/backend/DashTab.API && dotnet run        # http://localhost:5000
-
-# Frontend (Next.js 15)
-cd src/frontend && npm install && npm run dev    # http://localhost:3000
-```
-
-**Prerequisites:** Docker + Docker Compose, .NET 10 SDK, Node.js 20+. See `src/backend/CLAUDE.md`,
-`src/frontend/CLAUDE.md`, and `devops/CLAUDE.md` for component-specific details.
+**Prerequisites:** Docker + Docker Compose, .NET 10 SDK, Node.js 20+. See `src/backend/CLAUDE.md`, `src/frontend/CLAUDE.md`, and `devops/CLAUDE.md` for component-specific details.
 
 ## Project Structure
 
@@ -62,36 +51,35 @@ cd src/frontend && npm install && npm run dev    # http://localhost:3000
 DashTab/
 ├── src/
 │   ├── backend/                     # .NET Clean Architecture
-│   │   ├── DashTab.Domain/          # Entities, value objects, domain logic
-│   │   ├── DashTab.Application/     # Use cases, DTOs, interfaces
-│   │   ├── DashTab.Infrastructure/  # Database, external services
-│   │   └── DashTab.API/             # REST API, controllers, middleware
+│   │   ├── DashTab.Domain/          # Entities, enums
+│   │   ├── DashTab.Application/     # Use cases, DTOs, interfaces, validators
+│   │   ├── DashTab.Infrastructure/  # DB, Keycloak, Redis, RabbitMQ, MinIO, Hangfire
+│   │   └── DashTab.API/             # Controllers, SignalR hub, MCP server, middleware
+│   │   └── tests/                   # xUnit unit + integration tests (Testcontainers)
 │   │
-│   │   └── tests/                   # DashTab.UnitTests, DashTab.IntegrationTests
-│   │
-│   └── frontend/                    # Next.js + TypeScript
-│       ├── app/                     # App router (pages and layouts)
+│   └── frontend/                    # Next.js 15 + TypeScript
+│       ├── app/(marketing)/         # Public landing, pricing, about, contact
+│       ├── app/(auth)/              # Login, register
+│       ├── app/(dashboard)/         # Protected app (orders, menu, kitchen, staff, settings)
+│       ├── app/subscribe/           # Subscription plan selection → Stripe
 │       ├── components/              # Reusable UI components
-│       ├── hooks/                   # Custom React hooks
-│       ├── lib/                     # API clients and utilities
-│       ├── stores/                  # Zustand client-state store
-│       ├── types/                   # TypeScript types and interfaces
-│       ├── styles/                  # Global styles and themes
-│       └── tests/                   # Jest/RTL unit + Playwright e2e tests
+│       ├── hooks/                   # TanStack Query hooks
+│       ├── lib/                     # API clients, plans, query keys
+│       └── stores/                  # Zustand (user + UI; tokens in httpOnly cookies)
 │
 ├── devops/
-│   ├── docker/                      # Dockerfiles and docker-compose stack
-│   ├── keycloak/                    # Realm export imported on startup
-│   ├── k8s/                         # Kustomize base + overlays (planned)
-│   ├── ci/                          # Placeholder — pipelines live in .github/workflows/
-│   └── infra/                       # Infrastructure as Code (planned)
+│   ├── docker/                      # Docker Compose stack + configs
+│   ├── helm/                        # 15 Helm charts (backend, frontend, infra, observability)
+│   ├── aiops/                       # AIOps triage service (Flask, Alertmanager → LLM → Slack)
+│   └── keycloak/                    # Realm export (imported on startup)
 │
-├── .github/workflows/              # CI: backend-ci.yml, frontend-ci.yml
-└── docs/                            # Architecture decisions and documentation
+├── .github/workflows/               # backend-ci.yml, frontend-ci.yml, cd.yml, release.yml
+└── docs/                            # AI development log, architecture docs, session notes
 ```
 
 ## Contributing
 
-- Branch naming: `feature/<name>`, `fix/<name>`, `chore/<name>`
-- Open a PR against `main` with a clear description of the change
-- All PRs require passing CI before merge
+- Branch from `development`, PR back to `development`
+- `main` is managed by release-please (never push directly)
+- Conventional Commits (`feat:`, `fix:`, `chore:`) drive the automated CHANGELOG
+- All PRs require passing CI (lint → test → build → Trivy scan)

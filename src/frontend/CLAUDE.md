@@ -16,28 +16,35 @@ npm run lint
 src/frontend/
   app/
     layout.tsx                   # Root layout (metadata, global CSS, providers)
-    page.tsx                     # Redirects to /dashboard
-    _components/                 # App-scoped shared components
+    (marketing)/                 # Public marketing site — owns /
+      layout.tsx                 # Public navbar (Login/Get Started) + footer
+      page.tsx                   # Landing page (Hero, Features, Pricing, FAQ, CTA)
+      pricing/page.tsx           # Full plan comparison
+      about/page.tsx             # Team + values + tech stack
+      contact/page.tsx           # Contact / demo request form
     (auth)/
-      login/page.tsx             # Login (real backend auth)
+      login/page.tsx             # Login (httpOnly cookie auth)
+      register/page.tsx          # Restaurant registration (POST /restaurants/register)
     (dashboard)/
-      layout.tsx                 # Sidebar navigation
+      layout.tsx                 # Sidebar navigation (role-based)
       dashboard/page.tsx         # KPI overview
       orders/page.tsx            # Order management
       orders/new/page.tsx        # Create new order
-      menu/page.tsx              # Menu management
+      menu/page.tsx              # Menu management (+ dynamic category chips)
       kitchen/page.tsx           # Kitchen Kanban board (real-time via SignalR)
       overview/page.tsx          # Analytics & charts
       staff/page.tsx             # Staff management
+      settings/page.tsx          # Restaurant settings
+    subscribe/page.tsx           # Subscription plan selection → Stripe checkout
+    subscribe/success/page.tsx   # Post-payment confirmation
   components/                    # Shared UI components
   hooks/                         # Custom React hooks (useAuth, useMenu, useOrders, useKdsSignalR, ...)
   lib/
-    api/                         # Typed API clients (auth, menu, orders, staff) + client/jwt helpers
-    orders/                      # Order helpers (kitchenTimes.ts)
+    api/                         # Typed API clients (auth, menu, orders, staff, subscriptions) + client helpers
+    plans.ts                     # Shared subscription plan definitions (used by marketing + subscribe page)
     queryKeys.ts                 # React Query key factory
     schemas.ts                   # Zod schemas
-  stores/                        # Zustand store (useAppStore.ts — auth + UI state)
-  types/                         # Shared TS interfaces (most API types live in lib/api/types.ts)
+  stores/                        # Zustand store (useAppStore.ts — user + UI state; tokens in httpOnly cookies)
   styles/                        # Additional global stylesheets
   public/                        # Static assets
   tests/
@@ -63,8 +70,8 @@ import { Button } from '@/components/Button'
 ## Data & State
 
 - **Server state:** TanStack React Query (`@tanstack/react-query`); query keys in `lib/queryKeys.ts`, fetchers in `lib/api/`
-- **Client state:** Zustand (`stores/useAppStore.ts`) — auth + UI, persisted to localStorage
-- **Auth:** real Keycloak-backed login; JWT decoded in `lib/api/jwt.ts`, refresh handled in `lib/api/client.ts`
+- **Client state:** Zustand (`stores/useAppStore.ts`) — user + UI state; **tokens are httpOnly cookies** (not localStorage)
+- **Auth:** Keycloak-backed login via `POST /auth/login`; server sets httpOnly cookies; `client.ts` uses `credentials:'include'`; refresh is automatic on 401
 - **Real-time:** `@microsoft/signalr` via `hooks/useKdsSignalR.ts` drives the kitchen board (orderPlaced / orderStatusChanged / orderCancelled)
 - Pages call the **real backend**; configure it with `NEXT_PUBLIC_API_URL` (+ `NEXT_PUBLIC_KEYCLOAK_*`)
 
