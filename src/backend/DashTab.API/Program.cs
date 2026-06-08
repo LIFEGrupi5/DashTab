@@ -83,7 +83,10 @@ builder.Services.AddFluentValidationAutoValidation();
 // ── MediatR (CQRS) + validation pipeline ──────────────────────────────────────
 builder.Services.AddMediatR(cfg =>
 {
+    // Requests/queries live in Application; their handlers live in Infrastructure
+    // (they depend on DashTabDbContext), so scan both assemblies.
     cfg.RegisterServicesFromAssemblyContaining<DashTab.Application.IApplicationMarker>();
+    cfg.RegisterServicesFromAssemblyContaining<DashTab.Infrastructure.IInfrastructureMarker>();
     cfg.AddOpenBehavior(typeof(DashTab.Application.Behaviors.ValidationBehavior<,>));
 });
 
@@ -280,7 +283,6 @@ builder.Services.AddScoped<IForecastService, ForecastService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton<ICacheService, CacheService>();
 builder.Services.AddHangfire(cfg => cfg

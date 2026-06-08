@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="Hangfire.PostgreSql" Version="1.21.1" />
+    <PackageReference Include="MediatR" Version="14.1.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.4" />
     <!-- Pin Relational 9.0.4 explicitly: Hangfire.PostgreSql transitively pulls 9.0.1 which causes MSB3277 binding conflicts in downstream test projects. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.4" />
