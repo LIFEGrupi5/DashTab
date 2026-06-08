@@ -1,4 +1,3 @@
-using DashTab.Application.Interfaces;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +27,7 @@ public class RestaurantContextMiddleware(RequestDelegate next)
         "/swagger",
     };
 
-    public async Task InvokeAsync(HttpContext ctx, DashTabDbContext db, ISubscriptionService subscriptions)
+    public async Task InvokeAsync(HttpContext ctx, DashTabDbContext db)
     {
         if (ctx.User.Identity?.IsAuthenticated == true)
         {

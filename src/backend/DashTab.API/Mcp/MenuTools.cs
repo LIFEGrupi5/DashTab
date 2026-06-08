@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using DashTab.Application.Dtos;
-using DashTab.Application.Interfaces;
+using DashTab.Application.Features.Categories.Queries;
+using DashTab.Application.Features.MenuItems.Queries;
+using MediatR;
 using ModelContextProtocol.Server;
 
 namespace DashTab.API.Mcp;
@@ -11,7 +13,7 @@ public static class MenuTools
     [McpServerTool(Name = "list_menu_items")]
     [Description("List menu items. Optionally filter by category, free-text search, or availability.")]
     public static async Task<IEnumerable<MenuItemDto>> ListMenuItems(
-        IMenuItemService menu,
+        ISender sender,
         [Description("Category id (GUID) to filter by. Omit for all categories.")]
         Guid? categoryId = null,
         [Description("Case-insensitive substring match against item name. Omit to skip.")]
@@ -22,19 +24,19 @@ public static class MenuTools
         int take = 50)
     {
         take = Math.Clamp(take, 1, 200);
-        var result = await menu.ListAsync(categoryId, search, available, skip: 0, take: take);
+        var result = await sender.Send(new ListMenuItemsQuery(categoryId, search, available, Skip: 0, Take: take));
         return result.Items;
     }
 
     [McpServerTool(Name = "get_menu_item")]
     [Description("Get a single menu item by its id.")]
     public static Task<MenuItemDto?> GetMenuItem(
-        IMenuItemService menu,
+        ISender sender,
         [Description("Menu item id (GUID).")] Guid id) =>
-        menu.GetByIdAsync(id);
+        sender.Send(new GetMenuItemByIdQuery(id));
 
     [McpServerTool(Name = "list_categories")]
     [Description("List all menu categories in display order.")]
-    public static Task<IEnumerable<MenuCategoryDto>> ListCategories(ICategoryService categories) =>
-        categories.ListAsync();
+    public static Task<IEnumerable<MenuCategoryDto>> ListCategories(ISender sender) =>
+        sender.Send(new ListCategoriesQuery());
 }
