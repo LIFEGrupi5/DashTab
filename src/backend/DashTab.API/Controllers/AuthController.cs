@@ -79,13 +79,20 @@ public class AuthController(
                  ?? jwt.Claims.FirstOrDefault(c => c.Type == "preferred_username")?.Value
                  ?? string.Empty;
         var name  = jwt.Claims.FirstOrDefault(c => c.Type == "name")?.Value ?? email;
-        // Keycloak emits realm roles under realm_access.roles. JwtSecurityTokenHandler
-        // flattens nested objects, so the claim type becomes "realm_access/roles".
-        // We fall back to the plain "roles" claim (set by the TestAuthHandler in tests).
-        var role  = jwt.Claims.FirstOrDefault(c => c.Type is "realm_access/roles" or "roles")?.Value
-                 ?? "waiter";
-        return new { id = sub, email, name, role = role.ToLower() };
+        // Keycloak emits the user's roles under the multivalued "roles" claim
+        // (one Claim per entry). For staff-created users that array ALSO contains
+        // Keycloak's default roles ("offline_access", "uma_authorization",
+        // "default-roles-*") in arbitrary order — so we must pick the entry that
+        // matches one of OUR app roles, not just the first one.
+        var role = jwt.Claims
+            .Where(c => c.Type is "roles" or "realm_access/roles")
+            .Select(c => c.Value.ToLowerInvariant())
+            .FirstOrDefault(AppRoles.Contains)
+            ?? "waiter";
+        return new { id = sub, email, name, role };
     }
+
+    private static readonly string[] AppRoles = ["owner", "manager", "waiter", "kitchen"];
 
     private void AppendTokenCookies(TokenResponse tokens)
     {
