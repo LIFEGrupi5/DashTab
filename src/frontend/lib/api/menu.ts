@@ -1,5 +1,5 @@
 import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from './client';
-import type { MenuCategory, MenuItem } from './types';
+import type { MenuCategory, MenuItem, PagedResult } from './types';
 
 export const fetchMenuItems = (params?: { categoryId?: string; search?: string; available?: boolean }) => {
   const q = new URLSearchParams();
@@ -7,7 +7,7 @@ export const fetchMenuItems = (params?: { categoryId?: string; search?: string; 
   if (params?.search) q.set('search', params.search);
   if (params?.available !== undefined) q.set('available', String(params.available));
   const qs = q.toString();
-  return apiGet<MenuItem[]>(qs ? `/menu-items?${qs}` : '/menu-items');
+  return apiGet<PagedResult<MenuItem>>(qs ? `/menu-items?${qs}` : '/menu-items').then(r => r.items);
 };
 
 export const createMenuItem = (req: Omit<MenuItem, 'id' | 'category'> & { categoryId: string }) =>

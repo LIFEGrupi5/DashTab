@@ -1,8 +1,8 @@
 import { apiGet, apiPatch, apiPost } from './client';
-import type { CreateOrderRequest, Order } from './types';
+import type { CreateOrderRequest, Order, PagedResult } from './types';
 
 export const fetchOrders = (status?: string) =>
-  apiGet<Order[]>(status ? `/orders?status=${status}` : '/orders');
+  apiGet<PagedResult<Order>>(status ? `/orders?status=${status}` : '/orders').then(r => r.items);
 
 export const fetchOrder = (id: string) => apiGet<Order>(`/orders/${id}`);
 
