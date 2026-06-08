@@ -75,7 +75,17 @@ else
 
 // ── Validation ────────────────────────────────────────────────────────────────
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
+// MVC auto-validation stays on during the CQRS migration so not-yet-converted
+// endpoints keep validating; once every feature dispatches through MediatR the
+// ValidationBehavior below becomes the sole validation path (see task 1.10).
 builder.Services.AddFluentValidationAutoValidation();
+
+// ── MediatR (CQRS) + validation pipeline ──────────────────────────────────────
+builder.Services.AddMediatR(cfg =>
+{
+    cfg.RegisterServicesFromAssemblyContaining<DashTab.Application.IApplicationMarker>();
+    cfg.AddOpenBehavior(typeof(DashTab.Application.Behaviors.ValidationBehavior<,>));
+});
 
 // ── JSON: camelCase property names + lowercase string enums ───────────────────
 builder.Services.AddControllers().AddJsonOptions(o =>
