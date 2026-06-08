@@ -5,27 +5,28 @@
 ```
 src/backend/
   DashTab.Domain/
-    Entities/       # Core business objects (User, MenuCategory, MenuItem, Order, OrderItem, AuditLog)
-    Enums/          # Domain enumerations (OrderStatus, Role)
+    Entities/       # Restaurant, User, MenuCategory, MenuItem, Order, OrderItem, AuditLog, Subscription
+    Enums/          # OrderStatus, Role, SubscriptionStatus, Plan
   DashTab.Application/
-    Interfaces/     # Service interfaces (e.g. IOrderService.cs)
-    Dtos/           # Request/response shapes (e.g. OrderDto.cs)
+    Interfaces/     # Service interfaces (IOrderService, IUserService, IScheduleService, etc.)
+    Dtos/           # Request/response shapes
     Mappings/       # Mapperly mappers (entity <-> DTO)
     Validators/     # FluentValidation request validators
-    Events/         # Domain/integration event contracts (e.g. OrderEvents.cs)
-    Storage/        # Storage policy/bucket constants (ImagePolicy, StorageBuckets)
+    Events/         # Domain/integration event contracts
+    Storage/        # Storage policy/bucket constants
   DashTab.Infrastructure/
-    Persistence/    # DashTabDbContext (EF Core 9, PostgreSQL) + Migrations
-    Services/       # Service implementations (Auth, User, Category, MenuItem, Order, Email, Storage, Jobs)
+    Persistence/    # DashTabDbContext (EF Core 9, PostgreSQL, multi-tenant query filters) + Migrations
+    Services/       # Auth, User, Category, MenuItem, Order, Restaurant, Subscription, Email, Storage, Jobs
     Caching/        # Redis-backed CacheService + CacheKeys
     Messaging/      # RabbitMQ publisher, consumers, KDS bridge
+    Middleware/     # RestaurantContextMiddleware (tenant resolution + 402 subscription gate)
   DashTab.API/
-    Controllers/    # Thin HTTP controllers (Auth, Users, MenuCategories, MenuItems, Orders, Health)
+    Controllers/    # Auth, Users, MenuCategories, MenuItems, Orders, Restaurants, Subscriptions, Health
     Middleware/     # CorrelationIdMiddleware, DashTabExceptionHandler
     Realtime/       # SignalR KdsHub + KdsBroadcaster
-    Mcp/            # MCP tool types (MenuTools, OrderTools, StaffTools)
+    Mcp/            # MCP server tools (MenuTools, OrderTools, StaffTools) — read-only, auth-gated
     Hangfire/       # Dashboard auth filter
-    Program.cs      # DI wiring and middleware
+    Program.cs      # DI wiring and middleware pipeline
   tests/
     DashTab.UnitTests/         # xUnit unit tests (mappers, services, jobs)
     DashTab.IntegrationTests/  # Integration tests (e.g. Keycloak)
