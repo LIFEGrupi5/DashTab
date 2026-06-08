@@ -1,30 +1,30 @@
 using DashTab.Application.Dtos;
+using DashTab.Application.Features.Subscriptions.Commands;
+using DashTab.Application.Features.Subscriptions.Queries;
 using DashTab.Application.Interfaces;
 using DashTab.Domain.Entities;
 using DashTab.Domain.Enums;
 using DashTab.Infrastructure.Persistence;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace DashTab.Infrastructure.Services;
+namespace DashTab.Infrastructure.Features.Subscriptions;
 
-public class SubscriptionService(
-    DashTabDbContext db,
-    ICurrentUser currentUser,
-    IStripeService stripe) : ISubscriptionService
+public class CreateCheckoutHandler(DashTabDbContext db, ICurrentUser currentUser, IStripeService stripe)
+    : IRequestHandler<CreateCheckoutCommand, CreateCheckoutResponse>
 {
-    public async Task<CreateCheckoutResponse> CreateCheckoutAsync(
-        CreateCheckoutRequest request, CancellationToken ct = default)
+    public async Task<CreateCheckoutResponse> Handle(CreateCheckoutCommand command, CancellationToken cancellationToken)
     {
-        var plan  = ParsePlan(request.Plan);
+        var plan  = SubscriptionDtoFactory.ParsePlan(command.Request.Plan);
         var rid   = currentUser.RestaurantId;
         var email = currentUser.Email
             ?? throw new InvalidOperationException("Current user has no email.");
 
-        var url = await stripe.CreateCheckoutSessionAsync(plan, rid, email, ct);
+        var url = await stripe.CreateCheckoutSessionAsync(plan, rid, email, cancellationToken);
 
         // Remember the chosen plan so confirm/activation knows what they bought.
         var now = DateTime.UtcNow;
-        var sub = await db.Subscriptions.FirstOrDefaultAsync(s => s.RestaurantId == rid, ct);
+        var sub = await db.Subscriptions.FirstOrDefaultAsync(s => s.RestaurantId == rid, cancellationToken);
         if (sub is null)
         {
             db.Subscriptions.Add(new Subscription
@@ -42,52 +42,52 @@ public class SubscriptionService(
             sub.Plan      = plan;
             sub.UpdatedAt = now;
         }
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(cancellationToken);
 
         return new CreateCheckoutResponse(url);
     }
+}
 
-    public async Task<SubscriptionDto> ConfirmAsync(
-        ConfirmCheckoutRequest request, CancellationToken ct = default)
+public class ConfirmCheckoutHandler(DashTabDbContext db, ICurrentUser currentUser, IStripeService stripe)
+    : IRequestHandler<ConfirmCheckoutCommand, SubscriptionDto>
+{
+    public async Task<SubscriptionDto> Handle(ConfirmCheckoutCommand command, CancellationToken cancellationToken)
     {
         var rid    = currentUser.RestaurantId;
-        var result = await stripe.GetSessionResultAsync(request.SessionId, ct);
+        var result = await stripe.GetSessionResultAsync(command.Request.SessionId, cancellationToken);
         if (!result.Paid)
             throw new InvalidOperationException("Payment was not completed.");
 
-        var sub = await db.Subscriptions.FirstOrDefaultAsync(s => s.RestaurantId == rid, ct)
+        var sub = await db.Subscriptions.FirstOrDefaultAsync(s => s.RestaurantId == rid, cancellationToken)
             ?? throw new InvalidOperationException("No subscription found for this restaurant.");
 
         var now = DateTime.UtcNow;
         sub.Status               = SubscriptionStatus.Active;
         sub.StripeCustomerId     = result.CustomerId;
         sub.StripeSubscriptionId = result.SubscriptionId;
-        sub.StripeSessionId      = request.SessionId;
+        sub.StripeSessionId      = command.Request.SessionId;
         sub.CurrentPeriodEnd     = result.CurrentPeriodEnd ?? now.AddMonths(1);
         sub.UpdatedAt            = now;
-        await db.SaveChangesAsync(ct);
+        await db.SaveChangesAsync(cancellationToken);
 
-        return await ToDto(sub, rid, ct);
+        return await SubscriptionDtoFactory.ToDto(db, sub, rid, cancellationToken);
     }
+}
 
-    public async Task<SubscriptionDto?> GetCurrentAsync(CancellationToken ct = default)
+public class GetCurrentSubscriptionHandler(DashTabDbContext db, ICurrentUser currentUser)
+    : IRequestHandler<GetCurrentSubscriptionQuery, SubscriptionDto?>
+{
+    public async Task<SubscriptionDto?> Handle(GetCurrentSubscriptionQuery request, CancellationToken cancellationToken)
     {
         var rid = currentUser.RestaurantId;
-        var sub = await db.Subscriptions.FirstOrDefaultAsync(s => s.RestaurantId == rid, ct);
-        return sub is null ? null : await ToDto(sub, rid, ct);
+        var sub = await db.Subscriptions.FirstOrDefaultAsync(s => s.RestaurantId == rid, cancellationToken);
+        return sub is null ? null : await SubscriptionDtoFactory.ToDto(db, sub, rid, cancellationToken);
     }
+}
 
-    public async Task<bool> IsActiveAsync(Guid restaurantId, CancellationToken ct = default)
-    {
-        var sub = await db.Subscriptions.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.RestaurantId == restaurantId, ct);
-
-        return sub is not null
-            && sub.Status == SubscriptionStatus.Active
-            && (sub.CurrentPeriodEnd is null || sub.CurrentPeriodEnd > DateTime.UtcNow);
-    }
-
-    private async Task<SubscriptionDto> ToDto(Subscription sub, Guid rid, CancellationToken ct)
+internal static class SubscriptionDtoFactory
+{
+    public static async Task<SubscriptionDto> ToDto(DashTabDbContext db, Subscription sub, Guid rid, CancellationToken ct)
     {
         var staffUsed = await db.Users.IgnoreQueryFilters()
             .CountAsync(u => u.RestaurantId == rid && !u.IsDeleted, ct);
@@ -104,7 +104,7 @@ public class SubscriptionService(
             PlanLimits.MaxStaff(sub.Plan));
     }
 
-    private static Plan ParsePlan(string plan) =>
+    public static Plan ParsePlan(string plan) =>
         Enum.TryParse<Plan>(plan, ignoreCase: true, out var p)
             ? p
             : throw new InvalidOperationException($"Unknown plan '{plan}'.");
