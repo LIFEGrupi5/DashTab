@@ -276,7 +276,6 @@ builder.Services.AddHostedService<StorageBucketBootstrapper>();
 // ── Application services ──────────────────────────────────────────────────────
 builder.Services.AddScoped<IKeycloakAdminService, KeycloakAdminService>();
 builder.Services.AddScoped<IStripeService, StripeService>();
-builder.Services.AddScoped<IForecastService, ForecastService>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton<ICacheService, CacheService>();
 builder.Services.AddHangfire(cfg => cfg
