@@ -1,11 +1,12 @@
 import { apiPost } from './client';
-import type { AuthSession } from './types';
+import type { AuthUser } from './types';
 
-export const login = (email: string, password: string) => apiPost<AuthSession>('/auth/login', {email, password});
+// login now returns the user object — tokens are in httpOnly cookies, never in JS.
+export const login = (email: string, password: string) =>
+  apiPost<AuthUser>('/auth/login', { email, password });
 
-export const refreshTokens = (refreshToken: string) => apiPost<AuthSession>('/auth/refresh', {refreshToken});
-
-export const logoutApi = (refreshToken: string) => apiPost<void>('/auth/logout', {refreshToken});
+// logout sends no body — the refresh_token rides the cookie.
+export const logoutApi = () => apiPost<void>('/auth/logout', {});
 
 export type RegisterRestaurantPayload = {
   restaurantName: string;

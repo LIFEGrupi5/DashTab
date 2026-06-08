@@ -1,4 +1,5 @@
 import { useAppStore } from "@/stores/useAppStore";
+import type { AuthUser } from "./types";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api/v1";
@@ -26,31 +27,27 @@ function failAuth(): never {
 
 // Single-flight token refresh: concurrent 401s (e.g. every query refetching on
 // window focus) share ONE /auth/refresh call instead of each firing its own.
-// This avoids a refresh storm that both trips Keycloak's rate limit (429) and
-// invalidates our own rotated refresh token mid-flight, which otherwise logs the
-// user out on return to a stale tab.
-let refreshPromise: Promise<string> | null = null;
+// Tokens now live in httpOnly cookies — the browser sends the refresh_token
+// cookie automatically, so the POST body is empty.
+let refreshPromise: Promise<void> | null = null;
 
-function refreshAccessToken(): Promise<string> {
+function refreshAccessToken(): Promise<void> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
-      const { refreshToken } = useAppStore.getState();
-      if (!refreshToken) throw new ApiError(401, { error: "Session expired." });
-      const { refreshTokens } = await import("./auth");
-      const session = await refreshTokens(refreshToken);
-      useAppStore
-        .getState()
-        .setTokens(session.accessToken, session.refreshToken);
-      return session.accessToken;
+      const res = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",       // browser sends the refresh_token cookie
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      if (!res.ok) throw new ApiError(401, { error: "Session expired." });
+      // Server rotates both cookies and returns the updated user; sync the store.
+      const user: AuthUser = await res.json();
+      useAppStore.getState().setUser(user);
     })();
-    // Reset the gate once settled so a later expiry can refresh again.
     refreshPromise.then(
-      () => {
-        refreshPromise = null;
-      },
-      () => {
-        refreshPromise = null;
-      },
+      () => { refreshPromise = null; },
+      () => { refreshPromise = null; },
     );
   }
   return refreshPromise;
@@ -61,19 +58,16 @@ async function request<T>(
   init: RequestInit = {},
   isRetry = false,
 ): Promise<T> {
-  const token = useAppStore.getState().token;
-
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
+    credentials: "include",           // browser attaches httpOnly cookies on every call
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(init.headers ?? {}),
     },
   });
 
-  if (res.status === 401 && !AUTH_PATHS.has(path)) {
-    if (isRetry) failAuth();
+  if (res.status === 401 && !isRetry && !AUTH_PATHS.has(path)) {
     try {
       await refreshAccessToken();
     } catch {
@@ -81,6 +75,7 @@ async function request<T>(
     }
     return request<T>(path, init, true);
   }
+  if (res.status === 401 && isRetry) failAuth();
 
   // 402 = no active subscription. Send the user to the plan-selection page.
   if (

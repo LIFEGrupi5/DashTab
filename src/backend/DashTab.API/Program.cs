@@ -137,16 +137,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 internalBase: opts.Authority!);
         }
 
-        // SignalR's JS client cannot set Authorization headers on the WebSocket
-        // upgrade, so it passes the JWT as ?access_token=... — copy it into the
-        // bearer pipeline for any request under /hubs/*.
+        // Token resolution order:
+        //  1. ?access_token= query param  — SignalR WebSocket upgrade (JS can't
+        //     set Authorization headers on WS, so the old query-param path stays).
+        //  2. access_token httpOnly cookie — every other authenticated request.
+        //     This is the new primary path after the localStorage → cookie migration.
+        //  3. Authorization: Bearer header — kept as a fallback (Swagger UI, scripts).
         opts.Events = new JwtBearerEvents
         {
             OnMessageReceived = ctx =>
             {
-                var token = ctx.Request.Query["access_token"];
-                var path  = ctx.HttpContext.Request.Path;
-                if (!string.IsNullOrEmpty(token) && path.StartsWithSegments("/hubs"))
+                var token = ctx.Request.Query["access_token"].ToString();
+                if (string.IsNullOrEmpty(token))
+                    token = ctx.Request.Cookies["access_token"] ?? string.Empty;
+                if (!string.IsNullOrEmpty(token))
                     ctx.Token = token;
                 return Task.CompletedTask;
             }

@@ -9,7 +9,6 @@ import Button from '@/components/Button';
 import TextField from '@/components/TextField';
 import { useAppStore } from '@/stores/useAppStore';
 import { login } from '@/lib/api/auth';
-import { decodeJwt, claimsToAuthUser } from '@/lib/api/jwt';
 import { toast } from 'sonner';
 
 const demoAccounts = [
@@ -31,10 +30,10 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const session = await login(email, password);
-      const claims  = decodeJwt<Record<string, unknown>>(session.accessToken);
-      const user    = claimsToAuthUser(claims);
-      setAuth(user, session.accessToken, session.refreshToken);
+      // login() now returns the user object (server decoded the JWT).
+      // Tokens are set as httpOnly cookies by the server — never touch JS.
+      const user = await login(email, password);
+      setAuth(user);
       void queryClient.invalidateQueries({ queryKey: ['auth'] });
       router.push(user.role === 'kitchen' ? '/kitchen' : '/dashboard');
     } catch {

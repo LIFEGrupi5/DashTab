@@ -24,14 +24,18 @@ const INVALIDATE_MAX_WAIT_MS = 1500;
 
 export function useKdsSignalR() {
   const queryClient = useQueryClient();
-  const token = useAppStore(s => s.token);
+  // Tokens are now in httpOnly cookies — the browser sends the access_token
+  // cookie automatically on the WebSocket upgrade request. The backend's
+  // OnMessageReceived reads it from Request.Cookies["access_token"].
+  // We still gate on user being present so we only connect when authenticated.
+  const user = useAppStore(s => s.user);
 
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
 
     const connection: HubConnection = new HubConnectionBuilder()
       .withUrl(HUB_URL, {
-        accessTokenFactory: () => useAppStore.getState().token ?? '',
+        withCredentials: true,         // tells SignalR to include cookies on WS/SSE
       })
       .withAutomaticReconnect()
       .configureLogging(LogLevel.Warning)
@@ -75,5 +79,5 @@ export function useKdsSignalR() {
         connection.stop().catch(() => {});
       }
     };
-  }, [token, queryClient]);
+  }, [user, queryClient]);
 }
