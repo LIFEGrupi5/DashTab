@@ -11,7 +11,6 @@ using DashTab.Infrastructure.Messaging;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
 using FluentValidation;
-using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -74,11 +73,9 @@ else
     builder.Services.AddDistributedMemoryCache();
 
 // ── Validation ────────────────────────────────────────────────────────────────
+// Validators are registered for the MediatR ValidationBehavior (below), which is
+// the single validation path now that every endpoint dispatches a command/query.
 builder.Services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
-// MVC auto-validation stays on during the CQRS migration so not-yet-converted
-// endpoints keep validating; once every feature dispatches through MediatR the
-// ValidationBehavior below becomes the sole validation path (see task 1.10).
-builder.Services.AddFluentValidationAutoValidation();
 
 // ── MediatR (CQRS) + validation pipeline ──────────────────────────────────────
 builder.Services.AddMediatR(cfg =>
