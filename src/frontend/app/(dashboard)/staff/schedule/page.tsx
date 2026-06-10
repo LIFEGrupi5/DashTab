@@ -34,8 +34,14 @@ function getMondayOfWeek(date: Date): Date {
   return d;
 }
 
+// Format as the LOCAL calendar date. We deliberately avoid toISOString(), which
+// converts to UTC and can roll a local Monday-midnight back to the previous
+// Sunday in timezones ahead of UTC — breaking the "week starts Monday" invariant.
 function toDateStr(date: Date): string {
-  return date.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`; // "YYYY-MM-DD"
 }
 
 function addDays(date: Date, n: number): Date {
@@ -123,9 +129,11 @@ export default function ManagerSchedulePage() {
 
   const pendingRequests = requests.filter(r => r.status === 'pending');
 
-  // Find a shift for a specific user + day
+  // Find a shift for a specific user + day. The API serializes the DayOfWeek
+  // enum as camelCase ("monday"), while our DAYS keys are PascalCase ("Monday"),
+  // so compare case-insensitively.
   function getShift(userId: string, day: string): WorkShift | undefined {
-    return shifts.find(s => s.userId === userId && s.dayOfWeek === day);
+    return shifts.find(s => s.userId === userId && s.dayOfWeek.toLowerCase() === day.toLowerCase());
   }
 
   function openModal(userId: string, userName: string, day: string) {

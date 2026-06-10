@@ -6,8 +6,8 @@ import { createStaffMember, fetchStaff } from '@/lib/api/staff';
 import type { StaffFormData } from '@/lib/schemas';
 import { queryKeys } from '@/lib/queryKeys';
 
-export function useUsers() {
-  return useQuery({ queryKey: queryKeys.users.all, queryFn: fetchStaff });
+export function useUsers(enabled = true) {
+  return useQuery({ queryKey: queryKeys.users.all, queryFn: fetchStaff, enabled });
 }
 
 export function useCreateStaff() {
