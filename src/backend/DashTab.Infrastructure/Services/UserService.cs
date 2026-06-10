@@ -45,12 +45,17 @@ public class UserService(
                     $"Your {sub.Plan} plan allows up to {limit} staff members. Upgrade your plan to add more.");
         }
 
+        // Permanent password: the owner sets it on the add-member form and the app
+        // logs in via the direct password grant (grant_type=password), which cannot
+        // satisfy Keycloak's UPDATE_PASSWORD required action that a temporary
+        // password would attach — so a temporary password would fail login with
+        // "invalid password" until reset in the Keycloak admin console.
         var keycloakId = await keycloak.CreateUserAsync(
             request.Email,
             request.FullName,
             request.Password,
             roleName: NormalizeRole(request.Role),
-            temporaryPassword: true);
+            temporaryPassword: false);
 
         try
         {
