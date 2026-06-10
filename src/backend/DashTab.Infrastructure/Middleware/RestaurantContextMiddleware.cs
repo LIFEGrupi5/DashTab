@@ -1,4 +1,5 @@
 using DashTab.Application.Interfaces;
+using DashTab.Infrastructure.Caching;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,9 @@ namespace DashTab.Infrastructure.Middleware;
 //     and stores it on the DbContext + HttpContext.Items, and
 //  2. gates the app: if the restaurant has no active subscription, every request
 //     except the allow-listed ones (auth, subscriptions, health…) is rejected 402.
+//
+// The (user → restaurant + subscription) lookup is cached per user in Redis (with an
+// in-memory fallback) so only the first request within the TTL window hits the DB.
 //
 // SECURITY: the query filters are strict (RestaurantId == CurrentTenantId). If the
 // tenant cannot be resolved, CurrentTenantId stays null and every tenant-scoped
@@ -28,74 +32,46 @@ public class RestaurantContextMiddleware(RequestDelegate next)
         "/swagger",
     };
 
-    public async Task InvokeAsync(HttpContext ctx, DashTabDbContext db, ISubscriptionService subscriptions)
+    // The tenant mapping rarely changes; subscription status can (a payment, an
+    // expiry), so we cap staleness at a short TTL — a subscription change takes
+    // effect within this window without any explicit cache invalidation.
+    private static readonly TimeSpan TenantCacheTtl = TimeSpan.FromMinutes(5);
+
+    public async Task InvokeAsync(HttpContext ctx, DashTabDbContext db, ICacheService cache)
     {
         if (ctx.User.Identity?.IsAuthenticated == true)
         {
-            // Resolve the tenant and check the subscription in ONE query by joining
-            // Users → Subscriptions. Previously this was 2–3 sequential DB round-trips
-            // (sub lookup + optional email fallback + IsActiveAsync), each costing
-            // ~1–2 s RTT on a cloud-hosted Postgres. One joined query drops that to a
-            // single round-trip regardless of code path.
-            Guid? restaurantId = null;
-            bool   hasActiveSub = false;
-            bool   needsSubCheck = RequiresSubscription(ctx.Request);
+            var needsSubCheck = RequiresSubscription(ctx.Request);
 
             var subClaim = ctx.User.FindFirst("sub")?.Value;
             var emailClaim = ctx.User.FindFirst("email")?.Value;
+            var userKey = subClaim ?? emailClaim;
 
-            if (subClaim is not null || emailClaim is not null)
+            TenantContextEntry? resolved = null;
+
+            // 1. Fast path: per-user tenant context cached from a previous request.
+            //    Saves the DB round-trip below on every request within the TTL window.
+            if (userKey is not null)
+                resolved = await cache.GetAsync<TenantContextEntry>(
+                    CacheKeys.TenantContext(userKey), ctx.RequestAborted);
+
+            // 2. Cache miss: resolve from the DB and cache the result. We always compute
+            //    the real subscription status here (not just when needsSubCheck) so the
+            //    cached entry is complete and correct for later sub-gated requests.
+            if (resolved is null && userKey is not null)
             {
-                var now = DateTime.UtcNow;
-                var row = await db.Users
-                    .IgnoreQueryFilters()
-                    .Where(u => !u.IsDeleted &&
-                                (subClaim != null
-                                    ? u.Id == Guid.Parse(subClaim)
-                                    : u.Email == emailClaim))
-                    .Select(u => new
-                    {
-                        RestaurantId = (Guid?)u.RestaurantId,
-                        HasActiveSub = needsSubCheck
-                            ? db.Subscriptions.Any(s =>
-                                s.RestaurantId == u.RestaurantId &&
-                                s.Status == Domain.Enums.SubscriptionStatus.Active &&
-                                (s.CurrentPeriodEnd == null || s.CurrentPeriodEnd > now))
-                            : true          // skip the sub join for allow-listed paths
-                    })
-                    .FirstOrDefaultAsync();
-
-                restaurantId = row?.RestaurantId;
-                hasActiveSub = row?.HasActiveSub ?? false;
-
-                // Email fallback: only if sub-based lookup returned nothing.
-                if (restaurantId is null && subClaim is not null && emailClaim is not null)
-                {
-                    var fallback = await db.Users
-                        .IgnoreQueryFilters()
-                        .Where(u => u.Email == emailClaim && !u.IsDeleted)
-                        .Select(u => new
-                        {
-                            RestaurantId = (Guid?)u.RestaurantId,
-                            HasActiveSub = needsSubCheck
-                                ? db.Subscriptions.Any(s =>
-                                    s.RestaurantId == u.RestaurantId &&
-                                    s.Status == Domain.Enums.SubscriptionStatus.Active &&
-                                    (s.CurrentPeriodEnd == null || s.CurrentPeriodEnd > now))
-                                : true
-                        })
-                        .FirstOrDefaultAsync();
-                    restaurantId = fallback?.RestaurantId;
-                    hasActiveSub = fallback?.HasActiveSub ?? false;
-                }
+                resolved = await ResolveFromDbAsync(db, subClaim, emailClaim, ctx.RequestAborted);
+                if (resolved is not null)
+                    await cache.SetAsync(
+                        CacheKeys.TenantContext(userKey), resolved, TenantCacheTtl, ctx.RequestAborted);
             }
 
-            if (restaurantId.HasValue)
+            if (resolved is not null)
             {
-                db.CurrentTenantId = restaurantId.Value;
-                ctx.Items["RestaurantId"] = restaurantId.Value;
+                db.CurrentTenantId = resolved.RestaurantId;
+                ctx.Items["RestaurantId"] = resolved.RestaurantId;
 
-                if (needsSubCheck && !hasActiveSub)
+                if (needsSubCheck && !resolved.HasActiveSub)
                 {
                     ctx.Response.StatusCode = StatusCodes.Status402PaymentRequired;
                     ctx.Response.ContentType = "application/json";
@@ -109,6 +85,51 @@ public class RestaurantContextMiddleware(RequestDelegate next)
         await next(ctx);
     }
 
+    // Resolves the user's restaurant + live subscription status in ONE query by
+    // joining Users → Subscriptions, with an email fallback for the rare case the
+    // `sub` claim doesn't match a row. IgnoreQueryFilters because CurrentTenantId is
+    // exactly what we're resolving here and isn't set yet.
+    private static async Task<TenantContextEntry?> ResolveFromDbAsync(
+        DashTabDbContext db, string? subClaim, string? emailClaim, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+
+        var row = await db.Users
+            .IgnoreQueryFilters()
+            .Where(u => !u.IsDeleted &&
+                        (subClaim != null
+                            ? u.Id == Guid.Parse(subClaim)
+                            : u.Email == emailClaim))
+            .Select(u => new
+            {
+                u.RestaurantId,
+                HasActiveSub = db.Subscriptions.Any(s =>
+                    s.RestaurantId == u.RestaurantId &&
+                    s.Status == Domain.Enums.SubscriptionStatus.Active &&
+                    (s.CurrentPeriodEnd == null || s.CurrentPeriodEnd > now))
+            })
+            .FirstOrDefaultAsync(ct);
+
+        // Email fallback: only if the sub-based lookup returned nothing.
+        if (row is null && subClaim is not null && emailClaim is not null)
+        {
+            row = await db.Users
+                .IgnoreQueryFilters()
+                .Where(u => u.Email == emailClaim && !u.IsDeleted)
+                .Select(u => new
+                {
+                    u.RestaurantId,
+                    HasActiveSub = db.Subscriptions.Any(s =>
+                        s.RestaurantId == u.RestaurantId &&
+                        s.Status == Domain.Enums.SubscriptionStatus.Active &&
+                        (s.CurrentPeriodEnd == null || s.CurrentPeriodEnd > now))
+                })
+                .FirstOrDefaultAsync(ct);
+        }
+
+        return row is null ? null : new TenantContextEntry(row.RestaurantId, row.HasActiveSub);
+    }
+
     private static bool RequiresSubscription(HttpRequest req)
     {
         if (HttpMethods.IsOptions(req.Method)) return false; // CORS preflight
@@ -119,3 +140,7 @@ public class RestaurantContextMiddleware(RequestDelegate next)
         return true;
     }
 }
+
+// Cached per-user tenant context. A record (reference type) so it satisfies
+// ICacheService's `where T : class` constraint and serializes cleanly to JSON.
+internal sealed record TenantContextEntry(Guid RestaurantId, bool HasActiveSub);
