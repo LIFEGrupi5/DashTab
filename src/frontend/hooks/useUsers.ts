@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { createStaffMember, fetchStaff } from '@/lib/api/staff';
 import type { StaffFormData } from '@/lib/schemas';
 import { queryKeys } from '@/lib/queryKeys';
+import { analytics } from '@/lib/analytics';
 
 export function useUsers(enabled = true) {
   return useQuery({ queryKey: queryKeys.users.all, queryFn: fetchStaff, enabled });
@@ -17,6 +18,7 @@ export function useCreateStaff() {
     onSuccess: user => {
       queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
       toast.success(`${user.name} added to the team`);
+      analytics.staffInvited(user.role);
     },
     onError: () => {
       toast.error('Failed to add member. Please try again.');
