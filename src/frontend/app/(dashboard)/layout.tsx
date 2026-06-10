@@ -11,6 +11,7 @@ import {
   Monitor,
   BarChart3,
   Users,
+  CalendarDays,
   Settings,
   LogOut,
   PanelLeft,
@@ -22,18 +23,21 @@ import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { analytics, resetIdentity } from '@/lib/analytics';
 
 const MODULE_COLORS: Record<string, string> = {
-  '/dashboard':  '#8a7f6f',
-  '/orders':     '#e8a23a',
-  '/menu':       '#2f78c4',
-  '/kitchen':    '#269271',
-  '/overview':   '#c74a2d',
-  '/staff':      '#c14b7b',
-  '/settings':   '#6b7280',
+  '/dashboard':       '#8a7f6f',
+  '/orders':          '#e8a23a',
+  '/menu':            '#2f78c4',
+  '/kitchen':         '#269271',
+  '/overview':        '#c74a2d',
+  '/staff':           '#c14b7b',
+  '/staff/schedule':  '#a855f7',
+  '/schedule':        '#a855f7',
+  '/settings':        '#6b7280',
 };
 
 const waiterNavItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/dashboard',  label: 'Dashboard',   icon: LayoutDashboard },
+  { href: '/orders',     label: 'Orders',       icon: ShoppingBag },
+  { href: '/schedule',   label: 'My Schedule',  icon: CalendarDays },
 ] as const;
 
 const kitchenNavItems = [{ href: '/kitchen', label: 'Kitchen', icon: Monitor }] as const;
@@ -78,6 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href: '/kitchen', label: 'Kitchen', icon: Monitor },
       { href: '/overview', label: 'Overview', icon: BarChart3 },
       { href: '/staff', label: 'Staff', icon: Users },
+      { href: '/staff/schedule', label: 'Schedule', icon: CalendarDays },
       { href: '/settings', label: 'Settings', icon: Settings },
     ] as const;
   }, [isWaiter, isKitchenStaff]);
@@ -159,7 +164,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             const isActive =
               pathname === item.href ||
               (item.href === '/orders' && pathname.startsWith('/orders')) ||
-              (item.href === '/kitchen' && pathname.startsWith('/kitchen'));
+              (item.href === '/kitchen' && pathname.startsWith('/kitchen')) ||
+              (item.href === '/staff/schedule' && pathname.startsWith('/staff/schedule')) ||
+              (item.href === '/schedule' && pathname === '/schedule');
             const dotColor = MODULE_COLORS[item.href] ?? '#8a7f6f';
             return (
               <Link

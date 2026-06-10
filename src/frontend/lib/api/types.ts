@@ -48,3 +48,35 @@ export type CreateOrderRequest = {
   notes?: string;
   items: CreateOrderItemRequest[];
 };
+
+// ── Schedule ──────────────────────────────────────────────────────────────────
+
+export type WorkShift = {
+  id: string;
+  userId: string;
+  userName: string;
+  weekStartDate: string; // "YYYY-MM-DD"
+  dayOfWeek: string;     // "Monday" | "Tuesday" | ...
+  startTime: string;     // "HH:MM:SS"
+  endTime: string;
+  isPublished: boolean;
+};
+
+export type ShiftRequestType   = 'restDay' | 'shiftSwap';
+export type ShiftRequestStatus = 'pending' | 'approved' | 'denied';
+
+export type ShiftRequest = {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  type: ShiftRequestType;
+  status: ShiftRequestStatus;
+  requestedDate: string;
+  targetUserId?: string;
+  targetUserName?: string;
+  targetDate?: string;
+  reason?: string;
+  managerNote?: string;
+  createdAt: string;
+  reviewedAt?: string;
+};

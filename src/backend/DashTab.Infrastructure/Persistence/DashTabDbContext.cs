@@ -2,6 +2,7 @@ using System.Text.Json;
 using DashTab.Domain.Entities;
 using DashTab.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DashTab.Infrastructure.Persistence;
 
@@ -21,6 +22,8 @@ public class DashTabDbContext : DbContext
     public DbSet<Order> Orders { get; set; } = null!;
     public DbSet<OrderItem> OrderItems { get; set; } = null!;
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+    public DbSet<WorkShift> WorkShifts { get; set; } = null!;
+    public DbSet<ShiftRequest> ShiftRequests { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -120,6 +123,54 @@ public class DashTabDbContext : DbContext
             .WithMany()
             .HasForeignKey(s => s.RestaurantId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // WorkShift — one row per employee per day, grouped by WeekStartDate
+        modelBuilder.Entity<WorkShift>()
+            .HasQueryFilter(s => s.RestaurantId == CurrentTenantId);
+        modelBuilder.Entity<WorkShift>()
+            .Property(s => s.DayOfWeek).HasConversion<string>();
+        modelBuilder.Entity<WorkShift>()
+            .HasOne(s => s.User)
+            .WithMany()
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<WorkShift>()
+            .HasOne(s => s.Restaurant)
+            .WithMany()
+            .HasForeignKey(s => s.RestaurantId)
+            .OnDelete(DeleteBehavior.Cascade);
+        // Fast "load a whole week" query
+        modelBuilder.Entity<WorkShift>()
+            .HasIndex(s => new { s.RestaurantId, s.WeekStartDate });
+        // Fast "load my week" query (worker view)
+        modelBuilder.Entity<WorkShift>()
+            .HasIndex(s => new { s.UserId, s.WeekStartDate });
+
+        // ShiftRequest — rest-day and shift-swap requests
+        modelBuilder.Entity<ShiftRequest>()
+            .HasQueryFilter(r => r.RestaurantId == CurrentTenantId);
+        modelBuilder.Entity<ShiftRequest>()
+            .Property(r => r.Type).HasConversion<string>();
+        modelBuilder.Entity<ShiftRequest>()
+            .Property(r => r.Status).HasConversion<string>();
+        modelBuilder.Entity<ShiftRequest>()
+            .HasOne(r => r.Requester)
+            .WithMany()
+            .HasForeignKey(r => r.RequesterId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ShiftRequest>()
+            .HasOne(r => r.TargetUser)
+            .WithMany()
+            .HasForeignKey(r => r.TargetUserId)
+            .OnDelete(DeleteBehavior.SetNull);
+        modelBuilder.Entity<ShiftRequest>()
+            .HasOne(r => r.Restaurant)
+            .WithMany()
+            .HasForeignKey(r => r.RestaurantId)
+            .OnDelete(DeleteBehavior.Cascade);
+        // Fast "show pending requests" query for the manager panel
+        modelBuilder.Entity<ShiftRequest>()
+            .HasIndex(r => new { r.RestaurantId, r.Status });
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

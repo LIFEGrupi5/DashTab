@@ -30,8 +30,7 @@ export default function SubscribePage() {
       sessionStorage.removeItem('selectedPlan');
       void choose(plan);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, user]);
+  }, [hydrated, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const choose = async (plan: string) => {
     setLoading(plan);

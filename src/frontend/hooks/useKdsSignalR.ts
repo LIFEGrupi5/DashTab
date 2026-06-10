@@ -68,16 +68,23 @@ export function useKdsSignalR() {
     connection.on('orderStatusChanged', invalidate);
     connection.on('orderCancelled', invalidate);
 
-    connection.start().catch(err => {
-      console.error('KDS SignalR connect failed:', err);
+    let active = true;
+
+    // Keep a reference to the start promise so cleanup can wait for it to
+    // settle before calling stop(). Without this, React StrictMode's double
+    // effect invocation calls stop() while negotiation is still in flight,
+    // producing a "stopped during negotiation" console error.
+    const startPromise = connection.start().catch((err: Error) => {
+      if (active) console.error('KDS SignalR connect failed:', err);
     });
 
     return () => {
+      active = false;
       clearTimeout(debounceTimer);
       clearTimeout(maxWaitTimer);
-      if (connection.state !== HubConnectionState.Disconnected) {
+      void startPromise.finally(() => {
         connection.stop().catch(() => {});
-      }
+      });
     };
   }, [user, queryClient]);
 }
