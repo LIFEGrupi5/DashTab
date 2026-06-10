@@ -74,6 +74,12 @@ export const analytics = {
     });
   },
 
+  // Staff
+  staffInvited(role: string) {
+    if (!ready()) return;
+    posthog.capture('staff_invited', { role });
+  },
+
   // Menu
   menuItemCreated(props: { category: string; price: number }) {
     if (!ready()) return;
