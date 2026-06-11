@@ -2,6 +2,12 @@
   "name": "frontend",
   "private": true,
   "version": "0.0.0",
+  "comment:browserslist": "Modern target — stops Next/SWC shipping legacy ES5 polyfills & transforms (Lighthouse 'legacy JavaScript'). All targeted browsers support modern ES; widen this list if older clients must be supported.",
+  "browserslist": [
+    "last 2 years",
+    "not dead",
+    "not op_mini all"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
