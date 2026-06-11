@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Clock3, Funnel, Minus, Plus, ShoppingBag, SlidersHorizontal } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, m } from 'framer-motion';
 import { toast } from 'sonner';
 import Button from '@/components/Button';
 import Modal from '@/components/Modal';
@@ -268,7 +268,7 @@ function ManagerView({
           </div>
         ) : (
           filtered.map((order, index) => (
-            <motion.div
+            <m.div
               key={order.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -316,7 +316,7 @@ function ManagerView({
                   </Button>
                 )}
               </div>
-            </motion.div>
+            </m.div>
           ))
         )}
       </div>
@@ -478,7 +478,7 @@ function WaiterView({
           </div>
         ) : (
           filtered.map((order, index) => (
-            <motion.div
+            <m.div
               key={order.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -518,7 +518,7 @@ function WaiterView({
               <div className="pt-3 border-t border-neutral-100 dark:border-border flex items-end justify-between">
                 <p className="text-xl font-bold text-orange-600 dark:text-orange-400">€{order.totalAmount.toFixed(2)}</p>
               </div>
-            </motion.div>
+            </m.div>
           ))
         )}
       </div>

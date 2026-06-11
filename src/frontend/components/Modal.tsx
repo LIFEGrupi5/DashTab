@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 
 type ModalProps = {
   title: string;
@@ -35,7 +35,7 @@ export default function Modal({
   }, []);
 
   return (
-    <motion.div
+    <m.div
       className="fixed inset-0 bg-black/40 dark:bg-black/60 flex items-center justify-center z-50 p-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -44,7 +44,7 @@ export default function Modal({
       onClick={onClose}
       role="presentation"
     >
-      <motion.div
+      <m.div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
@@ -68,7 +68,7 @@ export default function Modal({
         </div>
         <div className={`p-5 ${bodyClassName}`.trim()}>{children}</div>
         {footer ? <div className="p-5 pt-0">{footer}</div> : null}
-      </motion.div>
-    </motion.div>
+      </m.div>
+    </m.div>
   );
 }
