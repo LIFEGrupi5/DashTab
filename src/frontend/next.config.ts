@@ -21,10 +21,6 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  // Hide the floating dev indicator: it renders bottom-left over the sidebar's
-  // "Log out" link and intercepts pointer events, making the logout E2E test
-  // flaky. It's a dev-only cosmetic badge, so removing it is safe.
-  devIndicators: false,
   // Required for PostHog /ingest proxy — prevents Next.js stripping the trailing slash
   // which breaks the PostHog event endpoint matching.
   skipTrailingSlashRedirect: true,
