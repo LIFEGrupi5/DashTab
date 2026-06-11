@@ -2,25 +2,9 @@
 
 import { Suspense, useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import posthog from 'posthog-js';
-import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
-import { identifyUser, resetIdentity } from '@/lib/analytics';
-
-const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-
-if (typeof window !== 'undefined' && POSTHOG_KEY) {
-  posthog.init(POSTHOG_KEY, {
-    // Production: route through /ingest proxy (same-origin, bypasses ad blockers).
-    // Development: connect directly — the Next.js dev server proxy causes ECONNRESET.
-    api_host: process.env.NODE_ENV === 'production' ? '/ingest' : 'https://us.i.posthog.com',
-    ui_host: 'https://us.posthog.com',
-    capture_pageview: false,
-    capture_pageleave: true,
-    person_profiles: 'identified_only',
-  });
-}
+import { initAnalytics, identifyUser, resetIdentity, capturePageview } from '@/lib/analytics';
 
 function PageviewTracker() {
   const pathname = usePathname();
@@ -29,7 +13,7 @@ function PageviewTracker() {
   useEffect(() => {
     const search = searchParams.toString();
     const url = window.location.origin + pathname + (search ? `?${search}` : '');
-    posthog.capture('$pageview', { $current_url: url });
+    capturePageview(url);
   }, [pathname, searchParams]);
 
   return null;
@@ -52,13 +36,27 @@ function UserIdentitySync() {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
+  // Load posthog-js once the browser is idle so it stays off the critical
+  // render path. Any pageview/identify fired before it resolves is buffered in
+  // lib/analytics and flushed on load, so nothing is lost. Dropping the
+  // posthog-js/react <PHProvider> too — nothing in the app uses usePostHog().
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    if (typeof w.requestIdleCallback === 'function') {
+      w.requestIdleCallback(() => void initAnalytics());
+    } else {
+      const t = setTimeout(() => void initAnalytics(), 1);
+      return () => clearTimeout(t);
+    }
+  }, []);
+
   return (
-    <PHProvider client={posthog}>
+    <>
       <Suspense fallback={null}>
         <PageviewTracker />
       </Suspense>
       <UserIdentitySync />
       {children}
-    </PHProvider>
+    </>
   );
 }

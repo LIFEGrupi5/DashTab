@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { LazyMotion, m } from 'framer-motion';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -22,6 +22,9 @@ import {
 import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { analytics, resetIdentity } from '@/lib/analytics';
+
+// Pulls the framer-motion animation features into a lazy chunk (see lib/motionFeatures).
+const loadMotionFeatures = () => import('@/lib/motionFeatures').then(m => m.default);
 
 const MODULE_COLORS: Record<string, string> = {
   '/dashboard':       '#8a7f6f',
@@ -105,7 +108,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div
+    <LazyMotion features={loadMotionFeatures} strict>
+      <div
       className="flex h-screen min-h-0 w-full max-w-[100vw] overflow-x-hidden bg-background"
       onDoubleClick={(e) => {
         const target = e.target as HTMLElement;
@@ -232,7 +236,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ) : null}
 
       <main className="flex-1 min-w-0 overflow-y-auto flex flex-col">
-        <motion.div
+        <m.div
           key={pathname}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -240,8 +244,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           className="flex-1 flex flex-col"
         >
           {children}
-        </motion.div>
+        </m.div>
       </main>
-    </div>
+      </div>
+    </LazyMotion>
   );
 }
