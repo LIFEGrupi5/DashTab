@@ -27,8 +27,11 @@ test.describe('Dashboard navigation', () => {
     await expect(page.locator('html')).toHaveClass(/dark/);
   });
 
+
   test('logout returns to login page', async ({ page }) => {
-    await page.getByRole('link', { name: /log out|sign out/i }).click();
+    const logoutLink = page.getByRole('link', { name: /log out|sign out/i });
+    await logoutLink.focus();
+    await page.keyboard.press('Enter');
     await expect(page).toHaveURL('/login');
   });
 });

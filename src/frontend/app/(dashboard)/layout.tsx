@@ -214,7 +214,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ) : null}
           <Link
             href="/login"
-            aria-label="Log out"
+            aria-label="Log Out"
             onClick={() => {
               analytics.userSignedOut();
               resetIdentity();
