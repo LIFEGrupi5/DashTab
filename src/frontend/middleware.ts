@@ -46,8 +46,8 @@ export function middleware(request: NextRequest) {
       hubOrigin,
       toWs(apiOrigin),
       toWs(hubOrigin),
-      // Dev only: the Next dev server's HMR socket.
-      ...(isDev ? ['ws:', 'wss:'] : []),
+      // Dev only: Next.js HMR socket + PostHog direct (proxy causes ECONNRESET in dev).
+      ...(isDev ? ['ws:', 'wss:', 'https://us.i.posthog.com', 'https://us-assets.i.posthog.com'] : []),
     ]),
   ].join(' ');
 
