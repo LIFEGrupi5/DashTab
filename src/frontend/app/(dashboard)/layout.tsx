@@ -10,6 +10,7 @@ import {
   UtensilsCrossed,
   Monitor,
   BarChart3,
+  PieChart,
   Users,
   CalendarDays,
   Settings,
@@ -28,6 +29,7 @@ const MODULE_COLORS: Record<string, string> = {
   '/menu':            '#2f78c4',
   '/kitchen':         '#269271',
   '/overview':        '#c74a2d',
+  '/reports':         '#7c3aed',
   '/staff':           '#c14b7b',
   '/staff/schedule':  '#a855f7',
   '/schedule':        '#a855f7',
@@ -81,6 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       { href: '/menu', label: 'Menu', icon: UtensilsCrossed },
       { href: '/kitchen', label: 'Kitchen', icon: Monitor },
       { href: '/overview', label: 'Overview', icon: BarChart3 },
+      { href: '/reports', label: 'Reports', icon: PieChart },
       { href: '/staff', label: 'Staff', icon: Users },
       { href: '/staff/schedule', label: 'Schedule', icon: CalendarDays },
       { href: '/settings', label: 'Settings', icon: Settings },
@@ -165,8 +168,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               pathname === item.href ||
               (item.href === '/orders' && pathname.startsWith('/orders')) ||
               (item.href === '/kitchen' && pathname.startsWith('/kitchen')) ||
+              (item.href === '/reports' && pathname.startsWith('/reports'))||
               (item.href === '/staff/schedule' && pathname.startsWith('/staff/schedule')) ||
               (item.href === '/schedule' && pathname === '/schedule');
+
             const dotColor = MODULE_COLORS[item.href] ?? '#8a7f6f';
             return (
               <Link
@@ -209,6 +214,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ) : null}
           <Link
             href="/login"
+            aria-label="Log out"
             onClick={() => {
               analytics.userSignedOut();
               resetIdentity();
