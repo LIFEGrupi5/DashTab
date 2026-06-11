@@ -82,6 +82,9 @@ function RestDayModal({
   const [date, setDate]     = useState('');
   const [reason, setReason] = useState('');
 
+  // Rest days are only allowed from next week onward — earliest pick is next Monday.
+  const nextMonday = toDateStr(addDays(getMondayOfWeek(new Date()), 7));
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div className="bg-white dark:bg-card rounded-2xl border border-neutral-200 dark:border-border shadow-xl p-6 w-80" onClick={e => e.stopPropagation()}>
@@ -89,8 +92,9 @@ function RestDayModal({
         <div className="space-y-3 mb-5">
           <div>
             <label className="block text-xs font-medium text-neutral-500 dark:text-muted-foreground mb-1">Date</label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} required
+            <input type="date" value={date} min={nextMonday} onChange={e => setDate(e.target.value)} required
               className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+            <p className="text-xs text-neutral-400 dark:text-muted-foreground mt-1">Only future weeks (from next Monday) can be requested.</p>
           </div>
           <div>
             <label className="block text-xs font-medium text-neutral-500 dark:text-muted-foreground mb-1">Reason (optional)</label>
@@ -99,7 +103,7 @@ function RestDayModal({
               className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" />
           </div>
         </div>
-        <Button fullWidth onClick={() => date && onSubmit(date, reason)} disabled={!date}>Submit request</Button>
+        <Button fullWidth onClick={() => date >= nextMonday && onSubmit(date, reason)} disabled={!date || date < nextMonday}>Submit request</Button>
       </div>
     </div>
   );
