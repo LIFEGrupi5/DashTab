@@ -14,11 +14,13 @@ concurrency:
 # triggers cd.yml (tags: ['v*']) to build & push semver-tagged images. So the
 # whole chain is: Conventional Commits → changelog + version tag → semver images.
 #
-# Runs on BOTH main and development: `target-branch` is set to the triggering
-# branch, so each branch keeps its own release PR / changelog / tags independently.
+# Runs on `development` only — the active integration branch where releases are
+# actually cut (main is dormant: ~8 weeks/100s of commits behind). Running on both
+# branches would let each independently compute the same vX.Y.Z from the same
+# commits and collide on the repo-global tag.
 on:
   push:
-    branches: [main, development]
+    branches: [development]
   workflow_dispatch:
 
 permissions:
@@ -29,6 +31,7 @@ jobs:
   release-please:
     name: Release Please
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: googleapis/release-please-action@v4
         with:
