@@ -16,7 +16,7 @@ const TEAM = [
   {
     name: 'Enes Drejta',
     role: 'DevOps & Fullstack Lead',
-    bio: 'Built the Kubernetes infrastructure, CI/CD pipelines, observability stack, and AIOps triage.',
+    bio: 'Built the Kubernetes infrastructure, CI/CD pipelines, and the full observability stack.',
     initials: 'ED',
   },
   {
@@ -85,15 +85,6 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* Stack */}
-      <div className="mt-20 p-8 rounded-2xl bg-neutral-950 text-center">
-        <p className="text-xs font-semibold text-neutral-500 uppercase tracking-widest mb-4">Built with</p>
-        <div className="flex flex-wrap justify-center gap-3 text-sm font-mono">
-          {['Next.js 15', 'React 19', 'TypeScript', '.NET 10', 'PostgreSQL', 'Redis', 'RabbitMQ', 'SignalR', 'Keycloak', 'Kubernetes', 'Helm', 'Prometheus', 'Grafana'].map(t => (
-            <span key={t} className="px-3 py-1 rounded-full border border-neutral-700 bg-neutral-900 text-neutral-300">{t}</span>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

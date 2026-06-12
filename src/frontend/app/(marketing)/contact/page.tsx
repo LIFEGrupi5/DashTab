@@ -1,12 +1,35 @@
-import type { Metadata } from 'next';
+'use client';
+
+import { useState } from 'react';
 import { Mail, MessageSquare } from 'lucide-react';
 
-export const metadata: Metadata = {
-  title: 'Contact — DashTab',
-  description: 'Get in touch with the DashTab team or request a live demo.',
-};
-
 export default function ContactPage() {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!name.trim()) e.name = 'Name is required.';
+    if (!email.trim()) e.email = 'Email is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Enter a valid email.';
+    if (!message.trim()) e.message = 'Message is required.';
+    return e;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+    setErrors({});
+    const body = encodeURIComponent(`Name: ${name}\n\n${message}`);
+    const sub  = encodeURIComponent(subject || 'Contact from DashTab site');
+    window.location.href = `mailto:hello@dashtab.dev?subject=${sub}&body=${body}`;
+  };
+
+
   return (
     <div className="max-w-2xl mx-auto px-6 py-20">
       <div className="text-center mb-12">
@@ -45,28 +68,31 @@ export default function ContactPage() {
       {/* Contact form */}
       <div className="p-8 rounded-2xl border border-neutral-200 dark:border-border bg-white dark:bg-card">
         <h2 className="font-bold text-lg text-neutral-900 dark:text-foreground mb-6">Send us a message</h2>
-        <form action="mailto:hello@dashtab.dev" method="get" className="space-y-4">
+        <form onSubmit={handleSubmit} noValidate className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Name</label>
-              <input name="name" type="text" placeholder="Ardit Kelmendi" required
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ardit Kelmendi"
                 className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm text-neutral-900 dark:text-foreground placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition" />
+              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Email</label>
-              <input name="email" type="email" placeholder="you@restaurant.com" required
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@restaurant.com"
                 className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm text-neutral-900 dark:text-foreground placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition" />
+              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Subject</label>
-            <input name="subject" type="text" placeholder="Demo request / Question / Other"
+            <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Demo request / Question / Other"
               className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm text-neutral-900 dark:text-foreground placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition" />
           </div>
           <div>
             <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Message</label>
-            <textarea name="body" rows={5} placeholder="Tell us about your restaurant and what you're looking for…"
+            <textarea rows={5} value={message} onChange={e => setMessage(e.target.value)} placeholder="Tell us about your restaurant and what you're looking for…"
               className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm text-neutral-900 dark:text-foreground placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition resize-none" />
+            {errors.message && <p className="text-xs text-red-500 mt-1">{errors.message}</p>}
           </div>
           <button type="submit"
             className="w-full px-4 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm transition shadow shadow-orange-500/20">

@@ -13,53 +13,41 @@ type Tile = {
   dark: string;
   pos: { x: number; y: number };
   hintPos: 'top' | 'bottom';
-  kpis: [string, string][];
 };
 
 const TILES: Tile[] = [
-  {
-    id: 'management', name: 'Management', href: '/kitchen',
-    color: '#269271', dark: '#1a6a52',
-    pos: { x: 15, y: 15 }, hintPos: 'top',
-    kpis: [['Open tables', '12/24'], ['Reservations', '31'], ['Wait list', '4'], ['Avg turn', '42m']],
-  },
-  {
-    id: 'analytics', name: 'Analytics', href: '/overview',
-    color: '#c74a2d', dark: '#8a2f1c',
-    pos: { x: 85, y: 15 }, hintPos: 'top',
-    kpis: [['Revenue today', '$4,812'], ['vs avg', '+12%'], ['Top item', 'Margherita'], ['Peak hr', '7–8 PM']],
-  },
-  {
-    id: 'pos', name: 'POS', href: '/orders',
-    color: '#e8a23a', dark: '#b77a20',
-    pos: { x: 50, y: 50 }, hintPos: 'bottom',
-    kpis: [['Open tickets', '9'], ['Avg ticket', '$42'], ['Kitchen queue', '6'], ['Void rate', '0.8%']],
-  },
-  {
-    id: 'menu', name: 'Menu', href: '/menu',
-    color: '#2f78c4', dark: '#1f4f85',
-    pos: { x: 15, y: 85 }, hintPos: 'bottom',
-    kpis: [['Active items', '84'], ["86'd", '3'], ['Categories', '11'], ['Low margin', '7']],
-  },
-  {
-    id: 'staff', name: 'Staff', href: '/staff',
-    color: '#c14b7b', dark: '#8a2f55',
-    pos: { x: 85, y: 85 }, hintPos: 'bottom',
-    kpis: [['Clocked in', '14'], ['Break', '2'], ['Tips pool', '$612'], ['Shift ends', '11 PM']],
-  },
+  { id: 'management', name: 'Management', href: '/kitchen', color: '#269271', dark: '#1a6a52', pos: { x: 15, y: 15 }, hintPos: 'top' },
+  { id: 'analytics',  name: 'Analytics',  href: '/overview', color: '#c74a2d', dark: '#8a2f1c', pos: { x: 85, y: 15 }, hintPos: 'top' },
+  { id: 'pos',        name: 'POS',        href: '/orders',   color: '#e8a23a', dark: '#b77a20', pos: { x: 50, y: 50 }, hintPos: 'bottom' },
+  { id: 'menu',       name: 'Menu',       href: '/menu',     color: '#2f78c4', dark: '#1f4f85', pos: { x: 15, y: 85 }, hintPos: 'bottom' },
+  { id: 'staff',      name: 'Staff',      href: '/staff',    color: '#c14b7b', dark: '#8a2f55', pos: { x: 85, y: 85 }, hintPos: 'bottom' },
 ];
 
 const BOB_DELAYS: Record<TileId, string> = {
   pos: '0s', management: '0.2s', analytics: '0.4s', menu: '0.6s', staff: '0.8s',
 };
 
-const STATS = [
-  { k: 'Revenue', v: '$4,812', d: '+12%',   up: true,  color: '#269271' },
-  { k: 'Covers',  v: '214',    d: '+8%',    up: true,  color: '#2f78c4' },
-  { k: 'Kitchen', v: '6 queue',d: 'avg 11m',up: false, color: '#e8a23a' },
-  { k: 'Staff',   v: '14 on',  d: '2 break',up: false, color: '#c14b7b' },
-  { k: 'Tables',  v: '12/24',  d: 'wait 4', up: false, color: '#c74a2d' },
-];
+export type LauncherStats = {
+  revenue: string;
+  orders: string;
+  topItem: string;
+  peakHour: string;
+  staffOnline: string;
+  openOrders: string;
+};
+
+function Spark({ color }: { color: string }) {
+  const pts = Array.from({ length: 12 }, (_, i) => Math.round(8 + Math.sin(i * 0.9) * 4 + (i % 3) * 2));
+  const max = Math.max(...pts), min = Math.min(...pts);
+  const path = pts.map((v, i) =>
+    `${(i / (pts.length - 1)) * 40},${22 - ((v - min) / (max - min || 1)) * 18 - 2}`
+  ).join(' ');
+  return (
+    <svg className="iso-spark" viewBox="0 0 40 22">
+      <polyline points={path} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
 
 // Inverse isometric projection.
 // Forward:  screen_x = 0.707*(px-py),  screen_y = 0.406*(px+py)   (all % relative to center)
@@ -112,22 +100,14 @@ function TileIcon({ id }: { id: TileId }) {
   );
 }
 
-function Spark({ color }: { color: string }) {
-  const pts = Array.from({ length: 12 }, (_, i) => Math.round(8 + Math.sin(i * 0.9) * 4 + (i % 3) * 2));
-  const max = Math.max(...pts), min = Math.min(...pts);
-  const path = pts.map((v, i) =>
-    `${(i / (pts.length - 1)) * 40},${22 - ((v - min) / (max - min || 1)) * 18 - 2}`
-  ).join(' ');
-  return (
-    <svg className="iso-spark" viewBox="0 0 40 22">
-      <polyline points={path} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-}
 
 type Preview = { tile: Tile; x: number; y: number } | null;
 
-export default function IsometricLauncher() {
+const DEFAULT_STATS: LauncherStats = {
+  revenue: '—', orders: '—', topItem: '—', peakHour: '—', staffOnline: '—', openOrders: '—',
+};
+
+export default function IsometricLauncher({ stats = DEFAULT_STATS }: { stats?: LauncherStats }) {
   const router = useRouter();
   const wrapRef  = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -154,16 +134,21 @@ export default function IsometricLauncher() {
   return (
     <div className="iso-wrapper" ref={wrapRef}>
 
-      {/* Status strip */}
+      {/* Status strip — real data passed from dashboard */}
       <div className="iso-stat-strip">
-        {STATS.map(s => (
+        {([
+          { k: 'Revenue',  v: stats.revenue,     color: '#269271' },
+          { k: 'Orders',   v: stats.orders,      color: '#2f78c4' },
+          { k: 'Open',     v: stats.openOrders,  color: '#e8a23a' },
+          { k: 'Staff',    v: stats.staffOnline, color: '#c14b7b' },
+          { k: 'Top item', v: stats.topItem,     color: '#c74a2d' },
+        ] as const).map(s => (
           <div className="iso-stat" key={s.k}>
             <div>
               <div className="iso-stat-k">{s.k}</div>
-              <div className="iso-stat-v">{s.v}</div>
+              <div className="iso-stat-v" style={{ color: s.color }}>{s.v}</div>
             </div>
-            <Spark color={s.color}/>
-            <div className={`iso-stat-d${s.up ? ' up' : ''}`}>{s.d}</div>
+            <Spark color={s.color} />
           </div>
         ))}
       </div>
@@ -246,7 +231,6 @@ export default function IsometricLauncher() {
             <div className="iso-mobile-icon"><TileIcon id={tile.id}/></div>
             <div>
               <div className="iso-mobile-name">{tile.name}</div>
-              <div className="iso-mobile-meta">{tile.kpis[0][1]}</div>
             </div>
           </button>
         ))}
@@ -268,12 +252,6 @@ export default function IsometricLauncher() {
           <div className="iso-preview-title">
             <span className="iso-preview-swatch"/>
             <b>{preview.tile.name}</b>
-          </div>
-          <p className="iso-preview-sub">Live snapshot</p>
-          <div className="iso-preview-kpis">
-            {preview.tile.kpis.map(([k, v]) => (
-              <div key={k}>{k}<br/><b>{v}</b></div>
-            ))}
           </div>
           <div className="iso-preview-go">
             <span>ENTER {preview.tile.name.toUpperCase()}</span>

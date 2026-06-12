@@ -2,13 +2,28 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { createStaffMember, fetchStaff } from '@/lib/api/staff';
+import { createStaffMember, fetchStaff, setStaffActive } from '@/lib/api/staff';
 import type { StaffFormData } from '@/lib/schemas';
 import { queryKeys } from '@/lib/queryKeys';
 import { analytics } from '@/lib/analytics';
 
 export function useUsers(enabled = true) {
   return useQuery({ queryKey: queryKeys.users.all, queryFn: fetchStaff, enabled });
+}
+
+export function useSetStaffActive() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      setStaffActive(id, active),
+    onSuccess: (user) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users.all });
+      toast.success(`${user.name} ${user.active ? 'activated' : 'deactivated'}`);
+    },
+    onError: () => {
+      toast.error('Failed to update staff status. Please try again.');
+    },
+  });
 }
 
 export function useCreateStaff() {

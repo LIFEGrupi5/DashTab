@@ -7,7 +7,7 @@ import MultiStepForm from '@/components/MultiStepForm';
 import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import EmptyState from '@/components/EmptyState';
-import { useCreateStaff, useUsers } from '@/hooks/useUsers';
+import { useCreateStaff, useSetStaffActive, useUsers } from '@/hooks/useUsers';
 
 const ROLE_COLORS: Record<string, string> = {
   owner: 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-200',
@@ -19,6 +19,7 @@ const ROLE_COLORS: Record<string, string> = {
 export default function StaffPage() {
   const { data: users = [], isLoading } = useUsers();
   const createStaff = useCreateStaff();
+  const setActive = useSetStaffActive();
   const [open, setOpen] = useState(false);
 
   return (
@@ -58,7 +59,13 @@ export default function StaffPage() {
             </div>
             <div className="flex w-full sm:w-auto flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
               <StatusBadge label={user.role} toneClassName={ROLE_COLORS[user.role]} />
-              <Button variant={user.active ? 'secondary' : 'success'} size="sm" className="w-full sm:w-auto">
+              <Button
+                variant={user.active ? 'secondary' : 'success'}
+                size="sm"
+                className="w-full sm:w-auto"
+                onClick={() => setActive.mutate({ id: user.id, active: !user.active })}
+                disabled={setActive.isPending}
+              >
                 {user.active ? 'Deactivate' : 'Activate'}
               </Button>
             </div>
