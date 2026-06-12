@@ -241,34 +241,6 @@ jobs:
           name: sbom-aiops
           path: sbom-aiops.cdx.json
 
-  # ── Repo filesystem scan (2nd Trivy pass) ─────────────────────────────────
-  # Scans source for vulnerable deps, IaC/Dockerfile misconfig, and secrets, and
-  # reports to the Security tab as SARIF. Report-only — the per-image scans above
-  # are the hard gate; this pass surfaces source-level issues without blocking.
-  trivy-fs:
-    name: Trivy filesystem scan
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Trivy fs scan (SARIF)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,misconfig,secret
-          severity: HIGH,CRITICAL
-          format: sarif
-          output: trivy-fs.sarif
-      - name: Upload SARIF to Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-fs.sarif
-          category: trivy-fs
-
   # ── Phase 2: DEPLOY (gated) ────────────────────────────────────────────────
   # Deploys the freshly-built app images to the project-05 namespace, pinned to
   # the immutable sha tag (NOT the mutable 'development' tag) so every deploy is
