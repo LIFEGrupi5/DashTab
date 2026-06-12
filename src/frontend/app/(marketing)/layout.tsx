@@ -123,7 +123,7 @@ function Footer() {
         </div>
       </div>
       <div className="border-t border-neutral-100 dark:border-border px-6 py-4 text-center text-xs text-neutral-400 dark:text-muted-foreground max-w-6xl mx-auto">
-        © {new Date().getFullYear()} DashTab · Built with Next.js 15 · .NET 10 · Kubernetes
+        © {new Date().getFullYear()} DashTab · The operating system for modern restaurants
       </div>
     </footer>
   );

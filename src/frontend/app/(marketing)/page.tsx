@@ -59,7 +59,7 @@ const FEATURES = [
   {
     icon: Zap,
     title: 'Instant Orders',
-    desc: 'Waiters create orders in seconds. The kitchen sees them the moment they\'re placed, via SignalR WebSockets.',
+    desc: 'Waiters create orders in seconds. The kitchen sees them the moment they\'re placed — no refresh, no delay.',
   },
   {
     icon: Users,
@@ -73,8 +73,8 @@ const FEATURES = [
   },
   {
     icon: ShieldCheck,
-    title: 'Secure & Multi-tenant',
-    desc: 'Every restaurant\'s data is fully isolated. Keycloak-backed auth, httpOnly cookies, Trivy-scanned images.',
+    title: 'Secure & Private',
+    desc: 'Your restaurant\'s data stays private and protected, with a secure, separate login for every member of your team.',
   },
   {
     icon: ChefHat,
@@ -229,14 +229,6 @@ const FAQS = [
   {
     q: 'Can staff use their own phones?',
     a: 'Yes. The app is fully responsive. Waiters can take orders from their phone; the kitchen board works great on a wall tablet.',
-  },
-  {
-    q: 'Is each restaurant\'s data isolated?',
-    a: 'Completely. DashTab is multi-tenant — every restaurant has its own isolated data space. Staff from one restaurant cannot see data from another.',
-  },
-  {
-    q: 'How does real-time work?',
-    a: 'Orders push instantly to the kitchen via SignalR WebSockets — no polling, no page refresh. Status changes flow the other way just as fast.',
   },
   {
     q: 'Can I change my plan later?',

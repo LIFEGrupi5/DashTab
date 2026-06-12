@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const ALL_FEATURES = [
   { label: 'Orders & kitchen display', tiers: ['basic', 'pro', 'enterprise'] },
   { label: 'Menu management', tiers: ['basic', 'pro', 'enterprise'] },
-  { label: 'Real-time SignalR updates', tiers: ['basic', 'pro', 'enterprise'] },
+  { label: 'Real-time order updates', tiers: ['basic', 'pro', 'enterprise'] },
   { label: 'Role-based access (Owner/Manager/Waiter/Kitchen)', tiers: ['basic', 'pro', 'enterprise'] },
   { label: 'Staff management', tiers: ['basic', 'pro', 'enterprise'] },
   { label: 'Analytics & reports', tiers: ['pro', 'enterprise'] },

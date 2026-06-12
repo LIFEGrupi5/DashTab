@@ -3,33 +3,12 @@ import { ChefHat, Zap, ShieldCheck, Users } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'About — DashTab',
-  description: 'The team and story behind DashTab — built to make restaurants run smarter.',
+  description: 'The story behind DashTab — built to make restaurants run smarter.',
 };
 
-const TEAM = [
-  {
-    name: 'Olti Ramadani',
-    role: 'Backend Lead',
-    bio: 'Designed the Clean Architecture backend — API, auth, real-time messaging, and data layer.',
-    initials: 'OR',
-  },
-  {
-    name: 'Enes Drejta',
-    role: 'DevOps & Fullstack Lead',
-    bio: 'Built the Kubernetes infrastructure, CI/CD pipelines, and the full observability stack.',
-    initials: 'ED',
-  },
-  {
-    name: 'Jeta Fazliu',
-    role: 'Product & Frontend Lead',
-    bio: 'Defined the product vision and built the frontend — from UX design to accessible components.',
-    initials: 'JF',
-  },
-];
-
 const VALUES = [
-  { icon: Zap, title: 'Speed first', desc: 'Restaurants move fast. DashTab is built for sub-second response — real-time SignalR, Redis cache, optimised queries.' },
-  { icon: ShieldCheck, title: 'Security by design', desc: 'httpOnly cookie auth, Keycloak JWT, Trivy-scanned images, full tenant isolation. Security is not an afterthought.' },
+  { icon: Zap, title: 'Speed first', desc: 'Restaurants move fast. DashTab is built to keep up — every action is instant, even on your busiest nights.' },
+  { icon: ShieldCheck, title: 'Security by design', desc: 'Your data stays private and protected, with a secure login for every team member. Security is never an afterthought.' },
   { icon: Users, title: 'Built for teams', desc: 'Four distinct roles, each seeing exactly what they need. No shared login, no confusion, no accidental data access.' },
   { icon: ChefHat, title: 'Restaurant-first', desc: 'Every feature was designed around a real restaurant flow — from first order to end-of-day analytics.' },
 ];
@@ -63,23 +42,6 @@ export default function AboutPage() {
                 <p className="font-bold text-neutral-900 dark:text-foreground mb-1">{title}</p>
                 <p className="text-sm text-neutral-500 dark:text-muted-foreground leading-relaxed">{desc}</p>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Team */}
-      <div>
-        <h2 className="text-2xl font-extrabold text-neutral-900 dark:text-foreground text-center mb-10">The team</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {TEAM.map(m => (
-            <div key={m.name} className="p-6 rounded-2xl border border-neutral-100 dark:border-border bg-neutral-50 dark:bg-card text-center">
-              <div className="w-14 h-14 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-lg mx-auto mb-4">
-                {m.initials}
-              </div>
-              <p className="font-bold text-neutral-900 dark:text-foreground">{m.name}</p>
-              <p className="text-xs text-orange-500 font-semibold mb-2">{m.role}</p>
-              <p className="text-sm text-neutral-500 dark:text-muted-foreground leading-relaxed">{m.bio}</p>
             </div>
           ))}
         </div>
