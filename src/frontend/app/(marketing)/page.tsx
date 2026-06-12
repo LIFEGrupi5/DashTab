@@ -43,12 +43,6 @@ function Hero() {
           </Link>
         </div>
 
-        {/* Tech credibility strip */}
-        <div className="mt-10 sm:mt-16 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-xs text-neutral-500 font-mono">
-          {['Next.js 15', '.NET 10', 'Kubernetes', 'Real-time SignalR', 'Multi-tenant', 'Stripe payments'].map(t => (
-            <span key={t} className="px-2.5 sm:px-3 py-1 rounded-full border border-neutral-800 bg-neutral-900/60">{t}</span>
-          ))}
-        </div>
       </div>
     </section>
   );

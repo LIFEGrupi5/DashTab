@@ -29,7 +29,7 @@ export function useCreateShift(weekStart: string) {
 export function useUpdateShift(weekStart: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; startTime: string; endTime: string }) =>
+    mutationFn: ({ id, ...body }: { id: string; startTime: string; endTime: string; isDayOff?: boolean }) =>
       updateShift(id, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.schedule.shifts(weekStart) }),
   });

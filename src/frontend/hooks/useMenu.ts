@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { createCategory, createMenuItem, fetchCategories, fetchMenuItems } from '@/lib/api/menu';
+import { createCategory, createMenuItem, deleteMenuItem, fetchCategories, fetchMenuItems, updateMenuItem } from '@/lib/api/menu';
 import type { MenuCategory, MenuItem } from '@/lib/api/types';
 import { queryKeys } from '@/lib/queryKeys';
 import { analytics } from '@/lib/analytics';
@@ -34,6 +34,43 @@ export function useCreateMenuItem() {
     },
     onError: () => {
       toast.error('Failed to add item. Please try again.');
+    },
+  });
+}
+
+type UpdateMenuItem = {
+  id: string;
+  name: string;
+  categoryId: string;
+  price: number;
+  description: string;
+  available: boolean;
+};
+
+export function useUpdateMenuItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...req }: UpdateMenuItem) => updateMenuItem(id, req),
+    onSuccess: (item: MenuItem) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.menu.all });
+      toast.success(`${item.name} updated`);
+    },
+    onError: () => {
+      toast.error('Failed to update item. Please try again.');
+    },
+  });
+}
+
+export function useDeleteMenuItem() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteMenuItem(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.menu.all });
+      toast.success('Item removed from menu');
+    },
+    onError: () => {
+      toast.error('Failed to delete item. Please try again.');
     },
   });
 }

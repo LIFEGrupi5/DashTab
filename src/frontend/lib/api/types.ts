@@ -60,6 +60,7 @@ export type WorkShift = {
   startTime: string;     // "HH:MM:SS"
   endTime: string;
   isPublished: boolean;
+  isDayOff: boolean;
 };
 
 export type ShiftRequestType   = 'restDay' | 'shiftSwap';

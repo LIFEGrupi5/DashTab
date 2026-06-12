@@ -20,6 +20,8 @@ public class WorkShift
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
 
+    public bool IsDayOff { get; set; } = false;
+
     // Workers can only see their schedule once the manager publishes the week.
     public bool IsPublished { get; set; } = false;
 

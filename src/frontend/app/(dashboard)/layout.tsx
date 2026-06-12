@@ -45,7 +45,10 @@ const waiterNavItems = [
   { href: '/schedule',   label: 'My Schedule',  icon: CalendarDays },
 ] as const;
 
-const kitchenNavItems = [{ href: '/kitchen', label: 'Kitchen', icon: Monitor }] as const;
+const kitchenNavItems = [
+  { href: '/kitchen',  label: 'Kitchen',     icon: Monitor },
+  { href: '/schedule', label: 'My Schedule', icon: CalendarDays },
+] as const;
 
 function initials(name: string) {
   return name
@@ -74,7 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isWaiter = user?.role === 'waiter';
   const isKitchenStaff = user?.role === 'kitchen';
-  const hideShellSidebar = isKitchenStaff;
+  const hideShellSidebar = false;
   const showSidebarProfile = Boolean(user && sidebarOpen && roleShowsSidebarProfile(user.role));
 
   const navItems = useMemo(() => {

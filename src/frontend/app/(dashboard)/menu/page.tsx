@@ -8,7 +8,7 @@ import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import TextField from '@/components/TextField';
 import EmptyState from '@/components/EmptyState';
-import { useCategories, useCreateCategory, useCreateMenuItem, useMenu } from '@/hooks/useMenu';
+import { useCategories, useCreateCategory, useCreateMenuItem, useDeleteMenuItem, useUpdateMenuItem, useMenu } from '@/hooks/useMenu';
 import { useAuth } from '@/hooks/useAuth';
 
 const EMPTY_FORM = { name: '', categoryId: '', price: '', description: '', available: true };
@@ -22,7 +22,11 @@ export default function MenuPage() {
   const { data: menuItems = [], isLoading } = useMenu();
   const { data: categoryOptions = [] } = useCategories();
   const createItem = useCreateMenuItem();
+  const updateItem = useUpdateMenuItem();
+  const deleteItem = useDeleteMenuItem();
   const createCategory = useCreateCategory();
+
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Filter chips are derived from the real categories the restaurant created
   // (no hard-coded list), with "All" prepended.
@@ -53,21 +57,50 @@ export default function MenuPage() {
 
   const handleCreate = () => {
     if (!canCreate) return;
-    createItem.mutate(
-      {
-        name: form.name.trim(),
-        categoryId: form.categoryId,
-        price: Number(form.price),
-        description: form.description.trim(),
-        available: form.available,
-      },
-      {
+    const payload = {
+      name: form.name.trim(),
+      categoryId: form.categoryId,
+      price: Number(form.price),
+      description: form.description.trim(),
+      available: form.available,
+    };
+    if (editingId) {
+      updateItem.mutate(
+        { id: editingId, ...payload },
+        {
+          onSuccess: () => {
+            setForm(EMPTY_FORM);
+            setEditingId(null);
+            setOpen(false);
+          },
+        },
+      );
+    } else {
+      createItem.mutate(payload, {
         onSuccess: () => {
           setForm(EMPTY_FORM);
           setOpen(false);
         },
-      },
-    );
+      });
+    }
+  };
+
+  const handleEdit = (item: (typeof filtered)[number]) => {
+    const cat = categoryOptions.find(c => c.name === item.category);
+    setForm({
+      name: item.name,
+      categoryId: cat?.id ?? '',
+      price: String(item.price),
+      description: item.description,
+      available: item.available,
+    });
+    setEditingId(item.id);
+    setOpen(true);
+  };
+
+  const handleDelete = (item: (typeof filtered)[number]) => {
+    if (!window.confirm(`Delete "${item.name}" from the menu?`)) return;
+    deleteItem.mutate(item.id);
   };
 
   const filtered = useMemo(
@@ -147,13 +180,15 @@ export default function MenuPage() {
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-neutral-100 dark:border-border">
               <span className="text-lg font-bold text-orange-600 dark:text-orange-400">€{item.price.toFixed(2)}</span>
               <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="text-neutral-400 hover:text-neutral-700 dark:hover:text-foreground">
+                <Button variant="ghost" size="icon" className="text-neutral-400 hover:text-neutral-700 dark:hover:text-foreground" onClick={() => handleEdit(item)}>
                   <Pencil className="w-4 h-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="text-neutral-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 dark:hover:text-red-300"
+                  onClick={() => handleDelete(item)}
+                  disabled={deleteItem.isPending}
                 >
                   <X className="w-4 h-4" />
                 </Button>
@@ -165,11 +200,13 @@ export default function MenuPage() {
 
       {open && (
         <Modal
-          title="Add Item"
-          onClose={() => setOpen(false)}
+          title={editingId ? 'Edit Item' : 'Add Item'}
+          onClose={() => { setOpen(false); setEditingId(null); setForm(EMPTY_FORM); }}
           footer={
-            <Button fullWidth onClick={handleCreate} disabled={!canCreate || createItem.isPending}>
-              {createItem.isPending ? 'Adding…' : 'Add to Menu'}
+            <Button fullWidth onClick={handleCreate} disabled={!canCreate || createItem.isPending || updateItem.isPending}>
+              {editingId
+                ? (updateItem.isPending ? 'Saving…' : 'Save Changes')
+                : (createItem.isPending ? 'Adding…' : 'Add to Menu')}
             </Button>
           }
         >

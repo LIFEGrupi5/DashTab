@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { CheckCircle2, ChefHat, Clock3 } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import Button from '@/components/Button';
-import IsometricLauncher from '@/components/IsometricLauncher';
+import IsometricLauncher, { type LauncherStats } from '@/components/IsometricLauncher';
 import OnboardingChecklist from '@/components/OnboardingChecklist';
 import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { useOrders } from '@/hooks/useOrders';
+import { useUsers } from '@/hooks/useUsers';
 
 const statusBadge: Record<
   string,
@@ -51,8 +52,8 @@ export default function DashboardPage() {
   const hydrated = useStoreHydrated();
   const user = useAppStore(s => s.user);
   const { data: orders = [] } = useOrders();
-
   const isWaiter = user?.role === 'waiter';
+  const { data: users = [] } = useUsers(!isWaiter);
 
   const waiterSummary = useMemo(() => {
     const newCount = orders.filter(o => o.status === 'new').length;
@@ -81,9 +82,40 @@ export default function DashboardPage() {
   }
 
   if (!isWaiter) {
+    const completed = orders.filter(o => o.status === 'completed');
+    const open = orders.filter(o => o.status !== 'completed' && o.status !== 'cancelled');
+    const totalRevenue = completed.reduce((s, o) => s + o.totalAmount, 0);
+    const topItem = (() => {
+      const map: Record<string, number> = {};
+      for (const o of orders)
+        for (const item of o.items)
+          map[item.menuItemName] = (map[item.menuItemName] ?? 0) + item.quantity;
+      const top = Object.entries(map).sort((a, b) => b[1] - a[1])[0];
+      return top ? top[0] : '—';
+    })();
+    const peakHour = (() => {
+      const buckets: Record<number, number> = {};
+      for (const o of orders) {
+        if (!o.placedAtIso) continue;
+        const h = new Date(o.placedAtIso).getHours();
+        buckets[h] = (buckets[h] ?? 0) + 1;
+      }
+      const peak = Object.entries(buckets).sort((a, b) => b[1] - a[1])[0];
+      return peak ? `${peak[0]}:00` : '—';
+    })();
+
+    const launcherStats: LauncherStats = {
+      revenue:     `€${totalRevenue.toFixed(0)}`,
+      orders:      String(completed.length),
+      openOrders:  String(open.length),
+      staffOnline: String(users.filter(u => u.active).length),
+      topItem,
+      peakHour,
+    };
+
     return (
       <div className="h-full flex flex-col overflow-hidden">
-        <IsometricLauncher />
+        <IsometricLauncher stats={launcherStats} />
         <OnboardingChecklist />
       </div>
     );

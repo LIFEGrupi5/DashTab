@@ -263,14 +263,16 @@ export default function WorkerSchedulePage() {
                 <p className="text-sm font-semibold text-neutral-900 dark:text-foreground">{day}</p>
                 <p className="text-xs text-neutral-400 dark:text-muted-foreground">{date}</p>
               </div>
-              {shift ? (
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-lg bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 text-sm font-semibold">
-                    {fmtTime(shift.startTime)} – {fmtTime(shift.endTime)}
-                  </span>
-                </div>
+              {shift?.isDayOff || (shift?.startTime === '00:00:00' && shift?.endTime === '00:00:00') ? (
+                <span className="px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-sm font-semibold">
+                  Day off
+                </span>
+              ) : shift ? (
+                <span className="px-3 py-1 rounded-lg bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 text-sm font-semibold">
+                  {fmtTime(shift.startTime)} – {fmtTime(shift.endTime)}
+                </span>
               ) : (
-                <span className="text-sm text-neutral-400 dark:text-muted-foreground italic">Day off</span>
+                <span className="text-sm text-neutral-400 dark:text-muted-foreground italic">Not scheduled</span>
               )}
             </div>
           );
@@ -278,8 +280,8 @@ export default function WorkerSchedulePage() {
       </div>
 
       {shifts.length === 0 && (
-        <p className="text-center text-sm text-neutral-400 dark:text-muted-foreground py-4">
-          No published schedule for this week yet. Check back later.
+        <p className="text-center text-sm text-neutral-400 dark:text-muted-foreground py-2">
+          Your schedule for this week hasn&apos;t been published yet. Check back later.
         </p>
       )}
 
