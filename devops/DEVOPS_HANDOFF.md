@@ -48,7 +48,7 @@
 | DO-6 | ELK logging | 🟡 Local done | Compose profile built; in-cluster optional |
 | DO-7 | Uptime Kuma | ❌ Missing | smallest item, fast win |
 | DO-8 | Terraform (live cloud) | ⚪ **Likely waived** | prof provisioned cluster; confirm (see §6) |
-| DO-9 | Security hardening | ✅ Done | Kibana/ES behind X-Pack auth (see §ELK security); **CodeQL + secret scanning (TruffleHog + native) + Dependabot + Trivy** all wired (see `docs/security-audit.md`). Remaining non-root/distroless backend image tracked under DO-2 |
+| DO-9 | Security hardening | ✅ Done | Kibana/ES behind X-Pack auth (see §ELK security); **CodeQL + secret scanning (TruffleHog + gitleaks + native) + Dependabot + Trivy (image gate + repo `fs` scan→SARIF + CycloneDX SBOM) + scheduled OWASP ZAP baseline DAST + atomic Helm CD** all wired (see `docs/security-audit.md`). Remaining non-root/distroless backend image tracked under DO-2 |
 | DO-10 | Nginx + SSL | 🟡 Partial | nginx exists, no SSL/Let's Encrypt |
 | DO-11 | Linux server from scratch | ⬜ Host task | done on a VM, not in repo |
 | DO-12 | AIOps pipeline | ❌ Missing | builds on DO-5 alerts |
