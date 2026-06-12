@@ -15,14 +15,14 @@ export const PLANS: readonly Plan[] = [
   {
     key: 'basic',
     name: 'Basic',
-    price: '€29',
+    price: '€29.99',
     staff: 'Up to 10 staff members',
     features: ['Orders & kitchen display', 'Menu management', 'Up to 10 staff', 'Email support'],
   },
   {
     key: 'pro',
     name: 'Pro',
-    price: '€79',
+    price: '€59.99',
     staff: 'Up to 25 staff members',
     features: ['Everything in Basic', 'Up to 25 staff', 'Analytics & reports', 'Priority support'],
     highlight: true,
@@ -30,7 +30,7 @@ export const PLANS: readonly Plan[] = [
   {
     key: 'enterprise',
     name: 'Enterprise',
-    price: '€199',
+    price: '€99.99',
     staff: 'Up to 100 staff members',
     features: ['Everything in Pro', 'Up to 100 staff', 'Dedicated support', 'Custom onboarding'],
   },

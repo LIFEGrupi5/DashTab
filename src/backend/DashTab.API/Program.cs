@@ -67,9 +67,26 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<DashTabDbContext>("database", tags: ["ready"]);
 
 // ── Distributed cache (Redis with in-memory fallback) ─────────────────────────
+// Redis is wired to FAIL FAST. CacheService swallows cache errors and falls back,
+// but only AFTER the call returns — and the StackExchange.Redis defaults are a 5s
+// connect + 5s sync timeout. So an unreachable/misconfigured Redis (e.g. a missing
+// password → NOAUTH) would add ~11s to EVERY request before the fallback kicks in,
+// on both the cache and the SignalR backplane. Bounding the timeouts + not aborting
+// on connect failure keeps the app responsive (degrades to the fallback in ~1s) and
+// lets it self-heal once Redis becomes reachable again.
 var redisConn = builder.Configuration.GetConnectionString("Redis");
+StackExchange.Redis.ConfigurationOptions? redisOptions = null;
 if (!string.IsNullOrWhiteSpace(redisConn))
-    builder.Services.AddStackExchangeRedisCache(o => o.Configuration = redisConn);
+{
+    redisOptions = StackExchange.Redis.ConfigurationOptions.Parse(redisConn);
+    redisOptions.AbortOnConnectFail = false;
+    redisOptions.ConnectRetry = 1;
+    redisOptions.ConnectTimeout = Math.Min(redisOptions.ConnectTimeout, 1000);
+    redisOptions.SyncTimeout = Math.Min(redisOptions.SyncTimeout, 1000);
+}
+
+if (redisOptions is not null)
+    builder.Services.AddStackExchangeRedisCache(o => o.ConfigurationOptions = redisOptions);
 else
     builder.Services.AddDistributedMemoryCache();
 
@@ -288,9 +305,14 @@ builder.Services.AddSingleton<OrderMapper>();
 
 // ── Realtime (SignalR + optional Redis backplane) ────────────────────────────
 var signalR = builder.Services.AddSignalR();
-if (!string.IsNullOrWhiteSpace(redisConn))
-    signalR.AddStackExchangeRedis(redisConn, o =>
-        o.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("dashtab:signalr"));
+if (redisOptions is not null)
+    signalR.AddStackExchangeRedis(o =>
+    {
+        // Same fail-fast options as the cache (cloned so the channel prefix
+        // doesn't mutate the cache's shared instance).
+        o.Configuration = redisOptions.Clone();
+        o.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("dashtab:signalr");
+    });
 builder.Services.AddSingleton<IKdsBroadcaster, KdsBroadcaster>();
 
 // ── MCP server (read-only tools for AI agents) ───────────────────────────────

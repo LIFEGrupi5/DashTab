@@ -26,6 +26,11 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# Patch base-image OS packages before shipping: node:20-alpine lags Alpine's
+# security releases, so it carries fixed-but-unpatched CVEs (e.g. CVE-2026-45447,
+# OpenSSL heap UAF in libcrypto3/libssl3) that fail the Trivy gate (DO-9).
+# --no-cache refreshes the apk index so this pulls the latest patched packages.
+RUN apk upgrade --no-cache
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
