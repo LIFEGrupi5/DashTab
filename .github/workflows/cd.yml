@@ -341,14 +341,14 @@ jobs:
             --set "secrets.ConnectionStrings__RabbitMQ=$BACKEND_CONN_RABBITMQ" \
             --set "secrets.Storage__AccessKey=$BACKEND_STORAGE_ACCESSKEY" \
             --set "secrets.Storage__SecretKey=$BACKEND_STORAGE_SECRETKEY" \
-            --wait --timeout 5m
+            --atomic --timeout 5m
 
       - name: Deploy frontend
         run: |
           helm upgrade --install dashtab-frontend devops/helm/frontend \
             -n project-05 -f devops/helm/frontend/values-project05.yaml \
             --set image.tag="$IMAGE_TAG" \
-            --wait --timeout 5m
+            --atomic --timeout 5m
 
       # Belt-and-suspenders: helm --wait already blocks on readiness, but an
       # explicit rollout status fails the run loudly if a new pod crashloops
@@ -362,7 +362,7 @@ jobs:
             --set image.tag="$IMAGE_TAG" \
             --set secret.GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
             --set secret.SLACK_WEBHOOK_URL="${{ secrets.SLACK_WEBHOOK_URL }}" \
-            --wait --timeout 5m
+            --atomic --timeout 5m
 
       # ── Observability config (DO-5) ────────────────────────────────────────
       # These ship upstream images (no per-commit build); CD just keeps their
@@ -376,7 +376,7 @@ jobs:
         if: steps.changes.outputs.prometheus == 'true'
         run: |
           helm upgrade --install dashtab-prometheus devops/helm/prometheus \
-            -n project-05 --reuse-values --wait --timeout 5m
+            -n project-05 --reuse-values --atomic --timeout 5m
           kubectl -n project-05 rollout restart deploy/dashtab-prometheus deploy/dashtab-alertmanager
           kubectl -n project-05 rollout status  deploy/dashtab-prometheus   --timeout=120s
           kubectl -n project-05 rollout status  deploy/dashtab-alertmanager --timeout=120s
@@ -385,7 +385,7 @@ jobs:
         if: steps.changes.outputs.grafana == 'true'
         run: |
           helm upgrade --install dashtab-grafana devops/helm/grafana \
-            -n project-05 --reuse-values --wait --timeout 5m
+            -n project-05 --reuse-values --atomic --timeout 5m
           kubectl -n project-05 rollout restart deploy/dashtab-grafana
           kubectl -n project-05 rollout status  deploy/dashtab-grafana --timeout=120s
 
