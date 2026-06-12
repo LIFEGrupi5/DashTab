@@ -263,8 +263,8 @@ export default function WorkerSchedulePage() {
                 <p className="text-sm font-semibold text-neutral-900 dark:text-foreground">{day}</p>
                 <p className="text-xs text-neutral-400 dark:text-muted-foreground">{date}</p>
               </div>
-              {shift?.isDayOff ? (
-                <span className="px-3 py-1 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-500 dark:text-red-300 border border-red-200 dark:border-red-800 text-sm font-semibold">
+              {shift?.isDayOff || (shift?.startTime === '00:00:00' && shift?.endTime === '00:00:00') ? (
+                <span className="px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-sm font-semibold">
                   Day off
                 </span>
               ) : shift ? (
