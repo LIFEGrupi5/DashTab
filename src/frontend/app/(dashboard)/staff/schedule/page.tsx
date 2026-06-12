@@ -285,7 +285,7 @@ export default function ManagerSchedulePage() {
                         onClick={() => openModal(user.id, user.name, d.key)}
                         className={`w-full min-w-[64px] px-2 py-1.5 rounded-lg text-xs font-medium transition ${
                           isDayOff
-                            ? 'bg-red-50 dark:bg-red-950/30 text-red-500 dark:text-red-300 border border-red-200 dark:border-red-800'
+                            ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
                             : shift
                               ? shift.isPublished
                                 ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
@@ -293,7 +293,7 @@ export default function ManagerSchedulePage() {
                               : 'bg-neutral-50 dark:bg-muted/20 text-neutral-400 dark:text-muted-foreground border border-dashed border-neutral-200 dark:border-border hover:border-orange-300 hover:text-orange-500'
                         }`}
                       >
-                        {isDayOff ? 'Day off' : shift ? `${fmtTime(shift.startTime)}–${fmtTime(shift.endTime)}` : 'Not set'}
+                        {isDayOff ? 'Day off' : shift ? `${fmtTime(shift.startTime)} – ${fmtTime(shift.endTime)}` : 'Not set'}
                       </button>
                     </td>
                   );
@@ -313,7 +313,7 @@ export default function ManagerSchedulePage() {
           <span className="w-3 h-3 rounded border border-green-300 bg-green-50 inline-block" /> Published
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded border border-red-200 bg-red-50 inline-block" /> Day off
+          <span className="w-3 h-3 rounded border border-blue-200 bg-blue-50 inline-block" /> Day off
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded border border-dashed border-neutral-300 bg-neutral-50 inline-block" /> Not set
