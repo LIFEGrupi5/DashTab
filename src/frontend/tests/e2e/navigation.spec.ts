@@ -22,9 +22,16 @@ test.describe('Dashboard navigation', () => {
     await expect(page).toHaveURL('/menu');
   });
 
-  test('dark mode toggle applies dark class to html', async ({ page }) => {
+  test('dark mode toggle switches the dark class on html', async ({ page }) => {
+    const html = page.locator('html');
+    // Dark mode is the default, so the app starts dark.
+    await expect(html).toHaveClass(/dark/);
+    // Toggling to light removes the class…
+    await page.getByRole('button', { name: 'Light mode' }).click();
+    await expect(html).not.toHaveClass(/dark/);
+    // …and toggling back re-applies it.
     await page.getByRole('button', { name: 'Dark mode' }).click();
-    await expect(page.locator('html')).toHaveClass(/dark/);
+    await expect(html).toHaveClass(/dark/);
   });
 
 
