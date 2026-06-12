@@ -3,6 +3,10 @@
 import { useState } from 'react';
 import { Mail, MessageSquare } from 'lucide-react';
 
+const GRAD_TEXT = 'bg-gradient-to-b from-white to-stone-500 bg-clip-text text-transparent';
+const INPUT = 'w-full px-3 py-2.5 rounded-lg border border-white/10 bg-stone-900/60 text-sm text-white placeholder:text-stone-600 focus:outline-none focus:ring-2 focus:ring-white/30 transition';
+const LABEL = 'block text-sm font-medium text-stone-300 mb-1.5';
+
 export default function ContactPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -29,79 +33,67 @@ export default function ContactPage() {
     window.location.href = `mailto:hello@dashtab.dev?subject=${sub}&body=${body}`;
   };
 
-
   return (
-    <div className="max-w-2xl mx-auto px-6 py-20">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-extrabold text-neutral-900 dark:text-foreground tracking-tight mb-3">
-          Get in touch
-        </h1>
-        <p className="text-neutral-500 dark:text-muted-foreground">
-          Questions, demo requests or feedback — we reply within one business day.
-        </p>
-      </div>
+    <div className="bg-stone-950 text-white">
+      <div className="max-w-2xl mx-auto px-6 pt-28 pb-24">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-3">
+            Get in <span className={GRAD_TEXT}>touch</span>
+          </h1>
+          <p className="text-stone-400">Questions, demo requests or feedback — we reply within one business day.</p>
+        </div>
 
-      {/* Contact options */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
-        <a href="mailto:hello@dashtab.dev"
-          className="flex items-start gap-4 p-5 rounded-2xl border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-card hover:border-orange-300 dark:hover:border-orange-700 transition group">
-          <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center shrink-0 group-hover:bg-orange-500 transition">
-            <Mail className="w-5 h-5 text-orange-500 group-hover:text-white transition" />
-          </div>
-          <div>
-            <p className="font-bold text-neutral-900 dark:text-foreground text-sm">Email us</p>
-            <p className="text-sm text-neutral-500 dark:text-muted-foreground mt-0.5">hello@dashtab.dev</p>
-          </div>
-        </a>
-        <a href="mailto:demo@dashtab.dev?subject=Demo%20request"
-          className="flex items-start gap-4 p-5 rounded-2xl border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-card hover:border-orange-300 dark:hover:border-orange-700 transition group">
-          <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-950/40 flex items-center justify-center shrink-0 group-hover:bg-orange-500 transition">
-            <MessageSquare className="w-5 h-5 text-orange-500 group-hover:text-white transition" />
-          </div>
-          <div>
-            <p className="font-bold text-neutral-900 dark:text-foreground text-sm">Request a demo</p>
-            <p className="text-sm text-neutral-500 dark:text-muted-foreground mt-0.5">We&apos;ll set up a live walkthrough</p>
-          </div>
-        </a>
-      </div>
+        {/* Contact options */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
+          {[
+            { icon: Mail, title: 'Email us', sub: 'hello@dashtab.dev', href: 'mailto:hello@dashtab.dev' },
+            { icon: MessageSquare, title: 'Request a demo', sub: "We'll set up a live walkthrough", href: 'mailto:demo@dashtab.dev?subject=Demo%20request' },
+          ].map(({ icon: Icon, title, sub, href }) => (
+            <a key={title} href={href}
+              className="flex items-start gap-4 p-5 rounded-2xl border border-white/10 bg-stone-900/60 hover:border-white/25 transition group">
+              <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-white/10 transition">
+                <Icon className="w-5 h-5 text-stone-200" />
+              </div>
+              <div>
+                <p className="font-bold text-sm">{title}</p>
+                <p className="text-sm text-stone-400 mt-0.5">{sub}</p>
+              </div>
+            </a>
+          ))}
+        </div>
 
-      {/* Contact form */}
-      <div className="p-8 rounded-2xl border border-neutral-200 dark:border-border bg-white dark:bg-card">
-        <h2 className="font-bold text-lg text-neutral-900 dark:text-foreground mb-6">Send us a message</h2>
-        <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Name</label>
-              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ardit Kelmendi"
-                className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm text-neutral-900 dark:text-foreground placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition" />
-              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
+        {/* Contact form */}
+        <div className="p-8 rounded-2xl border border-white/10 bg-stone-900/60">
+          <h2 className="font-bold text-lg mb-6">Send us a message</h2>
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className={LABEL}>Name</label>
+                <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Ardit Kelmendi" className={INPUT} />
+                {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
+              </div>
+              <div>
+                <label className={LABEL}>Email</label>
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@restaurant.com" className={INPUT} />
+                {errors.email && <p className="text-xs text-red-400 mt-1">{errors.email}</p>}
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@restaurant.com"
-                className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm text-neutral-900 dark:text-foreground placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition" />
-              {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
+              <label className={LABEL}>Subject</label>
+              <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Demo request / Question / Other" className={INPUT} />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Subject</label>
-            <input type="text" value={subject} onChange={e => setSubject(e.target.value)} placeholder="Demo request / Question / Other"
-              className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm text-neutral-900 dark:text-foreground placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-neutral-700 dark:text-muted-foreground mb-1.5">Message</label>
-            <textarea rows={5} value={message} onChange={e => setMessage(e.target.value)} placeholder="Tell us about your restaurant and what you're looking for…"
-              className="w-full px-3 py-2.5 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm text-neutral-900 dark:text-foreground placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-orange-500 transition resize-none" />
-            {errors.message && <p className="text-xs text-red-500 mt-1">{errors.message}</p>}
-          </div>
-          <button type="submit"
-            className="w-full px-4 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm transition shadow shadow-orange-500/20">
-            Send message
-          </button>
-          <p className="text-xs text-neutral-400 dark:text-muted-foreground text-center">
-            This opens your email client pre-filled. We reply within one business day.
-          </p>
-        </form>
+            <div>
+              <label className={LABEL}>Message</label>
+              <textarea rows={5} value={message} onChange={e => setMessage(e.target.value)} placeholder="Tell us about your restaurant and what you're looking for…" className={`${INPUT} resize-none`} />
+              {errors.message && <p className="text-xs text-red-400 mt-1">{errors.message}</p>}
+            </div>
+            <button type="submit"
+              className="w-full px-4 py-3 rounded-xl bg-white text-stone-950 font-bold text-sm transition hover:bg-stone-200">
+              Send message
+            </button>
+            <p className="text-xs text-stone-500 text-center">This opens your email client pre-filled. We reply within one business day.</p>
+          </form>
+        </div>
       </div>
     </div>
   );
