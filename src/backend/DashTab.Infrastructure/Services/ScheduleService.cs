@@ -37,6 +37,7 @@ public class ScheduleService(DashTabDbContext db, ICurrentUser currentUser) : IS
             DayOfWeek     = request.DayOfWeek,
             StartTime     = request.StartTime,
             EndTime       = request.EndTime,
+            IsDayOff      = request.IsDayOff,
             IsPublished   = false,
             CreatedAt     = now,
             UpdatedAt     = now,
@@ -56,6 +57,7 @@ public class ScheduleService(DashTabDbContext db, ICurrentUser currentUser) : IS
 
         shift.StartTime = request.StartTime;
         shift.EndTime   = request.EndTime;
+        shift.IsDayOff  = request.IsDayOff;
         shift.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
         return ToDto(shift);
@@ -155,6 +157,23 @@ public class ScheduleService(DashTabDbContext db, ICurrentUser currentUser) : IS
         req.ManagerNote = review.ManagerNote;
         req.ReviewedAt  = DateTime.UtcNow;
 
+        // If approving a rest-day request, remove the shift for that day
+        if (review.Decision == ShiftRequestStatus.Approved && req.Type == ShiftRequestType.RestDay)
+        {
+            var requestedDateTime = req.RequestedDate.ToDateTime(TimeOnly.MinValue);
+            var daysFromMonday    = ((int)requestedDateTime.DayOfWeek + 6) % 7;
+            var weekStart         = DateOnly.FromDateTime(requestedDateTime.AddDays(-daysFromMonday));
+            var dayName           = requestedDateTime.DayOfWeek.ToString();
+
+            var existingShift = await db.WorkShifts.FirstOrDefaultAsync(s =>
+                s.UserId        == req.RequesterId &&
+                s.WeekStartDate == weekStart &&
+                EF.Functions.ILike(s.DayOfWeek.ToString(), dayName));
+
+            if (existingShift is not null)
+                db.WorkShifts.Remove(existingShift);
+        }
+
         // If approving a swap, swap the UserId on the two WorkShift rows atomically
         if (review.Decision == ShiftRequestStatus.Approved && req.Type == ShiftRequestType.ShiftSwap)
         {
@@ -186,7 +205,7 @@ public class ScheduleService(DashTabDbContext db, ICurrentUser currentUser) : IS
     private static WorkShiftDto ToDto(WorkShift s) => new(
         s.Id, s.UserId, s.User.FullName,
         s.WeekStartDate, s.DayOfWeek,
-        s.StartTime, s.EndTime, s.IsPublished);
+        s.StartTime, s.EndTime, s.IsPublished, s.IsDayOff);
 
     private static ShiftRequestDto ToDto(ShiftRequest r) => new(
         r.Id, r.RequesterId, r.Requester.FullName,

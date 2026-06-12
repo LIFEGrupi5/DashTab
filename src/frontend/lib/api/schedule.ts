@@ -12,9 +12,10 @@ export const createShift = (body: {
   dayOfWeek: string;
   startTime: string;
   endTime: string;
+  isDayOff?: boolean;
 }) => apiPost<WorkShift>('/schedule/shifts', body);
 
-export const updateShift = (id: string, body: { startTime: string; endTime: string }) =>
+export const updateShift = (id: string, body: { startTime: string; endTime: string; isDayOff?: boolean }) =>
   apiPut<WorkShift>(`/schedule/shifts/${id}`, body);
 
 export const deleteShift = (id: string) => apiDelete(`/schedule/shifts/${id}`);

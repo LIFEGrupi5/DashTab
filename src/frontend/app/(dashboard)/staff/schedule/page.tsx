@@ -65,41 +65,64 @@ function fmtTime(t: string): string {
 function ShiftModal({
   shift,
   onSave,
+  onMarkDayOff,
   onDelete,
   onClose,
 }: {
   shift: WorkShift | null;
   onSave: (start: string, end: string) => void;
+  onMarkDayOff: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
-  const [start, setStart] = useState(shift ? fmtTime(shift.startTime) : '09:00');
-  const [end,   setEnd]   = useState(shift ? fmtTime(shift.endTime)   : '17:00');
+  const [start, setStart] = useState(shift && !shift.isDayOff ? fmtTime(shift.startTime) : '09:00');
+  const [end,   setEnd]   = useState(shift && !shift.isDayOff ? fmtTime(shift.endTime)   : '17:00');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
       <div className="bg-white dark:bg-card rounded-2xl border border-neutral-200 dark:border-border shadow-xl p-6 w-72" onClick={e => e.stopPropagation()}>
         <h3 className="font-bold text-neutral-900 dark:text-foreground mb-4">
-          {shift ? 'Edit shift' : 'Add shift'}
+          {shift?.isDayOff ? 'Day off' : shift ? 'Edit shift' : 'Add shift'}
         </h3>
-        <div className="space-y-3 mb-5">
-          <div>
-            <label className="block text-xs font-medium text-neutral-500 dark:text-muted-foreground mb-1">Start time</label>
-            <input type="time" value={start} onChange={e => setStart(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+
+        {!shift?.isDayOff && (
+          <div className="space-y-3 mb-5">
+            <div>
+              <label className="block text-xs font-medium text-neutral-500 dark:text-muted-foreground mb-1">Start time</label>
+              <input type="time" value={start} onChange={e => setStart(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-neutral-500 dark:text-muted-foreground mb-1">End time</label>
+              <input type="time" value={end} onChange={e => setEnd(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-medium text-neutral-500 dark:text-muted-foreground mb-1">End time</label>
-            <input type="time" value={end} onChange={e => setEnd(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button fullWidth onClick={() => onSave(start, end)}>Save</Button>
+        )}
+
+        {shift?.isDayOff && (
+          <p className="text-sm text-neutral-500 dark:text-muted-foreground mb-5">
+            This day is marked as off. You can set a shift instead or clear it.
+          </p>
+        )}
+
+        <div className="flex flex-col gap-2">
+          {!shift?.isDayOff && (
+            <Button fullWidth onClick={() => onSave(start, end)}>Save shift</Button>
+          )}
+          {shift?.isDayOff && (
+            <Button fullWidth onClick={() => onSave(start, end)}>Set shift instead</Button>
+          )}
+          {!shift?.isDayOff && (
+            <button type="button" onClick={onMarkDayOff}
+              className="w-full px-4 py-2 rounded-xl bg-neutral-100 dark:bg-muted hover:bg-red-50 dark:hover:bg-red-950/30 text-neutral-600 dark:text-muted-foreground hover:text-red-600 dark:hover:text-red-300 text-sm font-semibold transition border border-neutral-200 dark:border-border hover:border-red-200">
+              Mark as day off
+            </button>
+          )}
           {shift && (
             <button type="button" onClick={onDelete}
-              className="flex-1 px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition">
-              Remove
+              className="w-full px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition">
+              {shift.isDayOff ? 'Clear (mark as not set)' : 'Remove shift'}
             </button>
           )}
         </div>
@@ -146,18 +169,35 @@ export default function ManagerSchedulePage() {
     const { userId, day, shift } = modal;
 
     if (shift) {
-      // Edit existing shift
       updateShift.mutate(
-        { id: shift.id, startTime: start + ':00', endTime: end + ':00' },
+        { id: shift.id, startTime: start + ':00', endTime: end + ':00', isDayOff: false },
         { onSuccess: () => { toast.success('Shift updated'); setModal(null); },
           onError: () => toast.error('Failed to update shift') },
       );
     } else {
-      // Create new shift
       createShift.mutate(
-        { userId, weekStartDate: weekStart, dayOfWeek: day, startTime: start + ':00', endTime: end + ':00' },
+        { userId, weekStartDate: weekStart, dayOfWeek: day, startTime: start + ':00', endTime: end + ':00', isDayOff: false },
         { onSuccess: () => { toast.success('Shift added'); setModal(null); },
           onError: () => toast.error('Failed to add shift') },
+      );
+    }
+  }
+
+  async function handleMarkDayOff() {
+    if (!modal) return;
+    const { userId, day, shift } = modal;
+
+    if (shift) {
+      updateShift.mutate(
+        { id: shift.id, startTime: '00:00:00', endTime: '00:00:00', isDayOff: true },
+        { onSuccess: () => { toast.success('Day marked as off'); setModal(null); },
+          onError: () => toast.error('Failed to update') },
+      );
+    } else {
+      createShift.mutate(
+        { userId, weekStartDate: weekStart, dayOfWeek: day, startTime: '00:00:00', endTime: '00:00:00', isDayOff: true },
+        { onSuccess: () => { toast.success('Day marked as off'); setModal(null); },
+          onError: () => toast.error('Failed to mark day off') },
       );
     }
   }
@@ -238,19 +278,22 @@ export default function ManagerSchedulePage() {
                 </td>
                 {DAYS.map(d => {
                   const shift = getShift(user.id, d.key);
+                  const isDayOff = shift?.isDayOff;
                   return (
                     <td key={d.key} className="px-2 py-2 text-center">
                       <button
                         onClick={() => openModal(user.id, user.name, d.key)}
                         className={`w-full min-w-[64px] px-2 py-1.5 rounded-lg text-xs font-medium transition ${
-                          shift
-                            ? shift.isPublished
-                              ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
-                              : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
-                            : 'bg-neutral-50 dark:bg-muted/20 text-neutral-400 dark:text-muted-foreground border border-dashed border-neutral-200 dark:border-border hover:border-orange-300 hover:text-orange-500'
+                          isDayOff
+                            ? 'bg-red-50 dark:bg-red-950/30 text-red-500 dark:text-red-300 border border-red-200 dark:border-red-800'
+                            : shift
+                              ? shift.isPublished
+                                ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
+                                : 'bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800'
+                              : 'bg-neutral-50 dark:bg-muted/20 text-neutral-400 dark:text-muted-foreground border border-dashed border-neutral-200 dark:border-border hover:border-orange-300 hover:text-orange-500'
                         }`}
                       >
-                        {shift ? `${fmtTime(shift.startTime)}–${fmtTime(shift.endTime)}` : '+'}
+                        {isDayOff ? 'Day off' : shift ? `${fmtTime(shift.startTime)}–${fmtTime(shift.endTime)}` : 'Not set'}
                       </button>
                     </td>
                   );
@@ -270,7 +313,10 @@ export default function ManagerSchedulePage() {
           <span className="w-3 h-3 rounded border border-green-300 bg-green-50 inline-block" /> Published
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded border border-dashed border-neutral-300 bg-neutral-50 inline-block" /> Off / not set
+          <span className="w-3 h-3 rounded border border-red-200 bg-red-50 inline-block" /> Day off
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded border border-dashed border-neutral-300 bg-neutral-50 inline-block" /> Not set
         </span>
       </div>
 
@@ -320,6 +366,7 @@ export default function ManagerSchedulePage() {
         <ShiftModal
           shift={modal.shift}
           onSave={handleSave}
+          onMarkDayOff={handleMarkDayOff}
           onDelete={handleDelete}
           onClose={() => setModal(null)}
         />

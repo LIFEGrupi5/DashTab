@@ -12,7 +12,8 @@ public record WorkShiftDto(
     DayOfWeek DayOfWeek,
     TimeOnly StartTime,
     TimeOnly EndTime,
-    bool IsPublished);
+    bool IsPublished,
+    bool IsDayOff);
 
 public record ShiftRequestDto(
     Guid Id,
@@ -36,11 +37,13 @@ public record CreateShiftRequest(
     DateOnly WeekStartDate,
     DayOfWeek DayOfWeek,
     TimeOnly StartTime,
-    TimeOnly EndTime);
+    TimeOnly EndTime,
+    bool IsDayOff = false);
 
 public record UpdateShiftRequest(
     TimeOnly StartTime,
-    TimeOnly EndTime);
+    TimeOnly EndTime,
+    bool IsDayOff = false);
 
 public record SubmitShiftRequestDto(
     ShiftRequestType Type,
