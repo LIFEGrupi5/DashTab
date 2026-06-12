@@ -71,6 +71,19 @@ jobs:
           exit-code: '1'
           format: table
 
+      - name: Generate SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ghcr.io/lifegrupi5/dashtab-backend@${{ steps.build.outputs.digest }}
+          format: cyclonedx
+          output: sbom-backend.cdx.json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-backend
+          path: sbom-backend.cdx.json
+
   build-frontend:
     name: Build & Push Frontend
     runs-on: ubuntu-latest
@@ -139,6 +152,19 @@ jobs:
           # and never invokes npm at runtime.
           skip-dirs: /usr/local/lib/node_modules/npm
 
+      - name: Generate SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ghcr.io/lifegrupi5/dashtab-frontend@${{ steps.build.outputs.digest }}
+          format: cyclonedx
+          output: sbom-frontend.cdx.json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-frontend
+          path: sbom-frontend.cdx.json
+
   # AIOps alert-triage service (DO-12). Small Python webhook image.
   build-aiops:
     name: Build & Push AIOps Triage
@@ -194,6 +220,47 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           format: table
+
+      - name: Generate SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ghcr.io/lifegrupi5/dashtab-aiops-triage@${{ steps.build.outputs.digest }}
+          format: cyclonedx
+          output: sbom-aiops.cdx.json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-aiops
+          path: sbom-aiops.cdx.json
+
+  # ── Repo filesystem scan (2nd Trivy pass) ─────────────────────────────────
+  # Scans source for vulnerable deps, IaC/Dockerfile misconfig, and secrets, and
+  # reports to the Security tab as SARIF. Report-only — the per-image scans above
+  # are the hard gate; this pass surfaces source-level issues without blocking.
+  trivy-fs:
+    name: Trivy filesystem scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy fs scan (SARIF)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-fs.sarif
+      - name: Upload SARIF to Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
 
   # ── Phase 2: DEPLOY (gated) ────────────────────────────────────────────────
   # Deploys the freshly-built app images to the project-05 namespace, pinned to
