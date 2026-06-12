@@ -3,6 +3,7 @@ using DashTab.Domain.Entities;
 using DashTab.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Pgvector.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Persistence;
 
@@ -66,6 +67,10 @@ public class DashTabDbContext : DbContext
             .HasQueryFilter(m => !m.IsDeleted && m.RestaurantId == CurrentTenantId);
         modelBuilder.Entity<MenuItem>()
             .HasIndex(m => m.IsAvailable);
+        modelBuilder.Entity<MenuItem>()
+            .Property(m => m.Embedding)
+            .HasColumnType("vector(1536)");
+
         modelBuilder.Entity<MenuItem>()
             .HasOne(m => m.Restaurant)
             .WithMany()

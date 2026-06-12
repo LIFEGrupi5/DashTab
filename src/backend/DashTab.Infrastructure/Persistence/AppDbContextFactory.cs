@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Pgvector.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Persistence;
 
@@ -10,7 +11,8 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<DashTabDbContext>
     public DashTabDbContext CreateDbContext(string[] args)
     {
         var options = new DbContextOptionsBuilder<DashTabDbContext>()
-            .UseNpgsql("Host=localhost;Port=5432;Database=dashtab;Username=dashtab;Password=dashtab_secret")
+            .UseNpgsql("Host=localhost;Port=5432;Database=dashtab;Username=dashtab;Password=dashtab_secret",
+                o => o.UseVector())
             .UseSnakeCaseNamingConvention()
             .Options;
         return new DashTabDbContext(options);

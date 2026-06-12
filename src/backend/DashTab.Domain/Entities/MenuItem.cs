@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Pgvector;
 
 namespace DashTab.Domain.Entities;
 
@@ -25,6 +26,10 @@ public class MenuItem
     public bool IsDeleted { get; set; } = false;
 
     public string? ImageObjectKey { get; set; }
+
+    // Semantic embedding vector (1536 dims, text-embedding-3-small).
+    // Null until the backfill job runs or the item is created/updated with the key set.
+    public Vector? Embedding { get; set; }
 
     public Guid RestaurantId { get; set; }
     public Restaurant Restaurant { get; set; } = null!;

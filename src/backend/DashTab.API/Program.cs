@@ -57,7 +57,8 @@ builder.Host.UseSerilog((ctx, cfg) =>
 // ── Persistence ───────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<DashTabDbContext>(options =>
     options
-        .UseNpgsql(builder.Configuration.GetConnectionString("Default"))
+        .UseNpgsql(builder.Configuration.GetConnectionString("Default"),
+            o => o.UseVector())
         .UseSnakeCaseNamingConvention());
 
 // ── Health checks ─────────────────────────────────────────────────────────────
@@ -284,6 +285,7 @@ builder.Services.AddScoped<IRestaurantService, RestaurantService>();
 builder.Services.AddScoped<IStripeService, StripeService>();
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
 builder.Services.AddScoped<IForecastService, ForecastService>();
+builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IMenuItemService, MenuItemService>();
