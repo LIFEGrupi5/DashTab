@@ -1,5 +1,11 @@
 name: Release
 
+# Serialize release-please per branch without cancelling an in-flight run
+# (a half-run release that creates a tag/commit shouldn't be interrupted).
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 # DO-13 — automated semantic versioning + changelog.
 #
 # release-please reads the Conventional Commits merged into the branch, then keeps

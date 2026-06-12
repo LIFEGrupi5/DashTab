@@ -1,5 +1,12 @@
 name: CD
 
+# Serialize CD per branch and DON'T cancel an in-flight run — killing a job
+# mid-`helm upgrade` could leave a release half-applied. New pushes queue behind
+# the running deploy instead.
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
 # Continuous Delivery: build + push the app images to GHCR, then (Phase 2) deploy
 # to the project-05 namespace. CI (lint/test) lives in backend-ci.yml /
 # frontend-ci.yml — this workflow owns build → push → deploy (DO-4 / DO-13).

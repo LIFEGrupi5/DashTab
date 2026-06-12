@@ -1,5 +1,10 @@
 name: DAST (OWASP ZAP)
 
+# Only one scan at a time; a newer trigger supersedes an in-progress scan.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
 # DO-9 — dynamic application security testing. Runs a PASSIVE baseline scan
 # against the deployed app: ZAP spiders the site and checks for common runtime
 # issues (missing security headers, cookie flags, outdated JS libs, info leaks)
