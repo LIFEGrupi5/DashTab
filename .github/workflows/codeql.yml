@@ -1,5 +1,10 @@
 name: CodeQL
 
+# Cancel superseded runs on the same branch/PR to save runner minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 # DO-9 / FS-5 — source-code static analysis (SAST). Finds vulnerable code
 # patterns: injection, XSS, path traversal, unsafe deserialization, auth bypasses.
 # Complements the rest of the security stack — Trivy scans image layers (cd.yml),

@@ -1,5 +1,11 @@
 name: Backend CI
 
+# Cancel an in-progress run when a newer commit lands on the same branch/PR —
+# no point finishing CI for a commit that's already been superseded.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main, development]
