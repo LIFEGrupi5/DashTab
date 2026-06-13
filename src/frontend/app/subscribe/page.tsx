@@ -10,12 +10,15 @@ import { createCheckout } from '@/lib/api/subscriptions';
 import { PLANS } from '@/lib/plans';
 import { toast } from 'sonner';
 import { analytics } from '@/lib/analytics';
+import { useFeatureFlag } from '@/lib/experiment';
 
 export default function SubscribePage() {
   const router = useRouter();
   const hydrated = useStoreHydrated();
   const user = useAppStore(s => s.user);
   const [loading, setLoading] = useState<string | null>(null);
+  const variant = useFeatureFlag('pricing-highlight-variant');
+  const showHighlight = variant !== 'no-highlight';
 
   useEffect(() => {
     if (hydrated && !user) router.replace('/login');
@@ -73,12 +76,12 @@ export default function SubscribePage() {
             <div
               key={plan.key}
               className={`relative rounded-2xl border bg-white dark:bg-card p-6 flex flex-col ${
-                'highlight' in plan && plan.highlight
+                showHighlight && 'highlight' in plan && plan.highlight
                   ? 'border-orange-500 shadow-lg shadow-orange-500/10 ring-1 ring-orange-500'
                   : 'border-neutral-200 dark:border-border'
               }`}
             >
-              {'highlight' in plan && plan.highlight ? (
+              {showHighlight && 'highlight' in plan && plan.highlight ? (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-orange-500 text-white text-xs font-semibold px-3 py-1 rounded-full">
                   Most popular
                 </span>
@@ -102,7 +105,7 @@ export default function SubscribePage() {
 
               <Button
                 fullWidth
-                variant={'highlight' in plan && plan.highlight ? 'primary' : 'secondary'}
+                variant={showHighlight && 'highlight' in plan && plan.highlight ? 'primary' : 'secondary'}
                 className="rounded-xl py-3"
                 onClick={() => choose(plan.key)}
                 disabled={loading !== null}
