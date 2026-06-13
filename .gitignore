@@ -144,6 +144,9 @@ obj/
 *.user
 *.suo
 .vs/
+report.html
+zap.yaml
+src/frontend/test-results/
 
 # Python (aiops service)
 __pycache__/
