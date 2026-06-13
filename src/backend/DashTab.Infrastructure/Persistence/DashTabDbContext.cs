@@ -67,9 +67,15 @@ public class DashTabDbContext : DbContext
             .HasQueryFilter(m => !m.IsDeleted && m.RestaurantId == CurrentTenantId);
         modelBuilder.Entity<MenuItem>()
             .HasIndex(m => m.IsAvailable);
-        modelBuilder.Entity<MenuItem>()
-            .Property(m => m.Embedding)
-            .HasColumnType("vector(1536)");
+        // Only map the vector column when running against Postgres — in-memory/SQLite
+        // test providers don't support pgvector and would throw on model validation.
+        if (Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            modelBuilder.Entity<MenuItem>()
+                .Property(m => m.Embedding)
+                .HasColumnType("vector(1536)");
+        else
+            modelBuilder.Entity<MenuItem>()
+                .Ignore(m => m.Embedding);
 
         modelBuilder.Entity<MenuItem>()
             .HasOne(m => m.Restaurant)
