@@ -15,6 +15,9 @@ const LAST_STEP = STEPS.length - 1;
 type Props = {
   onClose: () => void;
   onSubmit: (data: StaffFormData) => void;
+  // Only owners may assign the Owner role; managers must not (the API rejects it
+  // anyway — this keeps the option out of their UI so they don't hit a 403).
+  allowOwnerRole?: boolean;
 };
 
 type WizardState = { step: number; photo: File | null };
@@ -34,7 +37,7 @@ function wizardReducer(state: WizardState, action: WizardAction): WizardState {
   }
 }
 
-export default function MultiStepForm({ onClose, onSubmit }: Props) {
+export default function MultiStepForm({ onClose, onSubmit, allowOwnerRole = true }: Props) {
   const [{ step, photo }, dispatch] = useReducer(wizardReducer, { step: 0, photo: null });
 
   const { register, trigger, getValues, formState: { errors } } = useForm<StaffFormData>({
@@ -128,7 +131,7 @@ export default function MultiStepForm({ onClose, onSubmit }: Props) {
                     className="w-full px-3 py-3 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-card text-sm text-neutral-900 dark:text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500"
                     {...register('role')}
                   >
-                    <option value="owner">Owner</option>
+                    {allowOwnerRole && <option value="owner">Owner</option>}
                     <option value="manager">Manager</option>
                     <option value="waiter">Waiter</option>
                     <option value="kitchen">Kitchen</option>
