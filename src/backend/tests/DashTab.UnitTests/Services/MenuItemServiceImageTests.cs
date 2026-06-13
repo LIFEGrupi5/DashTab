@@ -88,7 +88,15 @@ public class MenuItemServiceImageTests
     }
 
     private static MenuItemService NewSut(DashTabDbContext db, FakeStorageService storage)
-        => new(db, new NoopCacheService(), new MenuItemMapper(), storage, new StubCurrentUser());
+        => new(db, new NoopCacheService(), new MenuItemMapper(), storage, new StubCurrentUser(), new NoopRecommendationService());
+
+    private sealed class NoopRecommendationService : DashTab.Application.Interfaces.IRecommendationService
+    {
+        public Task<DashTab.Application.Dtos.RecommendationResponse> RecommendAsync(Guid restaurantId, string query, CancellationToken ct = default)
+            => Task.FromResult(new DashTab.Application.Dtos.RecommendationResponse(null, []));
+        public Task BackfillEmbeddingsAsync(Guid restaurantId, CancellationToken ct = default) => Task.CompletedTask;
+        public Task EmbedItemAsync(Guid menuItemId, CancellationToken ct = default) => Task.CompletedTask;
+    }
 
     [Fact]
     public async Task RequestImageUpload_ItemNotFound_ReturnsNull()

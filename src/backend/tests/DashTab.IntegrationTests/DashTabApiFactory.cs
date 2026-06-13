@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Pgvector.EntityFrameworkCore;
 using Testcontainers.PostgreSql;
 
 namespace DashTab.IntegrationTests;
@@ -13,7 +14,7 @@ namespace DashTab.IntegrationTests;
 public class DashTabApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
-        .WithImage("postgres:16-alpine")
+        .WithImage("pgvector/pgvector:pg16")
         .Build();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -46,7 +47,7 @@ public class DashTabApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
             services.AddDbContext<DashTabDbContext>(options =>
                 options
-                    .UseNpgsql(_postgres.GetConnectionString())
+                    .UseNpgsql(_postgres.GetConnectionString(), o => o.UseVector())
                     .UseSnakeCaseNamingConvention());
 
             services.AddAuthentication()

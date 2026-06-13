@@ -3,7 +3,7 @@ services:
   # ── Databases ───────────────────────────────────────────────────────────────
 
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     restart: unless-stopped
     profiles: [backend, full]
     environment:
@@ -160,6 +160,7 @@ services:
       # Keycloak users). Forwarded from the same .env vars the Keycloak container uses.
       Keycloak__AdminUsername: ${KEYCLOAK_ADMIN}
       Keycloak__AdminPassword: ${KEYCLOAK_ADMIN_PASSWORD}
+      OpenAI__ApiKey: ${OPENAI_API_KEY:-}
     ports:
       - "${BACKEND_PORT:-5000}:5000"
     depends_on:
