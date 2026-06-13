@@ -1,6 +1,6 @@
 # DashTab — Root
 
-DashTab is a restaurant operating system covering POS, payments, real-time kitchen display, staff management, analytics, and multi-tenant restaurant onboarding.
+DashTab is a multi-tenant restaurant operating system covering POS, payments, real-time kitchen display, staff management & scheduling, analytics, AI menu recommendations, and restaurant onboarding.
 
 ## Monorepo Structure
 
@@ -14,15 +14,17 @@ docs/        # Architecture decisions and documentation
 
 ## Tech Stack
 
-| Layer    | Technology                                                                           |
-|----------|--------------------------------------------------------------------------------------|
-| Frontend | Next.js 15, React 19, TypeScript, Tailwind, TanStack Query, Zustand, Framer Motion  |
-| Backend  | .NET 10, Clean Architecture, EF Core 9 + PostgreSQL, Mapperly, FluentValidation      |
-| Auth     | Keycloak (JWT, httpOnly cookies, Google OAuth2 SSO), multi-tenant isolation          |
-| Payments | Stripe (subscription plans, checkout flow, staff-limit gating)                       |
-| Infra    | Redis, RabbitMQ, MinIO, Hangfire, Serilog → Loki/Grafana + Elasticsearch/Kibana      |
-| DevOps   | Docker Compose (local) · Kubernetes via Helm (15 charts) · GitHub Actions CI/CD      |
-| Security | Trivy image scanning CI gate, Azure Key Vault (deploy-time secrets), CSP headers     |
+| Layer     | Technology                                                                           |
+|-----------|--------------------------------------------------------------------------------------|
+| Frontend  | Next.js 15, React 19, TypeScript, Tailwind, TanStack Query, Zustand, Framer Motion   |
+| Backend   | .NET 10, Clean Architecture, EF Core 9 + PostgreSQL, Mapperly, FluentValidation      |
+| Auth      | Keycloak (JWT, httpOnly cookies), multi-tenant isolation; Google IdP scaffolded in realm (placeholder creds, not in login UI) |
+| Payments  | Stripe (subscription plans, checkout flow, staff-limit gating; no webhook renewal)   |
+| AI / ML   | OpenAI (`text-embedding-3-small` + `gpt-4o-mini`), pgvector (HNSW semantic search), Python forecast service |
+| Analytics | PostHog (product analytics, feature-flag A/B testing)                                |
+| Infra     | Redis, RabbitMQ, MinIO, Hangfire, Serilog → Loki/Grafana + (optional) Elasticsearch/Kibana |
+| DevOps    | Docker Compose (local) · Kubernetes via Helm (15 charts) · GitHub Actions CI/CD      |
+| Security  | Trivy image-scan CI gate, CodeQL SAST, secret scanning, OWASP ZAP DAST, Azure Key Vault (deploy-time secrets), CSP headers |
 
 ## Git Conventions
 

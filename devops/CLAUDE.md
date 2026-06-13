@@ -42,7 +42,7 @@ Production URLs: `api.project-05.gjirafa.dev` · `app.project-05.gjirafa.dev` ·
 
 | Service | Port(s) | Notes |
 |---------|---------|-------|
-| postgres | 5432 | shared by app + Keycloak |
+| postgres | 5432 | shared by app + Keycloak; `pgvector/pgvector:pg16` image — `init.sql` enables the `vector` extension (menu-item embeddings) |
 | redis | 6379 | cache + SignalR backplane |
 | keycloak | 8080 | realm `dashtab`; admin at `/admin/` (admin / admin_dev) |
 | rabbitmq | 5672 / 15672 | broker + management UI (dashtab / rabbit_dev) |
@@ -77,6 +77,17 @@ make helm-status
 ```
 
 Secrets are injected at deploy time from **Azure Key Vault** (`kv-dashtab-p05`) — never committed to git. See `cd.yml` for the fetch pattern.
+
+### Observability — what is actually collected
+
+- **Metrics (Prometheus):** scrapes **exporters only** — `postgres`, `redis`, `rabbitmq`, `keycloak` `/metrics`, and Prometheus itself (see `prometheus/files/prometheus.yml`, `static_configs`). The .NET API and Next.js app expose **no `/metrics` endpoint**, and there is **no `kube-state-metrics`/cAdvisor** (namespace-only access). So app-level RED metrics (HTTP error rate, latency) and pod/container metrics (restarts, memory-vs-limit) are **not available** — alerts must be written against the exporter metrics that exist, or the app must be instrumented first.
+- **Alerting:** Prometheus → Alertmanager → `dashtab-aiops-triage` `/alert` webhook → LLM → Slack. The triage service makes **one LLM call per firing alert** (`send_resolved: false`), so alert rules should stay low-cardinality. Rules live in `prometheus/files/alerts.yml`.
+- **Logs:** Serilog (backend) → Loki (default) and optionally Elasticsearch/Kibana (heavy `elk` profile / charts).
+- **Uptime:** Uptime Kuma status page.
+
+### AIOps service (`devops/aiops/`)
+
+Flask app with two endpoints: `POST /alert` (Alertmanager webhook → LLM triage → Slack; raw-alert fallback if the LLM fails) and `POST /forecast` (least-squares revenue forecast called by the backend). LLM provider is pluggable (`groq` default, `gemini`, `ollama`) via one OpenAI-compatible call path.
 
 ### CI/CD (`.github/workflows/`)
 

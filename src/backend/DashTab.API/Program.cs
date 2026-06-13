@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
+using Prometheus;
 using Serilog;
 using Serilog.Formatting.Compact;
 using Serilog.Sinks.Elasticsearch;
@@ -351,6 +352,10 @@ if (app.Environment.IsDevelopment())
 app.UseExceptionHandler();
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
+// Record HTTP request metrics (http_request_duration_seconds{code,method,...}) into
+// the default registry. Served on a separate port below — never on the public app
+// port — so the metrics are scrapeable in-cluster but not exposed via the ingress.
+app.UseHttpMetrics();
 app.UseCors("Frontend");
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -375,6 +380,16 @@ app.MapControllers();
 app.MapHub<KdsHub>("/hubs/kds");
 app.MapMcp("/mcp")
     .RequireAuthorization(new AuthorizeAttribute { Roles = "Owner,Manager,Kitchen" });
+
+// Serve Prometheus metrics on a dedicated port (default 9100), bound to all
+// interfaces so an in-cluster Prometheus can scrape it. Deliberately NOT mapped on
+// the app's HTTP port: the public ingress catch-alls "/", so mapping /metrics there
+// would expose internal metrics to the internet. The Service exposes 9100 only
+// in-cluster; same-namespace NetworkPolicy already permits the scrape.
+var metricsPort = builder.Configuration.GetValue("Metrics:Port", 9100);
+var metricServer = new KestrelMetricServer(port: metricsPort);
+metricServer.Start();
+app.Lifetime.ApplicationStopping.Register(() => metricServer.Stop());
 
 app.Run();
 

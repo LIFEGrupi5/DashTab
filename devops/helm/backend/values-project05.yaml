@@ -10,6 +10,19 @@ ingress:
   path: /                              # whole subdomain → backend, no prefix strip
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod   # confirmed on project-05 — cert-manager issues the LE cert
+    # SignalR scaleout: the negotiate request and the follow-up WebSocket (?id=token)
+    # must reach the SAME backend pod. The Redis backplane fans out *messages* across
+    # pods but does NOT cover the handshake — so with >1 pod (incl. during rolling
+    # deploys) a WS landing on a different pod than its negotiate is killed with WS
+    # close 1011, producing a reconnect storm. Cookie affinity pins both to one pod;
+    # it is a harmless no-op while replicaCount is 1.
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+    nginx.ingress.kubernetes.io/session-cookie-name: "dashtab-affinity"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+    # Keep long-lived idle KDS WebSockets open past nginx's 60s default.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
   tls:
     enabled: true
     secretName: api-project05-tls     # cert-manager creates this

@@ -26,24 +26,30 @@ src/frontend/
       login/page.tsx             # Login (httpOnly cookie auth)
       register/page.tsx          # Restaurant registration (POST /restaurants/register)
     (dashboard)/
-      layout.tsx                 # Sidebar navigation (role-based)
+      layout.tsx                 # Sidebar navigation (role-based) + PostHog restaurant identity
       dashboard/page.tsx         # KPI overview
       orders/page.tsx            # Order management
       orders/new/page.tsx        # Create new order
       menu/page.tsx              # Menu management (+ dynamic category chips)
       kitchen/page.tsx           # Kitchen Kanban board (real-time via SignalR)
       overview/page.tsx          # Analytics & charts
+      reports/page.tsx           # Weekly revenue/order comparison
       staff/page.tsx             # Staff management
+      staff/schedule/page.tsx    # Weekly shift builder + request approvals
       settings/page.tsx          # Restaurant settings
+    r/[restaurantId]/page.tsx    # Public AI menu-recommendation page (no auth)
     subscribe/page.tsx           # Subscription plan selection → Stripe checkout
     subscribe/success/page.tsx   # Post-payment confirmation
   components/                    # Shared UI components
   hooks/                         # Custom React hooks (useAuth, useMenu, useOrders, useKdsSignalR, ...)
   lib/
-    api/                         # Typed API clients (auth, menu, orders, staff, subscriptions) + client helpers
+    api/                         # Typed API clients (auth, menu, orders, staff, schedule, subscriptions,
+                                 #   analytics, public AI-recommend) + client helpers
     plans.ts                     # Shared subscription plan definitions (used by marketing + subscribe page)
     queryKeys.ts                 # React Query key factory
     schemas.ts                   # Zod schemas
+    experiment.ts                # PostHog feature-flag hook (A/B tests)
+    analytics.ts                 # PostHog helpers (events, restaurant group identification)
   stores/                        # Zustand store (useAppStore.ts — user + UI state; tokens in httpOnly cookies)
   styles/                        # Additional global stylesheets
   public/                        # Static assets
@@ -73,7 +79,8 @@ import { Button } from '@/components/Button'
 - **Client state:** Zustand (`stores/useAppStore.ts`) — user + UI state; **tokens are httpOnly cookies** (not localStorage)
 - **Auth:** Keycloak-backed login via `POST /auth/login`; server sets httpOnly cookies; `client.ts` uses `credentials:'include'`; refresh is automatic on 401
 - **Real-time:** `@microsoft/signalr` via `hooks/useKdsSignalR.ts` drives the kitchen board (orderPlaced / orderStatusChanged / orderCancelled)
-- Pages call the **real backend**; configure it with `NEXT_PUBLIC_API_URL` (+ `NEXT_PUBLIC_KEYCLOAK_*`)
+- **Analytics / experiments:** PostHog (`posthog-js`) — product analytics, per-restaurant `group()` identification (`hooks/useRestaurantIdentity.ts`), and feature-flag A/B tests (`lib/experiment.ts`, `lib/analytics.ts`)
+- Pages call the **real backend**; configure it with `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:5000/api/v1`) plus `NEXT_PUBLIC_KEYCLOAK_*`
 
 ## Key Packages
 
@@ -84,7 +91,8 @@ import { Button } from '@/components/Button'
 | `zustand` | Client state store |
 | `@microsoft/signalr` | KDS real-time updates |
 | `react-hook-form` + `zod` (`@hookform/resolvers`) | Forms + validation |
-| `recharts` | Charts (overview page) |
+| `recharts` | Charts (overview / reports pages) |
+| `posthog-js` | Product analytics + feature-flag A/B testing |
 | `framer-motion` | Animations |
 | `tailwind-merge` + `clsx` | Class name utilities |
 | `@tailwindcss/container-queries` | Container-based responsive styles |
