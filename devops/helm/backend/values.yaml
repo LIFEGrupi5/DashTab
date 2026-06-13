@@ -38,6 +38,7 @@ config:
   Keycloak__Authority: "http://dashtab-keycloak/auth/realms/dashtab"
   # ...and the issuer string that must MATCH what tokens carry (public URL).
   Keycloak__ValidIssuer: "http://dashtab.local/auth/realms/dashtab"
+  Unleash__ServerApiUrl: "https://eu.app.getunleash.io/eull0783/api"
 
 # Secrets → rendered into a Secret, injected via envFrom. Connection strings
 # embed passwords, so they live here, not in the ConfigMap.
@@ -50,7 +51,7 @@ secrets:
   ConnectionStrings__RabbitMQ: ""
   Storage__AccessKey: ""
   Storage__SecretKey: ""
-  Unleash__ApiToken: ""
+  Unleash__ServerApiToken: ""
 
 # Probes. type: tcp (default) just checks the port is accepting connections —
 # correct while DashTab.API exposes NO health endpoints. Switch to type: http

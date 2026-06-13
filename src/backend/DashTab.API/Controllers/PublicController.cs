@@ -11,19 +11,23 @@ namespace DashTab.API.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/v1/public")]
-[AllowAnonymous]
-public class PublicController(IRecommendationService recommendation) : ControllerBase
+public class PublicController(IRecommendationService recommendation, IFeatureFlags features) : ControllerBase
 {
     /// <summary>
     /// Customer-facing AI recommendation: takes a craving and returns
     /// semantically-matched menu items + an LLM-written blurb.
+    /// Gated behind the <c>menu-recommendations</c> Unleash flag.
     /// </summary>
     [HttpPost("restaurants/{restaurantId:guid}/recommend")]
+    [AllowAnonymous]
     public async Task<IActionResult> Recommend(
         Guid restaurantId,
         [FromBody] RecommendationRequest request,
         CancellationToken ct)
     {
+        if (!features.IsEnabled("menu-recommendations"))
+            return StatusCode(503, new { error = "AI menu recommendations are not available yet." });
+
         if (string.IsNullOrWhiteSpace(request.Query))
             return BadRequest(new { error = "Query cannot be empty." });
 

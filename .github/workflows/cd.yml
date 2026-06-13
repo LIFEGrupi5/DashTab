@@ -146,6 +146,8 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=https://api.project-05.gjirafa.dev/api/v1
             NEXT_PUBLIC_POSTHOG_KEY=${{ secrets.POSTHOG_KEY }}
+            NEXT_PUBLIC_UNLEASH_FRONTEND_URL=https://eu.app.getunleash.io/eull0783/api/frontend
+            NEXT_PUBLIC_UNLEASH_FRONTEND_TOKEN=${{ secrets.NEXT_PUBLIC_UNLEASH_FRONTEND_TOKEN }}
 
       - name: Scan image with Trivy (DO-9)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -319,7 +321,7 @@ jobs:
             --set "secrets.Storage__AccessKey=$BACKEND_STORAGE_ACCESSKEY" \
             --set "secrets.Storage__SecretKey=$BACKEND_STORAGE_SECRETKEY" \
             --set "secrets.OpenAI__ApiKey=$BACKEND_OPENAI_APIKEY" \
-            --set "secrets.Unleash__ApiToken=$BACKEND_UNLEASH_API_TOKEN" \
+            --set "secrets.Unleash__ServerApiToken=$BACKEND_UNLEASH_API_TOKEN" \
             --atomic --timeout 5m
 
       - name: Deploy frontend
