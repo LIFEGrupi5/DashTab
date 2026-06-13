@@ -37,6 +37,14 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # OpenSSL heap UAF in libcrypto3/libssl3) that fail the Trivy gate (DO-9).
 # --no-cache refreshes the apk index so this pulls the latest patched packages.
 RUN apk upgrade --no-cache
+# Drop the global npm CLI + corepack from the runtime image. The server runs
+# `node server.js` and never needs npm; npm bundles its own (lagging) copies of
+# tar/glob/minimatch/cross-spawn under /usr/local/lib/node_modules/npm that fail
+# the Trivy gate (DO-9) and are pure attack surface here. The project's own deps
+# (in .next/standalone) are unaffected.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+           /usr/local/lib/node_modules/corepack \
+           /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
