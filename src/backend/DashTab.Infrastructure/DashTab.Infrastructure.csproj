@@ -22,7 +22,7 @@
     </PackageReference>
     <PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.3.0" />
     <PackageReference Include="RabbitMQ.Client" Version="7.2.1" />
-    <PackageReference Include="MailKit" Version="4.16.0" />
+    <PackageReference Include="MailKit" Version="4.17.0" />
     <PackageReference Include="Minio" Version="6.0.4" />
     <PackageReference Include="MessagePack" Version="2.5.301" />
     <PackageReference Include="StackExchange.Redis" Version="2.12.14" />
