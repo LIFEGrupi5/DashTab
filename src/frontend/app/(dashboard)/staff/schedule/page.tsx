@@ -76,7 +76,7 @@ function ShiftModal({
   day: string;
   shift: WorkShift | null;
   onSave: (start: string, end: string, extraDays: string[]) => void;
-  onMarkDayOff: () => void;
+  onMarkDayOff: (extraDays: string[]) => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -150,7 +150,7 @@ function ShiftModal({
             <Button fullWidth onClick={() => onSave(start, end, [])}>Set shift instead</Button>
           )}
           {!shift?.isDayOff && (
-            <button type="button" onClick={onMarkDayOff}
+            <button type="button" onClick={() => onMarkDayOff(extraDays)}
               className="w-full px-4 py-2 rounded-xl bg-neutral-100 dark:bg-muted hover:bg-red-50 dark:hover:bg-red-950/30 text-neutral-600 dark:text-muted-foreground hover:text-red-600 dark:hover:text-red-300 text-sm font-semibold transition border border-neutral-200 dark:border-border hover:border-red-200">
               Mark as day off
             </button>
@@ -234,23 +234,38 @@ export default function ManagerSchedulePage() {
     setModal(null);
   }
 
-  async function handleMarkDayOff() {
+  async function handleMarkDayOff(extraDays: string[]) {
     if (!modal) return;
     const { userId, day, shift } = modal;
 
-    if (shift) {
-      updateShift.mutate(
-        { id: shift.id, startTime: '00:00:00', endTime: '00:00:00', isDayOff: true },
-        { onSuccess: () => { toast.success('Day marked as off'); setModal(null); },
-          onError: () => toast.error('Failed to update') },
-      );
-    } else {
-      createShift.mutate(
-        { userId, weekStartDate: weekStart, dayOfWeek: day, startTime: '00:00:00', endTime: '00:00:00', isDayOff: true },
-        { onSuccess: () => { toast.success('Day marked as off'); setModal(null); },
-          onError: () => toast.error('Failed to mark day off') },
-      );
+    const allDays = [day, ...extraDays];
+    let failed = false;
+
+    for (const d of allDays) {
+      const existing = d === day ? shift : (getShift(userId, d) ?? null);
+      if (existing) {
+        await new Promise<void>(resolve =>
+          updateShift.mutate(
+            { id: existing.id, startTime: '00:00:00', endTime: '00:00:00', isDayOff: true },
+            { onSuccess: () => resolve(), onError: () => { failed = true; resolve(); } },
+          ),
+        );
+      } else {
+        await new Promise<void>(resolve =>
+          createShift.mutate(
+            { userId, weekStartDate: weekStart, dayOfWeek: d, startTime: '00:00:00', endTime: '00:00:00', isDayOff: true },
+            { onSuccess: () => resolve(), onError: () => { failed = true; resolve(); } },
+          ),
+        );
+      }
     }
+
+    if (failed) {
+      toast.error('Some days could not be marked as off');
+    } else {
+      toast.success(allDays.length > 1 ? `${allDays.length} days marked as off` : 'Day marked as off');
+    }
+    setModal(null);
   }
 
   async function handleDelete() {
