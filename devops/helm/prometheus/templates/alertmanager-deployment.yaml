@@ -18,12 +18,21 @@ spec:
         app.kubernetes.io/part-of: dashtab
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/alertmanager-configmap.yaml") . | sha256sum }}
-        checksum/secret: {{ include (print $.Template.BasePath "/alertmanager-secret.yaml") . | sha256sum }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534        # nobody — prom/alertmanager' default user
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: alertmanager
           image: "{{ .Values.alertmanager.image.repository }}:{{ .Values.alertmanager.image.tag }}"
           imagePullPolicy: {{ .Values.alertmanager.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           args:
             - "--config.file=/etc/alertmanager/alertmanager.yml"
             - "--storage.path=/alertmanager"
@@ -33,9 +42,6 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/alertmanager
-            - name: slack
-              mountPath: /etc/alertmanager/secrets
-              readOnly: true
             - name: data
               mountPath: /alertmanager
           resources:
@@ -48,9 +54,6 @@ spec:
         - name: config
           configMap:
             name: dashtab-alertmanager-config
-        - name: slack
-          secret:
-            secretName: dashtab-alertmanager-slack
         - name: data
           emptyDir: {}
 {{- end }}

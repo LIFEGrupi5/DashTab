@@ -7,10 +7,10 @@ HELM_DIR   = devops/helm
 # Install order matters: postgres first, pgbouncer + keycloak depend on it,
 # apps go last. Release names are prefixed "dashtab-" so object names read well.
 HELM_INFRA = postgresql pgbouncer redis rabbitmq minio keycloak
-HELM_APPS  = backend frontend
+HELM_APPS  = backend frontend aiops-triage db-backup
 HELM_OBS   = prometheus grafana elasticsearch kibana uptime-kuma
 
-.PHONY: help up-backend up-observability up down logs ps build \
+.PHONY: help up-backend up-observability up-elk down-elk up down logs ps build \
         helm-deps helm-lint helm-up helm-up-obs helm-down helm-status
 
 help:
@@ -86,7 +86,7 @@ helm-up-obs:
 
 # Tear everything down in reverse order.
 helm-down:
-	@for c in $(HELM_APPS) $(HELM_INFRA); do \
+	@for c in $(HELM_OBS) $(HELM_APPS) $(HELM_INFRA); do \
 	  $(HELM) uninstall dashtab-$$c --namespace $(HELM_NS) 2>/dev/null || true; \
 	done
 

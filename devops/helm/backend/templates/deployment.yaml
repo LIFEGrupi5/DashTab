@@ -79,8 +79,8 @@ spec:
                   name: dashtab-stripe
                   key: secret-key
           # Readiness gates traffic during rolling updates; liveness restarts hung pods.
-          # type: tcp = just check the port is accepting (app has no /health endpoint yet);
-          # type: http = hit the paths below (switch to this once ASP.NET health checks exist).
+          # The app exposes /health/live + /health/ready (set probes.type: http in
+          # values to use them); type: tcp just checks the port is accepting.
           {{- if eq .Values.probes.type "http" }}
           readinessProbe:
             httpGet:

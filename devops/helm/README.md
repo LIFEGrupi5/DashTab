@@ -6,14 +6,21 @@ independently — there is no single umbrella chart.
 
 ```
 devops/helm/
-  backend/      hand-written chart (.NET 10 API)            → release dashtab-backend
-  frontend/     hand-written chart (Next.js 15)             → release dashtab-frontend
-  postgresql/   wrapper over bitnami/postgresql             → release dashtab-postgresql
-  pgbouncer/    wrapper over bitnami/pgbouncer (pools PG)   → release dashtab-pgbouncer
-  redis/        wrapper over bitnami/redis                  → release dashtab-redis
-  rabbitmq/     wrapper over bitnami/rabbitmq               → release dashtab-rabbitmq
-  minio/        wrapper over bitnami/minio                  → release dashtab-minio
-  keycloak/     wrapper over bitnami/keycloak (+ realm CM)  → release dashtab-keycloak
+  backend/        hand-written chart (.NET 10 API)            → release dashtab-backend
+  frontend/       hand-written chart (Next.js 15)             → release dashtab-frontend
+  aiops-triage/   hand-written chart (Flask alert triage)     → release dashtab-aiops-triage
+  db-backup/      hand-written CronJob (pg_dump → MinIO)      → release dashtab-db-backup
+  postgresql/     wrapper over bitnami/postgresql             → release dashtab-postgresql
+  pgbouncer/      wrapper over bitnami/pgbouncer (pools PG)   → release dashtab-pgbouncer
+  redis/          wrapper over bitnami/redis                  → release dashtab-redis
+  rabbitmq/       wrapper over bitnami/rabbitmq               → release dashtab-rabbitmq
+  minio/          wrapper over bitnami/minio                  → release dashtab-minio
+  keycloak/       wrapper over bitnami/keycloak (+ realm CM)  → release dashtab-keycloak
+  prometheus/     hand-written (Prometheus + Alertmanager)    → release dashtab-prometheus
+  grafana/        hand-written (dashboards + datasources)     → release dashtab-grafana
+  elasticsearch/  hand-written (X-Pack auth, single-node)     → release dashtab-elasticsearch
+  kibana/         hand-written (log search UI)                → release dashtab-kibana
+  uptime-kuma/    hand-written (status page)                  → release dashtab-uptime-kuma
 ```
 
 - **Apps** (`backend`, `frontend`) — we author the templates (Deployment/Service/
@@ -85,8 +92,10 @@ break it).
 ## Metrics
 
 Every infra chart enables its Prometheus exporter (`metrics.enabled: true`).
-`serviceMonitor.enabled` is `false` until the Prometheus Operator CRDs are
-installed (Lecture 5) — flip it on per chart then.
+`serviceMonitor.enabled` stays `false`: the project-05 cluster is namespace-admin
+only (no permission to install the Prometheus Operator CRDs), so the hand-written
+`prometheus` chart scrapes via static/namespace-scoped config instead of
+ServiceMonitors.
 
 ## ⚠️ Known sharp edges
 
@@ -104,6 +113,8 @@ installed (Lecture 5) — flip it on per chart then.
 
 ## Secrets
 
-Dev credentials live in plaintext in `values.yaml` for convenience. **Do not ship
-this to staging/prod.** Replace with an external secret store (External Secrets /
-Sealed Secrets / Vault / cloud Key Vault) — that's the Lecture 7 deliverable.
+Dev credentials live in plaintext in `values.yaml` **for local minikube only**.
+On the **project-05 cluster this is already solved**: `cd.yml` fetches runtime
+secrets from **Azure Key Vault** (`kv-dashtab-p05`) at deploy time and `--set`s
+them, and the Bitnami charts auto-generate + keep their own passwords in k8s
+Secrets (`resource-policy: keep`). Nothing sensitive is committed.

@@ -19,10 +19,20 @@ spec:
         checksum/datasources: {{ include (print $.Template.BasePath "/datasource-configmap.yaml") . | sha256sum }}
         checksum/dashboards: {{ include (print $.Template.BasePath "/dashboards-configmap.yaml") . | sha256sum }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472          # grafana — grafana/grafana's default user
+        fsGroup: 472
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: grafana
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: GF_SECURITY_ADMIN_USER
               value: {{ .Values.admin.user | quote }}

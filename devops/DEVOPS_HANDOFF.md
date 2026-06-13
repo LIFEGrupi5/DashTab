@@ -2,6 +2,11 @@
 
 > Personal working notes for the DevOps coursework (DO-1…DO-13). Pick up here after a break.
 > Last updated: 2026-05-28.
+>
+> ⚠️ **HISTORICAL (May 2026).** Most of the §0–§5 plan below is now DONE
+> (Prometheus, Uptime Kuma, AIOps, CI/CD push+deploy, hardened backend image all
+> shipped). For the current, accurate state see **`devops/CLAUDE.md`**. This file
+> is kept for the still-useful cluster constraints (§4) and decisions (§7).
 
 ---
 
@@ -41,17 +46,17 @@
 | ID | Deliverable | Status | Notes |
 |----|-------------|--------|-------|
 | DO-1 | Docker Compose full env | ✅ Done | all services present |
-| DO-2 | Dockerfiles hardened | 🟡 Partial | frontend ok; **backend runs as root, non-minimal base** |
+| DO-2 | Dockerfiles hardened | ✅ Done | both non-root; backend on `aspnet:10.0-noble-chiseled-extra` (chiseled/distroless) + `USER $APP_UID`, aiops alpine + `USER 10001` |
 | DO-3 | Kubernetes via Helm | ✅ Done (charts) | PR #56; not yet deployed to cluster |
 | DO-4 | CI/CD pipeline | 🟡 Partial | lint/test/build ok; **push + deploy + notify missing** |
-| DO-5 | Prometheus + alerts | ❌ Next | exporters already wired in Helm |
+| DO-5 | Prometheus + alerts | ✅ Done | namespace-scoped Prometheus + Alertmanager + alert rules deployed (`helm/prometheus`) |
 | DO-6 | ELK logging | 🟡 Local done | Compose profile built; in-cluster optional |
-| DO-7 | Uptime Kuma | ❌ Missing | smallest item, fast win |
+| DO-7 | Uptime Kuma | ✅ Done | `helm/uptime-kuma` + compose `observability` profile |
 | DO-8 | Terraform (live cloud) | ⚪ **Likely waived** | prof provisioned cluster; confirm (see §6) |
 | DO-9 | Security hardening | ✅ Done | Kibana/ES behind X-Pack auth (see §ELK security); **CodeQL + secret scanning (TruffleHog + gitleaks + native) + Dependabot + Trivy (image gate + repo `fs` scan→SARIF + CycloneDX SBOM) + scheduled OWASP ZAP baseline DAST + atomic Helm CD** all wired (see `docs/security-audit.md`). Remaining non-root/distroless backend image tracked under DO-2 |
 | DO-10 | Nginx + SSL | 🟡 Partial | nginx exists, no SSL/Let's Encrypt |
 | DO-11 | Linux server from scratch | ⬜ Host task | done on a VM, not in repo |
-| DO-12 | AIOps pipeline | ❌ Missing | builds on DO-5 alerts |
+| DO-12 | AIOps pipeline | ✅ Done | `devops/aiops` Flask service + `helm/aiops-triage` + Alertmanager webhook → LLM → Slack |
 | DO-13 | Semantic versioning | 🟡 Partial | Conventional Commits ok; no changelog/version tags |
 
 > **DO-9 / FS-5 / M5.5** are all satisfied by the `feat/devops/security-scanning` PR

@@ -11,16 +11,15 @@ retention: 7d
 service:
   port: 9090
 
-# Alertmanager — routes firing alerts to Slack. The webhook URL goes in a Secret
-# (not this file). Set it at deploy time:  --set alertmanager.slackWebhookUrl=...
+# Alertmanager — routes firing alerts to the AIOps triage webhook (see
+# files/alertmanager.yml), which enriches them via an LLM and posts to Slack.
+# There is no direct Slack receiver here, so no webhook secret is needed.
 alertmanager:
   enabled: true
   image:
     repository: prom/alertmanager
     tag: v0.27.0
     pullPolicy: IfNotPresent
-  slackWebhookUrl: ""          # REQUIRED to actually send — supply via --set / overlay
-  slackChannel: "#alerts"
 
 resources:
   requests:
