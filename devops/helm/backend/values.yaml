@@ -50,6 +50,7 @@ secrets:
   ConnectionStrings__RabbitMQ: ""
   Storage__AccessKey: ""
   Storage__SecretKey: ""
+  Unleash__ApiToken: ""
 
 # Probes. type: tcp (default) just checks the port is accepting connections —
 # correct while DashTab.API exposes NO health endpoints. Switch to type: http

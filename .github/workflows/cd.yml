@@ -305,6 +305,8 @@ jobs:
           echo "BACKEND_STORAGE_SECRETKEY=$(get backend-storage-secretkey)" >> "$GITHUB_ENV"
           echo "::add-mask::$(get backend-openai-apikey)"
           echo "BACKEND_OPENAI_APIKEY=$(get backend-openai-apikey)"         >> "$GITHUB_ENV"
+          echo "::add-mask::$(get unleash-server-api-token)"
+          echo "BACKEND_UNLEASH_API_TOKEN=$(get unleash-server-api-token)"  >> "$GITHUB_ENV"
 
       - name: Deploy backend
         run: |
@@ -317,6 +319,7 @@ jobs:
             --set "secrets.Storage__AccessKey=$BACKEND_STORAGE_ACCESSKEY" \
             --set "secrets.Storage__SecretKey=$BACKEND_STORAGE_SECRETKEY" \
             --set "secrets.OpenAI__ApiKey=$BACKEND_OPENAI_APIKEY" \
+            --set "secrets.Unleash__ApiToken=$BACKEND_UNLEASH_API_TOKEN" \
             --atomic --timeout 5m
 
       - name: Deploy frontend
