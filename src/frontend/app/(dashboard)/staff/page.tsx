@@ -8,6 +8,7 @@ import PageHeader from '@/components/PageHeader';
 import StatusBadge from '@/components/StatusBadge';
 import EmptyState from '@/components/EmptyState';
 import { useCreateStaff, useSetStaffActive, useUsers } from '@/hooks/useUsers';
+import { useAppStore } from '@/stores/useAppStore';
 
 const ROLE_COLORS: Record<string, string> = {
   owner: 'bg-purple-50 text-purple-700 dark:bg-purple-950/40 dark:text-purple-200',
@@ -21,6 +22,8 @@ export default function StaffPage() {
   const createStaff = useCreateStaff();
   const setActive = useSetStaffActive();
   const [open, setOpen] = useState(false);
+  // Only an owner may create another owner; managers cannot (the API enforces it too).
+  const isOwner = useAppStore(s => s.user?.role === 'owner');
 
   return (
     <div className="p-6 w-[95%] mx-auto">
@@ -75,6 +78,7 @@ export default function StaffPage() {
 
       {open && (
         <MultiStepForm
+          allowOwnerRole={isOwner}
           onClose={() => setOpen(false)}
           onSubmit={data =>
             createStaff.mutate(data, { onSuccess: () => setOpen(false) })
