@@ -172,6 +172,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy   # backend calls the Keycloak admin REST API on registration
 
   # ── Frontend (Next.js) ──────────────────────────────────────────────────────
 
@@ -181,12 +183,11 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     profiles: [full]
+    # NEXT_PUBLIC_* are baked at BUILD time (see src/frontend/Dockerfile's
+    # NEXT_PUBLIC_API_BASE_URL arg, default http://localhost:5000/api/v1). They do
+    # nothing as runtime env, so the old NEXT_PUBLIC_* entries here were removed.
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: http://localhost/api
-      NEXT_PUBLIC_KEYCLOAK_URL: http://localhost/auth
-      NEXT_PUBLIC_KEYCLOAK_REALM: dashtab
-      NEXT_PUBLIC_KEYCLOAK_CLIENT_ID: dashtab-frontend
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     depends_on:

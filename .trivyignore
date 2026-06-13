@@ -1,0 +1,27 @@
+# Trivy ignore — DevOps triage of the Helm/IaC misconfiguration findings.
+# The ACTIONABLE findings are FIXED in the charts, not ignored:
+#   - container/pod securityContext (drop ALL caps, no-priv-esc, seccomp,
+#     runAsNonRoot) added to every workload that supports it
+#   - readOnlyRootFilesystem enabled on the app charts
+#   - flask/requests CVEs bumped in devops/aiops/requirements.txt
+# The entries below are findings we consciously accept, each with the reason.
+
+# ── Policy / not-applicable to this namespace-only coursework cluster ──────────
+AVD-KSV-0110   # "default namespace" — Helm sets the namespace at install (-n project-05); templates correctly don't hardcode it
+AVD-KSV-0011   # "CPU not limited" — deliberate: CPU requests set, limits omitted (CFS throttling is an anti-pattern)
+AVD-KSV-0020   # "runs with UID <= 10000" — fixed low UIDs matching the upstream images; host-UID remap not worth it here
+AVD-KSV-0021   # "runs with GID <= 10000" — same rationale as KSV-0020
+AVD-KSV-0125   # "trusted registries" — ghcr.io/lifegrupi5 + docker.io (Bitnami/prom/grafana) are our legitimate registries
+AVD-KSV-0032   # registry policy (Azure ACR) — N/A; we use ghcr.io + docker.io
+AVD-KSV-0033   # registry policy (GCR) — N/A; same as KSV-0032
+AVD-KSV-0034   # registry policy (private only) — N/A; same as KSV-0032
+AVD-KSV-0035   # registry policy (AWS ECR) — N/A; same as KSV-0032
+AVD-KSV-0013   # ":latest tag" — chart default only; CD overrides every deploy with the immutable commit-SHA tag
+AVD-DS-0026    # "no Dockerfile HEALTHCHECK" — k8s liveness/readiness probes cover health in-cluster
+AVD-KSV-01010  # "ConfigMap with sensitive content" — false positive: backend ConfigMap holds only non-secret public URLs; real secrets live in the Secret (Key Vault-injected)
+AVD-KSV-0109   # "ConfigMap stores secrets" — false positive in the vendored Bitnami redis subchart: its health/startup scripts reference $REDIS_PASSWORD(_FILE) at runtime, they don't store a secret
+
+# ── Upstream-image constraints (chart hardened as far as the image allows) ─────
+AVD-KSV-0012   # "runs as root" — louislam/uptime-kuma has no supported non-root UID
+AVD-KSV-0118   # "default security context" — uptime-kuma (root image) + short-lived setup-hook Jobs
+AVD-KSV-0014   # "root FS not read-only" — enabled on our app charts; left off the upstream obs images (grafana/kibana/prometheus need a writable root; mapping every writable path is fragile and low-value)

@@ -1,22 +1,32 @@
-"""DashTab AIOps triage service (DO-12).
+"""DashTab AIOps service (DO-12).
 
-Sits between Alertmanager and Slack: Alertmanager POSTs firing alerts here via a
-`webhook_configs` receiver, we ask an LLM to triage each one (likely root cause,
-severity, first action), and we post that analysis to Slack.
+Two stateless endpoints:
+  • POST /alert     — Alertmanager webhook. For each firing alert we ask an LLM to
+                      triage it (severity, likely cause, first checks) and post the
+                      result to Slack. If the LLM fails we still post the raw alert,
+                      so an AI-layer outage never swallows a real alert.
+  • POST /forecast  — least-squares revenue forecast (trend + day-of-week
+                      seasonality) over a restaurant's daily history sent by the
+                      backend. NumPy only — no scipy/scikit (clean musllinux wheels).
 
-Flow:  Prometheus → Alertmanager (webhook) → THIS SERVICE → LLM → Slack
+Flow:  Prometheus → Alertmanager → /alert → LLM → Slack
 
-Design notes:
-- Provider-agnostic: LLM_PROVIDER selects the backend. Gemini is implemented;
-  the call_llm() switch is where you'd add openai/ollama.
-- Resilient: if the LLM call fails, we still post the raw alert to Slack so an
-  outage of the AI layer never swallows a real alert.
-- Stateless + tiny: stdlib + requests + flask only.
+LLM providers (LLM_PROVIDER = groq | gemini | ollama) all speak the OpenAI-compatible
+/chat/completions API — Gemini via its /v1beta/openai endpoint — so they share one
+call path and adding a provider is a single table entry.
+
+Optional auth: set WEBHOOK_TOKEN to require `Authorization: Bearer <token>` on the
+POST endpoints (the Alertmanager http_config and the backend forecast caller must
+then send it). Unset = open (the service is ClusterIP-only); a warning is logged.
 """
-import os
 import logging
+import os
+from datetime import datetime, timedelta
+from functools import wraps
+
+import numpy as np
 import requests
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify, request
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("aiops")
@@ -24,27 +34,35 @@ log = logging.getLogger("aiops")
 app = Flask(__name__)
 
 # ── Config (env) ──────────────────────────────────────────────────────────────
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq").lower()
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL", "")
-
-# Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-GEMINI_API_BASE = os.getenv(
-    "GEMINI_API_BASE", "https://generativelanguage.googleapis.com/v1beta"
-)
-
-# Groq — OpenAI-compatible chat API (free tier, no card, works internationally).
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-GROQ_API_BASE = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")
-
-# Ollama — also OpenAI-compatible (/v1/chat/completions). Wired now so the
-# eventual switch to a self-hosted model is just LLM_PROVIDER=ollama + a base URL.
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
-OLLAMA_API_BASE = os.getenv("OLLAMA_API_BASE", "http://localhost:11434/v1")
-
+WEBHOOK_TOKEN = os.getenv("WEBHOOK_TOKEN", "")
 HTTP_TIMEOUT = float(os.getenv("HTTP_TIMEOUT", "20"))
+
+# Each provider is an OpenAI-compatible endpoint: (base_url, model, api_key).
+_PROVIDERS = {
+    "groq": (
+        os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1"),
+        os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+        os.getenv("GROQ_API_KEY", ""),
+    ),
+    "gemini": (
+        os.getenv("GEMINI_API_BASE", "https://generativelanguage.googleapis.com/v1beta/openai"),
+        os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+        os.getenv("GEMINI_API_KEY", ""),
+    ),
+    "ollama": (
+        os.getenv("OLLAMA_API_BASE", "http://localhost:11434/v1"),
+        os.getenv("OLLAMA_MODEL", "llama3.2:3b"),
+        "",  # local, no key
+    ),
+}
+
+# Forecast model bounds.
+MIN_HISTORY_DAYS = 5
+MAX_HORIZON_DAYS = 31
+
+_WEEKDAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 PROMPT_TEMPLATE = """You are an SRE on-call assistant for the DashTab platform \
 (a restaurant OS: .NET API, Next.js, PostgreSQL, Redis, RabbitMQ, Keycloak, \
@@ -66,6 +84,19 @@ Alert:
 - description: {description}
 """
 
+if not WEBHOOK_TOKEN:
+    log.warning("WEBHOOK_TOKEN not set — /alert and /forecast accept unauthenticated requests")
+
+
+def require_token(fn):
+    """Bearer-token guard. No-op unless WEBHOOK_TOKEN is configured."""
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if WEBHOOK_TOKEN and request.headers.get("Authorization") != f"Bearer {WEBHOOK_TOKEN}":
+            return jsonify({"error": "unauthorized"}), 401
+        return fn(*args, **kwargs)
+    return wrapper
+
 
 def build_prompt(alert: dict) -> str:
     labels = alert.get("labels", {})
@@ -81,26 +112,13 @@ def build_prompt(alert: dict) -> str:
     )
 
 
-def call_gemini(prompt: str) -> str:
-    url = f"{GEMINI_API_BASE}/models/{GEMINI_MODEL}:generateContent"
-    resp = requests.post(
-        url,
-        params={"key": GEMINI_API_KEY},
-        json={"contents": [{"parts": [{"text": prompt}]}]},
-        timeout=HTTP_TIMEOUT,
-    )
-    if not resp.ok:
-        # Raise a sanitized error: requests' default HTTPError embeds the full
-        # URL (incl. ?key=...), which would leak the API key into logs. The error
-        # body is JSON without the key; cap it just in case.
-        raise RuntimeError(f"Gemini API {resp.status_code}: {resp.text[:300]}")
-    data = resp.json()
-    # candidates[0].content.parts[0].text
-    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+def call_llm(prompt: str) -> str:
+    """Call the configured provider's OpenAI-compatible /chat/completions."""
+    try:
+        base, model, api_key = _PROVIDERS[LLM_PROVIDER]
+    except KeyError as e:
+        raise ValueError(f"unsupported LLM_PROVIDER: {LLM_PROVIDER}") from e
 
-
-def call_openai_compatible(prompt: str, base: str, model: str, api_key: str) -> str:
-    """Call any OpenAI-compatible /chat/completions endpoint (Groq, Ollama, …)."""
     headers = {"Content-Type": "application/json"}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
@@ -111,19 +129,9 @@ def call_openai_compatible(prompt: str, base: str, model: str, api_key: str) -> 
         timeout=HTTP_TIMEOUT,
     )
     if not resp.ok:
-        # Body has no key; the key is only ever in the Authorization header.
+        # The API key only ever travels in the Authorization header, never the body.
         raise RuntimeError(f"LLM API {resp.status_code}: {resp.text[:300]}")
     return resp.json()["choices"][0]["message"]["content"].strip()
-
-
-def call_llm(prompt: str) -> str:
-    if LLM_PROVIDER == "gemini":
-        return call_gemini(prompt)
-    if LLM_PROVIDER == "groq":
-        return call_openai_compatible(prompt, GROQ_API_BASE, GROQ_MODEL, GROQ_API_KEY)
-    if LLM_PROVIDER == "ollama":
-        return call_openai_compatible(prompt, OLLAMA_API_BASE, OLLAMA_MODEL, "")
-    raise ValueError(f"unsupported LLM_PROVIDER: {LLM_PROVIDER}")
 
 
 def post_to_slack(text: str) -> None:
@@ -145,51 +153,46 @@ def raw_fallback(alert: dict) -> str:
 
 
 @app.post("/alert")
+@require_token
 def alert():
-    """Alertmanager webhook receiver."""
-    payload = request.get_json(force=True, silent=True) or {}
+    """Alertmanager webhook receiver. NOTE: a large alert batch makes one LLM call
+    per alert sequentially — keep batches small or gunicorn's --timeout may trip."""
+    payload = request.get_json(silent=True)
+    if payload is None:
+        return jsonify({"error": "invalid or missing JSON body"}), 400
     alerts = payload.get("alerts", [])
     log.info("received %d alert(s)", len(alerts))
 
-    processed = 0
+    posted = 0
     for a in alerts:
         name = a.get("labels", {}).get("alertname", "alert")
         try:
             triage = call_llm(build_prompt(a))
             header = f":rotating_light: *[{a.get('status', 'firing').upper()}] {name}* — AI triage"
             post_to_slack(f"{header}\n{triage}")
-        except Exception as e:  # noqa: BLE001 — never let one alert kill the batch
-            log.exception("triage failed for %s: %s", name, e)
+            posted += 1
+        except Exception:  # noqa: BLE001 — never let one alert kill the batch
+            log.exception("triage failed for %s", name)
             try:
                 post_to_slack(raw_fallback(a))
+                posted += 1
             except Exception:  # noqa: BLE001
                 log.exception("slack fallback also failed for %s", name)
-        processed += 1
 
-    return jsonify({"received": len(alerts), "processed": processed}), 200
+    return jsonify({"received": len(alerts), "posted": posted}), 200
 
 
 @app.get("/healthz")
 def healthz():
-    model = {"gemini": GEMINI_MODEL, "groq": GROQ_MODEL, "ollama": OLLAMA_MODEL}.get(
-        LLM_PROVIDER, "?"
-    )
+    _, model, _ = _PROVIDERS.get(LLM_PROVIDER, ("", "?", ""))
     return jsonify({"status": "ok", "provider": LLM_PROVIDER, "model": model}), 200
 
 
 # ── Revenue forecast (ML) ─────────────────────────────────────────────────────
-# Stateless least-squares model: fits a trend + day-of-week seasonality on a
-# restaurant's daily revenue history and projects the next N days. The backend
-# (which owns the data + tenancy) sends the already tenant-scoped history here;
-# this service never touches the database. NumPy only — no scipy/scikit needed,
-# so it installs cleanly on the Alpine image (musllinux wheels).
-import numpy as np  # noqa: E402
-from datetime import datetime, timedelta  # noqa: E402
+# The backend (which owns the data + tenancy) sends already tenant-scoped daily
+# revenue; this service never touches the database.
 
-_WEEKDAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-
-
-def _feature_row(index: int, dt: datetime) -> list:
+def _feature_row(index: int, dt: datetime) -> list[float]:
     # [intercept, trend index, Mon..Sat one-hot] — Sunday is the baseline.
     dow = dt.weekday()
     onehot = [1.0 if dow == k else 0.0 for k in range(6)]
@@ -197,22 +200,24 @@ def _feature_row(index: int, dt: datetime) -> list:
 
 
 @app.post("/forecast")
+@require_token
 def forecast():
     """Revenue forecast.
 
-    Expects: { "history": [{"date": "2026-05-01", "revenue": 1234.5}, ...],
-               "horizon": 7 }
+    Expects: { "history": [{"date": "2026-05-01", "revenue": 1234.5}, ...], "horizon": 7 }
     Returns: { "forecast": [{"date","day","predicted","lower","upper"}], "message": null }
     """
-    body = request.get_json(force=True, silent=True) or {}
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify({"error": "invalid or missing JSON body"}), 400
     history = body.get("history", [])
     try:
-        horizon = max(1, min(31, int(body.get("horizon", 7))))
+        horizon = max(1, min(MAX_HORIZON_DAYS, int(body.get("horizon", 7))))
     except (TypeError, ValueError):
         horizon = 7
 
     valid = [h for h in history if h.get("date") and h.get("revenue") is not None]
-    if len(valid) < 5:
+    if len(valid) < MIN_HISTORY_DAYS:
         return jsonify({"forecast": [], "message": "Not enough order history yet to forecast."}), 200
 
     try:
@@ -243,8 +248,8 @@ def forecast():
             })
 
         return jsonify({"forecast": out, "message": None}), 200
-    except Exception as e:  # noqa: BLE001 — never 500 the dashboard over a bad series
-        log.exception("forecast failed: %s", e)
+    except Exception:  # noqa: BLE001 — never 500 the dashboard over a bad series
+        log.exception("forecast failed")
         return jsonify({"forecast": [], "message": "Could not compute a forecast."}), 200
 
 

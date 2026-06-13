@@ -56,9 +56,8 @@ spec:
                   set -eu
                   TS=$(date +%Y%m%d-%H%M%S)
                   echo "Dumping $PGDATABASE from $PGHOST ..."
-                  pg_dump --no-owner --no-privileges -f /tmp/dump.sql
-                  gzip -c /tmp/dump.sql > /work/backup.sql.gz
-                  rm -f /tmp/dump.sql
+                  # Stream straight into gzip — no full uncompressed dump on disk.
+                  pg_dump --no-owner --no-privileges | gzip > /work/backup.sql.gz
                   echo "dashtab-${TS}.sql.gz" > /work/objname
                   echo "Dump ready: $(ls -lh /work/backup.sql.gz)"
               volumeMounts:

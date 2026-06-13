@@ -7,6 +7,12 @@ metadata:
     app.kubernetes.io/part-of: dashtab
 spec:
   replicas: 1  # SQLite backend — never scale above 1
+  # SQLite on a ReadWriteOnce volume: the default RollingUpdate would start the
+  # new pod before the old one releases the PVC → Multi-Attach error (different
+  # node) or two processes writing one DB file (same node). Recreate kills the
+  # old pod first.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/name: uptime-kuma
@@ -16,10 +22,19 @@ spec:
         app.kubernetes.io/name: uptime-kuma
         app.kubernetes.io/part-of: dashtab
     spec:
+      # NOTE: louislam/uptime-kuma runs as root by design (no supported non-root
+      # UID), so runAsNonRoot is intentionally not set — see .trivyignore (KSV-0012).
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: uptime-kuma
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: http
               containerPort: 3001

@@ -13,15 +13,19 @@ concurrency:
 on:
   push:
     branches: [main, development]
-  pull_request:
-    branches: [main, development]
   schedule:
     - cron: '27 3 * * 1'   # weekly Mon 03:27 UTC — re-scan against new CodeQL rules
+  workflow_dispatch:
+# Note: PR trigger intentionally dropped. CodeQL ran on both the PR and the
+# subsequent merge push (same commits, analyzed twice). Push keeps the default-
+# branch alert baseline fresh and the weekly cron catches new rules; this removes
+# the duplicate per-PR run (3 languages × every push) from the merge flow.
 
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       security-events: write   # upload SARIF results to the Security tab
       contents: read

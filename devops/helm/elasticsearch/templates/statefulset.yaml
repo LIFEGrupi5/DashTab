@@ -20,11 +20,19 @@ spec:
       # Elasticsearch runs as uid/gid 1000; fsGroup makes Kubernetes chown the
       # mounted PVC so ES can write to /usr/share/elasticsearch/data.
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
         fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: elasticsearch
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: discovery.type
               value: single-node          # dev mode → skips bootstrap checks (vm.max_map_count)

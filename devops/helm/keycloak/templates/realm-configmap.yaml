@@ -1,7 +1,10 @@
 # This wrapper chart adds ONE resource of its own: a ConfigMap holding the realm
 # export, which the Bitnami subchart mounts and imports on startup (see values.yaml).
-# .Files.Get reads files/ inside this chart dir — keep realm-export.json in sync
-# with devops/keycloak/realm-export.json (the Compose source of truth).
+# .Files.Get reads files/ inside this chart dir. NOTE: this prod realm
+# INTENTIONALLY differs from devops/keycloak/realm-export.json (the local/Compose
+# realm): prod ships NO seed `users` (owners self-register through the app), while
+# local keeps demo logins for dev convenience. Keep the clients / roles / IdP
+# config in sync between the two; never copy the local file's `users` array here.
 apiVersion: v1
 kind: ConfigMap
 metadata:

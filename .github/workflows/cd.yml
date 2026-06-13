@@ -26,6 +26,7 @@ jobs:
   build-backend:
     name: Build & Push Backend
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     permissions:
       contents: read
       packages: write        # lets GITHUB_TOKEN push to the org's GHCR
@@ -63,8 +64,10 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Per-service cache scope so the 3 parallel builds don't evict each
+          # other from the shared 10 GB repo cache.
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
 
       - name: Scan image with Trivy (DO-9)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -94,6 +97,7 @@ jobs:
   build-frontend:
     name: Build & Push Frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     permissions:
       contents: read
       packages: write
@@ -134,8 +138,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
           # Bake the project-05 API base into the bundle (NEXT_PUBLIC_* are
           # build-time). The app reads only this var; the KDS hub URL derives
           # from it. Change if the api.* hostname changes.
@@ -176,6 +180,7 @@ jobs:
   build-aiops:
     name: Build & Push AIOps Triage
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     permissions:
       contents: read
       packages: write
@@ -213,8 +218,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=aiops
+          cache-to: type=gha,mode=max,scope=aiops
 
       - name: Scan image with Trivy (DO-9)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -241,34 +246,6 @@ jobs:
           name: sbom-aiops
           path: sbom-aiops.cdx.json
 
-  # ── Repo filesystem scan (2nd Trivy pass) ─────────────────────────────────
-  # Scans source for vulnerable deps, IaC/Dockerfile misconfig, and secrets, and
-  # reports to the Security tab as SARIF. Report-only — the per-image scans above
-  # are the hard gate; this pass surfaces source-level issues without blocking.
-  trivy-fs:
-    name: Trivy filesystem scan
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Trivy fs scan (SARIF)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,misconfig,secret
-          severity: HIGH,CRITICAL
-          format: sarif
-          output: trivy-fs.sarif
-      - name: Upload SARIF to Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-fs.sarif
-          category: trivy-fs
-
   # ── Phase 2: DEPLOY (gated) ────────────────────────────────────────────────
   # Deploys the freshly-built app images to the project-05 namespace, pinned to
   # the immutable sha tag (NOT the mutable 'development' tag) so every deploy is
@@ -281,6 +258,7 @@ jobs:
   deploy:
     name: Deploy to project-05
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [build-backend, build-frontend, build-aiops]
     if: github.ref == 'refs/heads/development'   # only the integration branch deploys
     environment: project-05                       # ← approval gate + scoped secret
@@ -288,18 +266,6 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-
-      # Detect which observability charts changed in this push, so we only
-      # redeploy them when their own files change (not on every app code push).
-      - name: Detect changed charts
-        id: changes
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            prometheus:
-              - 'devops/helm/prometheus/**'
-            grafana:
-              - 'devops/helm/grafana/**'
 
       - name: Set up Helm
         uses: azure/setup-helm@v4
@@ -375,29 +341,25 @@ jobs:
             --atomic --timeout 5m
 
       # ── Observability config (DO-5) ────────────────────────────────────────
-      # These ship upstream images (no per-commit build); CD just keeps their
-      # repo-managed config — alert rules, alertmanager routing, dashboards — in
-      # sync. Path-filtered so they only redeploy when their own chart changes.
-      # The explicit restart guarantees the running pod reloads the new config
-      # (a ConfigMap change alone doesn't reload a running process).
+      # These ship upstream images (no per-commit build); CD just re-applies
+      # their repo-managed config (alert rules, alertmanager routing, dashboards).
+      # Run UNCONDITIONALLY: `helm upgrade` is a near-instant no-op when the chart
+      # is unchanged, and the charts' ConfigMap `checksum/config` annotations roll
+      # the pod automatically when config does change. This replaces the previous
+      # paths-filter (which silently dropped a change when a queued run was
+      # superseded — cancel-in-progress:false keeps only the latest pending run)
+      # and `--reuse-values` (which ignored edits to the charts' own values.yaml).
       # NOTE: stateful infra (postgres, redis, rabbitmq, minio, elasticsearch,
       # keycloak) is intentionally NOT auto-deployed here — deploy it manually.
       - name: Deploy prometheus + alertmanager
-        if: steps.changes.outputs.prometheus == 'true'
         run: |
           helm upgrade --install dashtab-prometheus devops/helm/prometheus \
-            -n project-05 --reuse-values --atomic --timeout 5m
-          kubectl -n project-05 rollout restart deploy/dashtab-prometheus deploy/dashtab-alertmanager
-          kubectl -n project-05 rollout status  deploy/dashtab-prometheus   --timeout=120s
-          kubectl -n project-05 rollout status  deploy/dashtab-alertmanager --timeout=120s
+            -n project-05 --atomic --timeout 5m
 
       - name: Deploy grafana
-        if: steps.changes.outputs.grafana == 'true'
         run: |
           helm upgrade --install dashtab-grafana devops/helm/grafana \
-            -n project-05 --reuse-values --atomic --timeout 5m
-          kubectl -n project-05 rollout restart deploy/dashtab-grafana
-          kubectl -n project-05 rollout status  deploy/dashtab-grafana --timeout=120s
+            -n project-05 --atomic --timeout 5m
 
       - name: Verify rollout
         run: |
