@@ -22,6 +22,7 @@ import {
 import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
 import { analytics, resetIdentity } from '@/lib/analytics';
+import { useRestaurantIdentity } from '@/hooks/useRestaurantIdentity';
 
 // Pulls the framer-motion animation features into a lazy chunk (see lib/motionFeatures).
 const loadMotionFeatures = () => import('@/lib/motionFeatures').then(m => m.default);
@@ -74,6 +75,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const toggleSidebar = useAppStore(s => s.toggleSidebar);
   const darkMode = useAppStore(s => s.darkMode);
   const setDarkMode = useAppStore(s => s.setDarkMode);
+
+  useRestaurantIdentity();
 
   const isWaiter = user?.role === 'waiter';
   const isKitchenStaff = user?.role === 'kitchen';
