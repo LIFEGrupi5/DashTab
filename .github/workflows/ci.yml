@@ -60,7 +60,7 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.x
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
@@ -90,7 +90,7 @@ jobs:
           cache-dependency-path: src/frontend/package-lock.json
       # Next.js incremental compiler cache — restore the latest, save a fresh
       # entry each run. Cuts warm builds substantially.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: src/frontend/.next/cache
           key: ${{ runner.os }}-nextjs-${{ hashFiles('src/frontend/package-lock.json') }}-${{ github.sha }}
@@ -128,7 +128,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('src/frontend/package-lock.json') }}
