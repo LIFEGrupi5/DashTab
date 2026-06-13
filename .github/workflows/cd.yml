@@ -29,7 +29,8 @@ jobs:
     timeout-minutes: 25
     permissions:
       contents: read
-      packages: write        # lets GITHUB_TOKEN push to the org's GHCR
+      packages: write          # lets GITHUB_TOKEN push to the org's GHCR
+      security-events: write   # upload Trivy SARIF to the Security tab
     steps:
       - uses: actions/checkout@v4
 
@@ -81,6 +82,24 @@ jobs:
           exit-code: '1'
           format: table
 
+      - name: Trivy SARIF report (Security tab)
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-backend@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-backend.sarif
+          exit-code: '0'        # report-only; the gate above already fails the build
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend
+
       - name: Generate SBOM (CycloneDX)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -101,6 +120,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write   # upload Trivy SARIF to the Security tab
     steps:
       - uses: actions/checkout@v4
 
@@ -160,6 +180,24 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           format: table
+
+      - name: Trivy SARIF report (Security tab)
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-frontend@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-frontend.sarif
+          exit-code: '0'        # report-only; the gate above already fails the build
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend
           # Skip npm's own bundled packages — these are part of the base image's
           # system npm, not our application code. Our app runs as `node server.js`
           # and never invokes npm at runtime.
@@ -186,6 +224,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      security-events: write   # upload Trivy SARIF to the Security tab
     steps:
       - uses: actions/checkout@v4
 
@@ -234,6 +273,24 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
           format: table
+
+      - name: Trivy SARIF report (Security tab)
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-aiops-triage@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-aiops.sarif
+          exit-code: '0'        # report-only; the gate above already fails the build
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-aiops.sarif
+          category: trivy-aiops
 
       - name: Generate SBOM (CycloneDX)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -371,3 +428,23 @@ jobs:
           kubectl -n project-05 rollout status deploy/dashtab-backend --timeout=120s
           kubectl -n project-05 rollout status deploy/dashtab-frontend --timeout=120s
           kubectl -n project-05 rollout status deploy/dashtab-aiops-triage --timeout=120s
+
+      # Functional smoke test through the PUBLIC ingress — rollout status only
+      # proves pods are Running, not that the app actually serves. Exercises the
+      # real path: DNS → ingress → TLS → pod → readiness (+ a frontend fetch).
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          echo "Backend readiness via https://api.project-05.gjirafa.dev/health/ready"
+          for i in $(seq 1 10); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 \
+              https://api.project-05.gjirafa.dev/health/ready || true)
+            [ "$code" = "200" ] && { echo "backend OK"; break; }
+            echo "attempt $i: backend returned $code, retrying…"; sleep 6
+            [ "$i" = "10" ] && { echo "::error::backend /health/ready never returned 200"; exit 1; }
+          done
+          echo "Frontend via https://app.project-05.gjirafa.dev/"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 \
+            https://app.project-05.gjirafa.dev/ || true)
+          [ "$code" = "200" ] || { echo "::error::frontend returned $code"; exit 1; }
+          echo "Smoke test passed."

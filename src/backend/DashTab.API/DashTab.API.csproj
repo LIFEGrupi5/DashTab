@@ -28,6 +28,8 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.4" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="1.3.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <!-- Prometheus HTTP RED metrics, served on a dedicated scrape port -->
+    <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
     <PackageReference Include="Serilog.Sinks.Elasticsearch" Version="10.0.0" />
