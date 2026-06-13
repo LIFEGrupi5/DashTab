@@ -4,12 +4,12 @@ using DashTab.API.Middleware;
 using DashTab.API.Realtime;
 using DashTab.Infrastructure.Middleware;
 using DashTab.Application.Interfaces;
+using DashTab.Infrastructure.Services;
 using DashTab.Application.Mappings;
 using DashTab.Application.Validators;
 using DashTab.Infrastructure.Caching;
 using DashTab.Infrastructure.Messaging;
 using DashTab.Infrastructure.Persistence;
-using DashTab.Infrastructure.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -298,6 +298,15 @@ builder.Services.AddHangfire(cfg => cfg
 builder.Services.AddHangfireServer();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<OrderEmailJob>();
+
+// ── Feature flags (Unleash) ───────────────────────────────────────────────────
+// Fail-open: when credentials are absent (local dev), NullFeatureFlags enables all flags.
+var unleashUrl = builder.Configuration["Unleash:ServerApiUrl"];
+var unleashToken = builder.Configuration["Unleash:ServerApiToken"];
+if (!string.IsNullOrWhiteSpace(unleashUrl) && !string.IsNullOrWhiteSpace(unleashToken))
+    builder.Services.AddSingleton<IFeatureFlags>(new UnleashFeatureFlags(unleashUrl, unleashToken));
+else
+    builder.Services.AddSingleton<IFeatureFlags, NullFeatureFlags>();
 
 // ── Mappers (Mapperly-generated, stateless) ──────────────────────────────────
 builder.Services.AddSingleton<MenuCategoryMapper>();
