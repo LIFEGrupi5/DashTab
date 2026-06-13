@@ -14,7 +14,8 @@ public class MenuItemService(
     ICacheService cache,
     MenuItemMapper mapper,
     IStorageService storage,
-    ICurrentUser currentUser) : IMenuItemService
+    ICurrentUser currentUser,
+    IRecommendationService recommendation) : IMenuItemService
 {
     private static readonly TimeSpan ItemTtl = TimeSpan.FromMinutes(5);
 
@@ -96,6 +97,10 @@ public class MenuItemService(
             CacheKeys.MenuItemsByCategory(rid, item.CategoryId),
         });
 
+        // Fire-and-forget: generate the embedding so the item is immediately
+        // searchable by the AI recommendation feature. Never blocks the response.
+        _ = recommendation.EmbedItemAsync(item.Id);
+
         return ToDto(item);
     }
 
@@ -123,6 +128,9 @@ public class MenuItemService(
         if (oldCategoryId != item.CategoryId)
             keys.Add(CacheKeys.MenuItemsByCategory(rid, oldCategoryId));
         await cache.RemoveManyAsync(keys);
+
+        // Re-embed when name or description changes so the vector stays accurate.
+        _ = recommendation.EmbedItemAsync(item.Id);
 
         return ToDto(item);
     }

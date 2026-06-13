@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Pgvector.EntityFrameworkCore;
 using Testcontainers.Keycloak;
 using Testcontainers.PostgreSql;
 
@@ -19,7 +20,7 @@ public class KeycloakDashTabApiFactory : WebApplicationFactory<Program>, IAsyncL
     public KeycloakDashTabApiFactory()
     {
         _postgres = new PostgreSqlBuilder()
-            .WithImage("postgres:16-alpine")
+            .WithImage("pgvector/pgvector:pg16")
             .Build();
 
         // Resolve the realm export path at construction time so the field initializer
@@ -72,7 +73,7 @@ public class KeycloakDashTabApiFactory : WebApplicationFactory<Program>, IAsyncL
 
             services.AddDbContext<DashTabDbContext>(options =>
                 options
-                    .UseNpgsql(_postgres.GetConnectionString())
+                    .UseNpgsql(_postgres.GetConnectionString(), o => o.UseVector())
                     .UseSnakeCaseNamingConvention());
 
             // No TestAuthHandler — real JwtBearerHandler runs against real Keycloak

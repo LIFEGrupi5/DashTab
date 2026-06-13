@@ -29,6 +29,7 @@ public class RestaurantContextMiddleware(RequestDelegate next)
         "/api/v1/auth",
         "/api/v1/subscriptions",
         "/api/v1/restaurants/register",
+        "/api/v1/public",
         "/health",
         "/hangfire",
         "/swagger",
