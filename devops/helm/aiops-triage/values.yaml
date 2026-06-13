@@ -48,7 +48,7 @@ startupProbe:
 
 # readOnlyRootFilesystem — when true the root FS is read-only with an emptyDir at
 # /tmp. Verify the service's writable paths before enabling.
-readOnlyRootFilesystem: false
+readOnlyRootFilesystem: true
 
 # NetworkPolicy — default-deny + allow-list. Namespaced; only ENFORCED on a CNI
 # that supports it. Off by default. egressInternet is ON here because the triage

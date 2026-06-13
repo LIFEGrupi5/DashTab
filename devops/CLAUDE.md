@@ -19,11 +19,9 @@ devops/
     elasticsearch/ kibana/    # Centralised log aggregation
     postgresql/ pgbouncer/ redis/ rabbitmq/ minio/ keycloak/  # Bitnami wrappers
   aiops/         # AIOps triage service (Flask webhook → Groq LLM → Slack)
-  k8s/           # Legacy Kustomize placeholders — superseded by helm/
-  infra/         # IaC placeholder (Terraform/Bicep — not yet populated)
 ```
 
-> CI/CD pipelines live in **`.github/workflows/`** — not in `devops/ci/`.
+> CI/CD pipelines live in **`.github/workflows/`**.
 
 ## Current State
 
@@ -61,7 +59,9 @@ Production URLs: `api.project-05.gjirafa.dev` · `app.project-05.gjirafa.dev` ·
 
 ### Helm (Kubernetes)
 
-All charts are in `devops/helm/`. Deploy to the cluster via:
+All charts are in `devops/helm/`. The `make helm-*` targets deploy to a **local
+minikube** (namespace `dashtab`); the **project-05 cluster** is deployed only by
+`cd.yml` (with `values-project05.yaml` + Key Vault secrets). Local commands:
 ```bash
 # Lint all charts
 make helm-lint
@@ -82,7 +82,11 @@ Secrets are injected at deploy time from **Azure Key Vault** (`kv-dashtab-p05`) 
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `backend-ci.yml` | push/PR on `src/backend/**` | restore → build → test |
-| `frontend-ci.yml` | push/PR on `src/frontend/**` | lint → build → unit → e2e → Lighthouse |
-| `cd.yml` | push to `development` or `v*` tag | build 3 images → Trivy scan → gated deploy to project-05 |
+| `ci.yml` | push/PR (paths-aware) | one workflow: backend (build+test), frontend (lint+build+unit+e2e+Lighthouse), aiops (lint+test+docker) run only when that area changed, aggregated into a single required **`ci-pass`** check |
+| `cd.yml` | push to `development` or `v*` tag | build 3 images → Trivy scan + SBOM → **atomic** gated deploy to project-05 |
+| `secret-scan.yml` | PR + weekly | TruffleHog (PR diff) + gitleaks & full-history (scheduled) + Trivy `fs`→SARIF |
+| `codeql.yml` | push + weekly | CodeQL SAST (C# / JS-TS / Python) |
+| `dast.yml` | weekly + manual | OWASP ZAP baseline scan of `app.project-05` |
 | `release.yml` | push to `development` | release-please: bump version + generate CHANGELOG |
+
+Branch protection on `development` should require the single **`ci-pass`** check.

@@ -1,13 +1,14 @@
 # AIOps Alert Triage (DO-12)
 
 A small webhook service that sits between **Alertmanager** and **Slack**. When an
-alert fires, it asks an LLM (Google **Gemini** by default) to triage it — likely
+alert fires, it asks an LLM (**Groq** by default in prod; Gemini and Ollama are
+also supported — all via one OpenAI-compatible call path) to triage it — likely
 root cause, severity, and the first action to take — then posts that analysis to
-Slack.
+Slack. It also exposes a small revenue-**forecast** endpoint the backend calls.
 
 ```
-Prometheus ──> Alertmanager ──webhook──> aiops-triage ──> Gemini ──> Slack
-   (rules)        (routing)              (this service)    (LLM)    (#alerts)
+Prometheus ──> Alertmanager ──webhook──> aiops-triage ──> LLM ──> Slack
+   (rules)        (routing)              (this service)   (Groq)  (#alerts)
 ```
 
 This is the DO-5 alerting chain with an **LLM inserted right before Slack**: the
@@ -26,14 +27,17 @@ never lost.
 
 | Var | Required | Default | Purpose |
 |-----|----------|---------|---------|
-| `SLACK_WEBHOOK_URL` | yes | – | Slack incoming-webhook URL to post to |
-| `GEMINI_API_KEY` | yes | – | Google AI Studio API key |
-| `LLM_PROVIDER` | no | `gemini` | LLM backend (extension point for openai/ollama) |
-| `GEMINI_MODEL` | no | `gemini-2.0-flash` | Gemini model id |
-| `GEMINI_API_BASE` | no | Google endpoint | Override for a proxy/compatible API |
+| `SLACK_WEBHOOK_URL` | for Slack | – | Slack incoming-webhook URL to post to |
+| `LLM_PROVIDER` | no | `groq` | `groq` \| `gemini` \| `ollama` |
+| `GROQ_API_KEY` | if provider=groq | – | Groq API key |
+| `GROQ_MODEL` | no | `llama-3.3-70b-versatile` | Groq model id |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | if provider=gemini | – / `gemini-2.0-flash` | Gemini (via its OpenAI-compatible endpoint) |
+| `OLLAMA_API_BASE` / `OLLAMA_MODEL` | if provider=ollama | `http://localhost:11434/v1` / `llama3.2:3b` | self-hosted |
+| `WEBHOOK_TOKEN` | no | – | if set, require `Authorization: Bearer <token>` on POST endpoints |
+| `HTTP_TIMEOUT` | no | `20` | per-call timeout (s) |
 | `PORT` | no | `8080` | Listen port |
 
-Endpoints: `POST /alert` (Alertmanager webhook) · `GET /healthz` (probe).
+Endpoints: `POST /alert` (Alertmanager webhook) · `POST /forecast` (revenue forecast, called by the backend) · `GET /healthz` (probe).
 
 ## Run locally
 
@@ -59,7 +63,7 @@ seconds. (Omitting the keys still returns `200` — it exercises the raw fallbac
 The image is built and pushed by `.github/workflows/cd.yml` (job
 `build-aiops` → `ghcr.io/lifegrupi5/dashtab-aiops-triage`) and deployed by the
 gated `deploy` job. Secrets come from the **project-05 GitHub Environment** —
-add `GEMINI_API_KEY` and `SLACK_WEBHOOK_URL` there.
+add `GROQ_API_KEY` and `SLACK_WEBHOOK_URL` there.
 
 Manual deploy (same as the pipeline):
 
@@ -67,7 +71,7 @@ Manual deploy (same as the pipeline):
 helm upgrade --install dashtab-aiops-triage devops/helm/aiops-triage \
   -n project-05 -f devops/helm/aiops-triage/values-project05.yaml \
   --set image.tag=latest \
-  --set secret.GEMINI_API_KEY="$GEMINI_API_KEY" \
+  --set secret.GROQ_API_KEY="$GROQ_API_KEY" \
   --set secret.SLACK_WEBHOOK_URL="$SLACK_WEBHOOK_URL"
 ```
 

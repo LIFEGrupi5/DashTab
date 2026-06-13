@@ -61,7 +61,7 @@ startupProbe:
 # readOnlyRootFilesystem — when true the root FS is read-only and an emptyDir is
 # mounted at /tmp. Next.js standalone may also write .next/cache; verify before
 # enabling in prod.
-readOnlyRootFilesystem: false
+readOnlyRootFilesystem: true
 
 # NetworkPolicy — default-deny + allow-list. Namespaced; only ENFORCED on a CNI
 # that supports it (verify on-cluster). Off by default so it can't break traffic.

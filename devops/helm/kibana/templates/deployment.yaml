@@ -16,10 +16,20 @@ spec:
         app.kubernetes.io/name: kibana
         app.kubernetes.io/part-of: dashtab
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000         # kibana — elastic image's default user
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: kibana
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: ELASTICSEARCH_HOSTS
               value: {{ .Values.elasticsearchUrl | quote }}
