@@ -21,10 +21,8 @@ namespace DashTab.Infrastructure.Migrations
                 nullable: true);
 
             // HNSW index for fast approximate cosine-similarity search.
-            // Allows semantic queries to run in milliseconds rather than doing
-            // a full table scan across all menu items.
             migrationBuilder.Sql(@"
-                CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_menu_items_embedding_hnsw
+                CREATE INDEX IF NOT EXISTS ix_menu_items_embedding_hnsw
                 ON menu_items
                 USING hnsw (embedding vector_cosine_ops);");
         }
