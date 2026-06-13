@@ -55,7 +55,7 @@ public class RecommendationService(
                         && !m.IsDeleted
                         && m.Embedding != null)
             .OrderBy(m => m.Embedding!.CosineDistance(queryVector))
-            .Take(3)
+            .Take(5)
             .Select(m => new RecommendedItemDto(m.Name, m.Description, m.Price, m.ImageObjectKey))
             .ToListAsync(ct);
 
@@ -166,9 +166,9 @@ public class RecommendationService(
             {
                 new { role = "system", content =
                     "You are a friendly, knowledgeable waiter. The customer has told you their craving. " +
-                    "Recommend only the dishes from the list that GENUINELY match the craving — it is fine to recommend just 1 dish. " +
-                    "If none match well, honestly say so and suggest the closest option. " +
-                    "Be warm and specific — mention the dish name. Keep it under 80 words. Never invent dishes." },
+                    "Recommend 1 to 3 dishes from the list that GENUINELY match — mention each dish by name. " +
+                    "If the menu has multiple good matches, suggest them all. If only one fits, recommend just that one. " +
+                    "Be warm and concise. Keep it under 100 words. Never invent dishes not on the list." },
                 new { role = "user", content =
                     $"The customer says: \"{query}\"\n\nAvailable dishes:\n{itemList}" },
             };
