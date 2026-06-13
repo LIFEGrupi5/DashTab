@@ -62,21 +62,32 @@ function fmtTime(t: string): string {
 
 // ── Shift cell modal ──────────────────────────────────────────────────────────
 
+const DAY_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const DAY_KEYS   = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
 function ShiftModal({
+  day,
   shift,
   onSave,
   onMarkDayOff,
   onDelete,
   onClose,
 }: {
+  day: string;
   shift: WorkShift | null;
-  onSave: (start: string, end: string) => void;
+  onSave: (start: string, end: string, extraDays: string[]) => void;
   onMarkDayOff: () => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
-  const [start, setStart] = useState(shift && !shift.isDayOff ? fmtTime(shift.startTime) : '09:00');
-  const [end,   setEnd]   = useState(shift && !shift.isDayOff ? fmtTime(shift.endTime)   : '17:00');
+  const [start,     setStart]     = useState(shift && !shift.isDayOff ? fmtTime(shift.startTime) : '09:00');
+  const [end,       setEnd]       = useState(shift && !shift.isDayOff ? fmtTime(shift.endTime)   : '17:00');
+  const [extraDays, setExtraDays] = useState<string[]>([]);
+
+  function toggleDay(d: string) {
+    if (d === day) return;
+    setExtraDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
@@ -97,6 +108,31 @@ function ShiftModal({
               <input type="time" value={end} onChange={e => setEnd(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-border bg-neutral-50 dark:bg-background text-sm focus:outline-none focus:ring-2 focus:ring-orange-500" />
             </div>
+            <div>
+              <label className="block text-xs font-medium text-neutral-500 dark:text-muted-foreground mb-2">Apply to</label>
+              <div className="flex justify-between">
+                {DAY_KEYS.map((d, i) => {
+                  const isPrimary  = d === day;
+                  const isSelected = isPrimary || extraDays.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => toggleDay(d)}
+                      className={`w-8 h-8 rounded-full text-xs font-bold transition ${
+                        isPrimary
+                          ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-300 border border-orange-300 dark:border-orange-700 cursor-default'
+                          : isSelected
+                            ? 'bg-orange-500 text-white border border-orange-500'
+                            : 'bg-neutral-100 dark:bg-muted text-neutral-500 dark:text-muted-foreground border border-neutral-200 dark:border-border hover:border-orange-300 hover:text-orange-500'
+                      }`}
+                    >
+                      {DAY_LABELS[i]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
@@ -108,10 +144,10 @@ function ShiftModal({
 
         <div className="flex flex-col gap-2">
           {!shift?.isDayOff && (
-            <Button fullWidth onClick={() => onSave(start, end)}>Save shift</Button>
+            <Button fullWidth onClick={() => onSave(start, end, extraDays)}>Save shift</Button>
           )}
           {shift?.isDayOff && (
-            <Button fullWidth onClick={() => onSave(start, end)}>Set shift instead</Button>
+            <Button fullWidth onClick={() => onSave(start, end, [])}>Set shift instead</Button>
           )}
           {!shift?.isDayOff && (
             <button type="button" onClick={onMarkDayOff}
@@ -140,7 +176,7 @@ export default function ManagerSchedulePage() {
   // Modal state: which cell is open
   const [modal, setModal] = useState<{ userId: string; userName: string; day: string; shift: WorkShift | null } | null>(null);
 
-  const { data: users = [] }  = useUsers();
+  const { data: users = [] } = useUsers();
   const { data: shifts = [] } = useWeekShifts(weekStart);
   const { data: requests = [] } = useShiftRequests();
 
@@ -164,23 +200,38 @@ export default function ManagerSchedulePage() {
     setModal({ userId, userName, day, shift: existing });
   }
 
-  async function handleSave(start: string, end: string) {
+  async function handleSave(start: string, end: string, extraDays: string[]) {
     if (!modal) return;
     const { userId, day, shift } = modal;
 
-    if (shift) {
-      updateShift.mutate(
-        { id: shift.id, startTime: start + ':00', endTime: end + ':00', isDayOff: false },
-        { onSuccess: () => { toast.success('Shift updated'); setModal(null); },
-          onError: () => toast.error('Failed to update shift') },
-      );
-    } else {
-      createShift.mutate(
-        { userId, weekStartDate: weekStart, dayOfWeek: day, startTime: start + ':00', endTime: end + ':00', isDayOff: false },
-        { onSuccess: () => { toast.success('Shift added'); setModal(null); },
-          onError: () => toast.error('Failed to add shift') },
-      );
+    const allDays = [day, ...extraDays];
+    let failed = false;
+
+    for (const d of allDays) {
+      const existing = d === day ? shift : (getShift(userId, d) ?? null);
+      if (existing) {
+        await new Promise<void>(resolve =>
+          updateShift.mutate(
+            { id: existing.id, startTime: start + ':00', endTime: end + ':00', isDayOff: false },
+            { onSuccess: () => resolve(), onError: () => { failed = true; resolve(); } },
+          ),
+        );
+      } else {
+        await new Promise<void>(resolve =>
+          createShift.mutate(
+            { userId, weekStartDate: weekStart, dayOfWeek: d, startTime: start + ':00', endTime: end + ':00', isDayOff: false },
+            { onSuccess: () => resolve(), onError: () => { failed = true; resolve(); } },
+          ),
+        );
+      }
     }
+
+    if (failed) {
+      toast.error('Some shifts could not be saved');
+    } else {
+      toast.success(allDays.length > 1 ? `Shifts saved for ${allDays.length} days` : 'Shift saved');
+    }
+    setModal(null);
   }
 
   async function handleMarkDayOff() {
@@ -364,6 +415,7 @@ export default function ManagerSchedulePage() {
       {/* Shift modal */}
       {modal && (
         <ShiftModal
+          day={modal.day}
           shift={modal.shift}
           onSave={handleSave}
           onMarkDayOff={handleMarkDayOff}
