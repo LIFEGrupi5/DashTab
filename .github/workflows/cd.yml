@@ -337,6 +337,8 @@ jobs:
           echo "BACKEND_STORAGE_ACCESSKEY=$(get backend-storage-accesskey)" >> "$GITHUB_ENV"
           echo "::add-mask::$(get backend-storage-secretkey)"
           echo "BACKEND_STORAGE_SECRETKEY=$(get backend-storage-secretkey)" >> "$GITHUB_ENV"
+          echo "::add-mask::$(get backend-openai-apikey)"
+          echo "BACKEND_OPENAI_APIKEY=$(get backend-openai-apikey)"         >> "$GITHUB_ENV"
 
       - name: Deploy backend
         run: |
@@ -348,6 +350,7 @@ jobs:
             --set "secrets.ConnectionStrings__RabbitMQ=$BACKEND_CONN_RABBITMQ" \
             --set "secrets.Storage__AccessKey=$BACKEND_STORAGE_ACCESSKEY" \
             --set "secrets.Storage__SecretKey=$BACKEND_STORAGE_SECRETKEY" \
+            --set "secrets.OpenAI__ApiKey=$BACKEND_OPENAI_APIKEY" \
             --atomic --timeout 5m
 
       - name: Deploy frontend
