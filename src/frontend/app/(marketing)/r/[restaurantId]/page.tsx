@@ -158,7 +158,11 @@ export default function RecommendPage({
             </div>
 
             <div className="space-y-3">
-              {items.map((item, i) => <ItemCard key={i} item={item} />)}
+              {/* Only show items the LLM actually mentioned by name in its blurb.
+                  Falls back to all items when there's no blurb (key not set). */}
+              {items
+                .filter(item => !message || message.toLowerCase().includes(item.name.toLowerCase()))
+                .map((item, i) => <ItemCard key={i} item={item} />)}
             </div>
 
             <p className="text-center text-xs text-stone-600 mt-8">

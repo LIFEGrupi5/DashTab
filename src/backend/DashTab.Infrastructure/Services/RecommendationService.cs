@@ -46,6 +46,8 @@ public class RecommendationService(
 
         // 2b. Cosine similarity search — explicitly scoped to this restaurant's menu.
         // IgnoreQueryFilters because CurrentTenantId is null for anonymous requests.
+        // Take top 3 closest — the LLM decides which to actually recommend from those.
+        // With rich menu descriptions, irrelevant items naturally rank much lower.
         var matches = await db.MenuItems
             .IgnoreQueryFilters()
             .Where(m => m.RestaurantId == restaurantId
@@ -53,7 +55,7 @@ public class RecommendationService(
                         && !m.IsDeleted
                         && m.Embedding != null)
             .OrderBy(m => m.Embedding!.CosineDistance(queryVector))
-            .Take(5)
+            .Take(3)
             .Select(m => new RecommendedItemDto(m.Name, m.Description, m.Price, m.ImageObjectKey))
             .ToListAsync(ct);
 
@@ -164,8 +166,9 @@ public class RecommendationService(
             {
                 new { role = "system", content =
                     "You are a friendly, knowledgeable waiter. The customer has told you their craving. " +
-                    "Recommend 1-3 dishes from the list provided. Be warm and specific — mention the dish name. " +
-                    "Keep it under 80 words. Only recommend from the provided list." },
+                    "Recommend only the dishes from the list that GENUINELY match the craving — it is fine to recommend just 1 dish. " +
+                    "If none match well, honestly say so and suggest the closest option. " +
+                    "Be warm and specific — mention the dish name. Keep it under 80 words. Never invent dishes." },
                 new { role = "user", content =
                     $"The customer says: \"{query}\"\n\nAvailable dishes:\n{itemList}" },
             };
