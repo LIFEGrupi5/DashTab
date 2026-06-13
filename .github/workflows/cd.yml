@@ -158,8 +158,13 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
+          # scope bumped to -v2 to evict a stale npm-ci layer: the cached deps
+          # layer held pre-override dep versions (cross-spawn 7.0.3, glob 10.4.2,
+          # tar 6.2.1, minimatch 9.0.5) and shipped them into the standalone image
+          # even though package-lock.json is patched — failing the Trivy gate.
+          # A fresh scope forces a cold `npm ci` against the clean lockfile.
+          cache-from: type=gha,scope=frontend-v2
+          cache-to: type=gha,mode=max,scope=frontend-v2
           # Bake the project-05 API base into the bundle (NEXT_PUBLIC_* are
           # build-time). The app reads only this var; the KDS hub URL derives
           # from it. Change if the api.* hostname changes.
