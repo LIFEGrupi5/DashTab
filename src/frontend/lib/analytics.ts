@@ -51,6 +51,10 @@ export function identifyUser(user: { id: string; email: string; name: string; ro
   run(ph => ph.identify(user.id, { email: user.email, name: user.name, role: user.role }));
 }
 
+export function identifyRestaurant(restaurantId: string, properties: { name: string; plan: string }) {
+  run(ph => ph.group('restaurant', restaurantId, properties));
+}
+
 export function resetIdentity() {
   run(ph => ph.reset());
 }
@@ -127,6 +131,11 @@ export const analytics = {
   },
   categoryCreated(name: string) {
     run(ph => ph.capture('category_created', { name }));
+  },
+
+  // Experiments
+  pricingCtaClicked(plan: string, variant: string) {
+    run(ph => ph.capture('pricing_cta_clicked', { plan, experiment_variant: variant }));
   },
 
   // Web Vitals
