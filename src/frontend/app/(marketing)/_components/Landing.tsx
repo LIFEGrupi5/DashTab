@@ -260,6 +260,50 @@ function Features() {
   );
 }
 
+// ── AI Recommendations + QR (scan to try) ────────────────────────────────────
+function AIRecommend() {
+  return (
+    <section className="relative py-24 px-5 sm:px-6 bg-stone-900 text-white overflow-hidden">
+      <motion.div aria-hidden className="absolute -bottom-32 -left-24 w-[480px] h-[480px] rounded-full blur-[130px] bg-orange-500/15"
+        animate={{ scale: [1, 1.12, 1], opacity: [0.5, 0.8, 0.5] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }} />
+      <div className="relative max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+        {/* Copy */}
+        <Reveal>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-orange-500/30 bg-orange-500/10 text-orange-300 text-xs font-semibold mb-6">
+            <Sparkles className="w-3.5 h-3.5" /> AI-powered
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+            Let your guests ask AI <span className={EMBER_TEXT}>what to order</span>
+          </h2>
+          <p className="text-stone-400 leading-relaxed mb-6 max-w-md">
+            Diners scan a QR code at the table, describe a craving — &ldquo;something light and spicy&rdquo; — and our AI
+            recommends real dishes from that restaurant&apos;s menu. True RAG: semantic search over menu embeddings,
+            then a friendly recommendation written on the spot.
+          </p>
+          <ul className="space-y-2.5 mb-8">
+            {['No app to download — just scan and ask', 'Recommendations only from the live menu', 'Per-restaurant, fully isolated'].map(f => (
+              <li key={f} className="flex items-start gap-2 text-sm text-stone-300">
+                <Check className="w-4 h-4 mt-0.5 shrink-0 text-orange-400" /> {f}
+              </li>
+            ))}
+          </ul>
+        </Reveal>
+
+        {/* QR card */}
+        <Reveal delay={1} className="flex justify-center">
+          <motion.div whileHover={{ y: -4 }}
+            className="rounded-3xl border border-white/10 bg-stone-950/60 p-6 sm:p-8 shadow-2xl shadow-orange-900/20 text-center">
+            <img src="/ai-recommend-qr.jpg" alt="Scan to try the AI menu recommendation"
+              width={300} height={390} className="w-60 sm:w-72 h-auto mx-auto rounded-xl" />
+            <p className="mt-5 text-sm font-semibold text-white">Scan to try it live</p>
+            <p className="mt-1 text-xs text-stone-500">Point your phone camera at the code</p>
+          </motion.div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
 // ── Pricing ─────────────────────────────────────────────────────────────────
 function PricingTeaser() {
   const variant = useFeatureFlag('pricing-highlight-variant');
@@ -392,6 +436,7 @@ export default function Landing() {
       <Hero />
       <ProductGlimpse />
       <Features />
+      <AIRecommend />
       <PricingTeaser />
       <SocialProof />
       <FAQ />
