@@ -55,9 +55,18 @@ public class AuthTests(DashTabApiFactory factory)
     }
 
     [Fact]
-    public async Task CreateUser_AsManager_Returns403()
+    public async Task CreateUser_AsManager_AssigningOwner_Returns403()
     {
-        var response = await Client("Manager").PostAsJsonAsync("/api/v1/users", new { });
+        // Managers may manage staff, but must not create/promote an Owner. A valid
+        // body (passes validation) with role=Owner reaches the controller guard,
+        // which returns 403 before any provisioning.
+        var response = await Client("Manager").PostAsJsonAsync("/api/v1/users", new
+        {
+            fullName = "New Owner",
+            email = "new.owner@example.com",
+            password = "password123",
+            role = "Owner",
+        });
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }

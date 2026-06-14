@@ -12,6 +12,12 @@ service:
   type: ClusterIP
   port: 5000
 
+# Prometheus metrics port. Served by a dedicated in-process Kestrel server (see
+# Program.cs) and exposed only on the Service — never via the ingress — so /metrics
+# is scrapeable in-cluster but not public. Must match the app's Metrics:Port default.
+metrics:
+  port: 9100
+
 # Ingress: http://dashtab.local/api → backend. The rewrite annotation strips the
 # /api prefix (mirrors the old nginx `rewrite ^/api/(.*)$ /$1`).
 ingress:

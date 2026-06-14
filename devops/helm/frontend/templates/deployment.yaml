@@ -31,6 +31,9 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      # Dedicated SA with no mounted API token — the frontend never calls the K8s API.
+      serviceAccountName: {{ include "frontend.fullname" . }}
+      automountServiceAccountToken: false
       # Pod-level hardening — the image runs as the non-root `nextjs` user (UID
       # 1001); enforce it at the API server so a bad image can't fall back to root.
       securityContext:

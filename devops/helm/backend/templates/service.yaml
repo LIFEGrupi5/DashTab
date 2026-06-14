@@ -12,3 +12,7 @@ spec:
     - name: http
       port: {{ .Values.service.port }}
       targetPort: http
+    # In-cluster only (not referenced by the ingress) — Prometheus scrapes this.
+    - name: metrics
+      port: {{ .Values.metrics.port }}
+      targetPort: metrics

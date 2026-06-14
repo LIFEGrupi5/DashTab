@@ -12,3 +12,5 @@ data:
 {{ .Files.Get "files/prometheus.yml" | indent 4 }}
   alerts.yml: |-
 {{ .Files.Get "files/alerts.yml" | indent 4 }}
+  recording-rules.yml: |-
+{{ .Files.Get "files/recording-rules.yml" | indent 4 }}

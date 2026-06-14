@@ -1,9 +1,9 @@
 groups:
+  # ── Liveness: a dependency is fully down ───────────────────────────────────
   - name: dashtab-infra
     rules:
-      # Any scrape target unreachable for 2m → critical. This is the "would
-      # actually wake someone up" alert: a DB/cache/broker exporter being down
-      # means that dependency is likely down.
+      # Any scrape target unreachable for 2m → critical. A DB/cache/broker
+      # exporter being down means that dependency is likely down.
       - alert: TargetDown
         expr: up == 0
         for: 2m
@@ -21,7 +21,7 @@ groups:
           severity: critical
         annotations:
           summary: "PostgreSQL is down"
-          description: "The postgres exporter reports the database is unreachable."
+          description: "The postgres exporter reports the database is unreachable. Check the dashtab-postgresql pod and pgbouncer."
 
       # Redis specifically.
       - alert: RedisDown
@@ -31,3 +31,93 @@ groups:
           severity: critical
         annotations:
           summary: "Redis is down"
+          description: "The redis exporter reports Redis is unreachable. The app degrades to in-memory cache and the SignalR backplane stops fanning out across pods."
+
+  # ── App health: symptom-based, from the backend's own /metrics (:9100) ─────
+  # These fire on user-facing degradation, not just process death. Expressions
+  # use sum(...) so one problem = one alert (one LLM triage call), not one-per-pod.
+  - name: dashtab-app
+    rules:
+      - alert: HighHttpErrorRate
+        expr: job:http_5xx_ratio:rate5m > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend 5xx rate above 5%"
+          description: "Backend 5xx responses are {{ $value | humanizePercentage }} of traffic over 5m. Check recent deploys, DB/Redis health, and backend logs."
+
+      - alert: HighHttpErrorRateCritical
+        expr: job:http_5xx_ratio:rate5m > 0.20
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend 5xx rate above 20%"
+          description: "Backend is failing {{ $value | humanizePercentage }} of requests over 5m — likely a broken deploy or a downed dependency."
+
+      - alert: HighHttpLatencyP99
+        expr: job:http_request_latency_p99:5m > 1.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend p99 latency above 1.5s"
+          description: "p99 request latency is {{ $value }}s over 5m (sustained 10m). Check DB query time, Redis, and CPU saturation."
+
+  # ── Messaging: the KDS order pipeline ──────────────────────────────────────
+  # NOTE: metric names depend on the rabbitmq exporter on :9419 — confirm against
+  # the live target (/api/v1/label/__name__/values) before relying on these.
+  - name: dashtab-messaging
+    rules:
+      # If the kitchen-bridge consumer dies, orders stop reaching the KDS and
+      # stop being audited — a silent, high-impact failure with no other signal.
+      - alert: KitchenConsumerDown
+        expr: rabbitmq_queue_consumers{queue="dashtab.orders.kitchen"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No consumer on the KDS order queue"
+          description: "dashtab.orders.kitchen has 0 consumers for 5m — new orders will not broadcast to kitchen displays. Check the backend KitchenBridgeConsumer and the RabbitMQ connection."
+
+      - alert: OrderQueueBacklog
+        expr: rabbitmq_queue_messages_ready{queue=~"dashtab.orders.*"} > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Order queue backlog on {{ $labels.queue }}"
+          description: "{{ $value }} unprocessed messages on {{ $labels.queue }} for 10m — a consumer is slow or stuck."
+
+  # ── Cache & DB saturation (exporter metrics) ───────────────────────────────
+  # NOTE: redis maxmemory may be 0 (unlimited) → the ratio is guarded. Confirm
+  # metric names against the live redis/postgres exporters.
+  - name: dashtab-cache-db
+    rules:
+      - alert: RedisMemoryHigh
+        expr: redis_memory_max_bytes > 0 and (redis_memory_used_bytes / clamp_min(redis_memory_max_bytes, 1)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory above 90% of maxmemory"
+          description: "Redis is at {{ $value | humanizePercentage }} of its maxmemory — evictions are imminent. Consider raising maxmemory or reviewing key TTLs."
+
+      - alert: RedisEvicting
+        expr: rate(redis_evicted_keys_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis is evicting keys"
+          description: "Redis has evicted keys for 5m — the cache is undersized for its working set; cached tenant context / menu lookups will miss more often."
+
+      - alert: PostgresConnectionsHigh
+        expr: sum(pg_stat_activity_count) by (instance) / on(instance) pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connections above 80% of max"
+          description: "Active connections are {{ $value | humanizePercentage }} of max_connections — approaching exhaustion. Check pgbouncer pooling and for connection leaks."

@@ -36,6 +36,9 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      # Dedicated SA with no mounted API token — the app never calls the K8s API.
+      serviceAccountName: {{ include "backend.fullname" . }}
+      automountServiceAccountToken: false
       # Pod-level hardening — the image already runs as the chiseled `app` user
       # (UID 1654); this enforces it at the API-server level so a bad image can't
       # silently fall back to root. (DO-2 / DO-9)
@@ -59,6 +62,8 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.service.port }}
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
           # Pull every key from the ConfigMap and Secret as env vars.
           envFrom:
             - configMapRef:
