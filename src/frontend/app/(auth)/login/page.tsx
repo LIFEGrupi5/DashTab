@@ -59,13 +59,17 @@ export default function LoginPage() {
         <div className="absolute -top-32 -left-32 w-96 h-96 bg-orange-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-32 -right-16 w-80 h-80 bg-orange-600/15 rounded-full blur-3xl pointer-events-none" />
 
-        {/* logo */}
-        <div className="flex items-center gap-3 relative z-10">
+        {/* logo — links back to the public landing page */}
+        <Link
+          href="/"
+          aria-label="Go to DashTab home"
+          className="flex items-center gap-3 relative z-10 w-fit transition hover:opacity-80"
+        >
           <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
             <ChefHat className="w-6 h-6 text-white" />
           </div>
           <span className="text-white font-bold text-xl tracking-tight">DashTab</span>
-        </div>
+        </Link>
 
         {/* hero */}
         <div className="relative z-10 space-y-8">
@@ -110,13 +114,17 @@ export default function LoginPage() {
 
       {/* ── Right panel — form ── */}
       <div className="flex-1 flex flex-col justify-center px-5 sm:px-10 lg:px-16 py-8 sm:py-12 bg-white dark:bg-background">
-        {/* mobile logo */}
-        <div className="flex lg:hidden items-center gap-2.5 mb-8">
+        {/* mobile logo — links back to the public landing page */}
+        <Link
+          href="/"
+          aria-label="Go to DashTab home"
+          className="flex lg:hidden items-center gap-2.5 mb-8 w-fit transition hover:opacity-80"
+        >
           <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center">
             <ChefHat className="w-5 h-5 text-white" />
           </div>
           <span className="font-bold text-lg text-neutral-900 dark:text-foreground">DashTab</span>
-        </div>
+        </Link>
 
         <div className="w-full max-w-sm mx-auto space-y-6 sm:space-y-8">
           <div className="space-y-1.5">
