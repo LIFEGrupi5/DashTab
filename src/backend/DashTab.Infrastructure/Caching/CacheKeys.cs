@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace DashTab.Infrastructure.Caching;
 
 public static class CacheKeys
@@ -10,5 +13,14 @@ public static class CacheKeys
 
     // Per-user resolved tenant context (restaurant + subscription status), keyed by the
     // JWT `sub` (or email). Set by RestaurantContextMiddleware on a cache miss.
-    public static string TenantContext(string userKey) => $"tenant:ctx:{userKey}";
+    public static string TenantContext(string hashedKey) => $"tenant:ctx:{hashedKey}";
+
+    // Hashes the raw user key (sub claim or email) the same way RestaurantContextMiddleware
+    // does, so any service can derive the correct cache key without coupling to the middleware.
+    public static string TenantContextForUser(string userKey)
+    {
+        var normalized = userKey.Trim().ToLowerInvariant();
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(normalized))).ToLowerInvariant();
+        return TenantContext(hash);
+    }
 }

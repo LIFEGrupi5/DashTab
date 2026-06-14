@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using DashTab.Application.Interfaces;
 using DashTab.Infrastructure.Caching;
 using DashTab.Infrastructure.Persistence;
@@ -56,7 +54,7 @@ public class RestaurantContextMiddleware(RequestDelegate next)
             //    Saves the DB round-trip below on every request within the TTL window.
             if (userKey is not null)
                 resolved = await cache.GetAsync<TenantContextEntry>(
-                    CacheKeys.TenantContext(HashUserKey(userKey)), ctx.RequestAborted);
+                    CacheKeys.TenantContextForUser(userKey), ctx.RequestAborted);
 
             // 2. Cache miss: resolve from the DB and cache the result. We always compute
             //    the real subscription status here (not just when needsSubCheck) so the
@@ -66,7 +64,7 @@ public class RestaurantContextMiddleware(RequestDelegate next)
                 resolved = await ResolveFromDbAsync(db, subClaim, emailClaim, ctx.RequestAborted);
                 if (resolved is not null)
                     await cache.SetAsync(
-                        CacheKeys.TenantContext(HashUserKey(userKey)), resolved, TenantCacheTtl, ctx.RequestAborted);
+                        CacheKeys.TenantContextForUser(userKey), resolved, TenantCacheTtl, ctx.RequestAborted);
             }
 
             if (resolved is not null)
@@ -86,13 +84,6 @@ public class RestaurantContextMiddleware(RequestDelegate next)
         }
 
         await next(ctx);
-    }
-
-    private static string HashUserKey(string userKey)
-    {
-        var normalized = userKey.Trim().ToLowerInvariant();
-        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalized));
-        return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
     // Resolves the user's restaurant + live subscription status in ONE query by
