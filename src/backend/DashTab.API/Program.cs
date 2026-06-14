@@ -316,12 +316,24 @@ builder.Services.AddSingleton<UserMapper>();
 builder.Services.AddSingleton<OrderMapper>();
 
 // ── Realtime (SignalR + optional Redis backplane) ────────────────────────────
+// Unlike the cache (which silently falls back to in-memory on any Redis failure),
+// the SignalR Redis backplane has NO fallback: if Redis is unreachable or rejects
+// auth — e.g. NOAUTH from a connection string missing its password — every hub
+// connection is aborted with WebSocket close 1011, and the browser's
+// withAutomaticReconnect() loops forever (a reconnect storm that takes KDS down).
+// So probe Redis once at startup and only attach the backplane when it actually
+// answers; otherwise degrade to the in-memory hub lifetime manager. That is fully
+// correct for a single replica, and a graceful partial-degradation (loss of
+// cross-pod broadcast fanout only) when scaled out — never a hard KDS outage.
 var signalR = builder.Services.AddSignalR();
-if (redisOptions is not null)
+if (redisOptions is not null && RedisConnectivity.CanConnect(redisOptions, reason =>
+        // Serilog's static logger isn't wired until the host is built (below) — report via Console.
+        Console.Error.WriteLine(
+            $"[startup] SignalR Redis backplane disabled — {reason}. " +
+            "Falling back to the in-memory hub lifetime manager (cross-pod KDS broadcasts disabled until Redis is restored).")))
     signalR.AddStackExchangeRedis(o =>
     {
-        // Same fail-fast options as the cache (cloned so the channel prefix
-        // doesn't mutate the cache's shared instance).
+        // Clone so the channel prefix doesn't mutate the cache's shared options.
         o.Configuration = redisOptions.Clone();
         o.Configuration.ChannelPrefix = StackExchange.Redis.RedisChannel.Literal("dashtab:signalr");
     });
