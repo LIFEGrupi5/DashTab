@@ -1,0 +1,6 @@
+apiVersion: v2
+name: uptime-kuma
+description: DashTab Uptime Kuma — black-box uptime monitor + status page (DO-7)
+type: application
+version: 0.1.0
+appVersion: "1"

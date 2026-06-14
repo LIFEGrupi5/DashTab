@@ -1,0 +1,26 @@
+✅ DashTab backend released as "{{ .Release.Name }}".
+
+Image:    {{ .Values.image.repository }}:{{ .Values.image.tag }}
+Replicas: {{ .Values.replicaCount }} (autoscaling: {{ .Values.autoscaling.enabled }})
+
+⚠️  PREREQUISITE SECRETS — the pod won't start (CreateContainerConfigError)
+    until these exist in the namespace. The chart references them by name;
+    create them once per namespace:
+      kubectl create secret generic dashtab-keycloak-admin \
+        --from-literal=admin-password=<keycloak-admin-password>
+      kubectl create secret generic dashtab-stripe \
+        --from-literal=secret-key=<stripe-secret-key>
+    (dashtab-keycloak-admin is also created by the keycloak chart.)
+
+Check the rollout:
+  kubectl rollout status deploy/{{ include "backend.fullname" . }}
+
+{{- if .Values.ingress.enabled }}
+
+Reachable at:  http://{{ .Values.ingress.host }}{{ .Values.ingress.path }}
+(add `{{ .Values.ingress.host }}` to /etc/hosts pointing at your ingress IP:
+  echo "$(minikube ip) {{ .Values.ingress.host }}" | sudo tee -a /etc/hosts)
+{{- end }}
+
+Roll back the last upgrade with:
+  helm rollback {{ .Release.Name }}

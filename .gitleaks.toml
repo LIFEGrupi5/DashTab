@@ -1,0 +1,18 @@
+# Gitleaks configuration for DashTab.
+#
+# Extends the built-in ruleset and allowlists test fixtures / build output that
+# are not real secrets, so the CI gate (see .github/workflows/secret-scan.yml)
+# fails only on genuine leaks. Gitleaks complements TruffleHog: gitleaks is
+# pattern-based (catches unverified secrets), TruffleHog verifies live ones.
+title = "DashTab gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Test fixtures and build/dependency output — not committed secrets"
+paths = [
+  '''src/frontend/tests/e2e/fixtures\.ts$''',   # dummy JWT for Playwright e2e auth
+  '''(^|/)\.next/''',                            # Next.js build output (gitignored)
+  '''(^|/)node_modules/''',                      # dependencies (gitignored)
+]

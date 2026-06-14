@@ -1,0 +1,32 @@
+# ── DashTab Grafana ───────────────────────────────────────────────────────────
+image:
+  repository: grafana/grafana
+  tag: "11.4.0"
+  pullPolicy: IfNotPresent
+
+admin:
+  user: admin
+  password: admin          # DEV ONLY — see Lecture 7
+
+# In-cluster Prometheus service (from the prometheus chart).
+prometheusUrl: "http://dashtab-prometheus:9090"
+
+service:
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: grafana.project-05.gjirafa.dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod   # confirmed on project-05 — cert-manager issues the LE cert
+  tls:
+    enabled: true
+    secretName: grafana-project05-tls
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi

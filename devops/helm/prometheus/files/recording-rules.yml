@@ -1,0 +1,24 @@
+groups:
+  # Precomputed series the alerts below reference. Recording rules keep the
+  # alert expressions cheap and readable, and give Grafana ready-made series.
+  # These use the backend's own /metrics (prometheus-net), scraped on :9100.
+  - name: dashtab-recording
+    interval: 30s
+    rules:
+      # Fraction of backend HTTP responses that are 5xx over the last 5m.
+      # clamp_min(...,1) avoids divide-by-zero when there is no traffic.
+      - record: job:http_5xx_ratio:rate5m
+        expr: |
+          sum(rate(http_request_duration_seconds_count{job="backend",code=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(http_request_duration_seconds_count{job="backend"}[5m])), 1)
+
+      # 99th-percentile backend request latency (seconds) over 5m.
+      - record: job:http_request_latency_p99:5m
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_request_duration_seconds_bucket{job="backend"}[5m])) by (le))
+
+      # Backend request throughput (req/s) over 5m — useful context on dashboards.
+      - record: job:http_requests:rate5m
+        expr: sum(rate(http_request_duration_seconds_count{job="backend"}[5m]))

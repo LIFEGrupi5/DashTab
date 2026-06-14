@@ -1,0 +1,59 @@
+# Overlay for the project-05 cluster (life-cluster).
+#   helm upgrade --install dashtab-backend devops/helm/backend \
+#     -n project-05 -f devops/helm/backend/values-project05.yaml
+image:
+  tag: development        # CD tags images by branch; 'development' = latest merged build
+  pullPolicy: Always      # always pull the freshest 'development' tag
+
+# GHCR is private. Pods used to inherit this pull secret from the namespace's
+# `default` ServiceAccount; once they moved to a dedicated SA (no inherited
+# secret) the pull broke with 401, so set it explicitly here. The `ghcr-pull`
+# secret already exists in project-05.
+imagePullSecrets:
+  - name: ghcr-pull
+
+ingress:
+  host: api.project-05.gjirafa.dev
+  path: /                              # whole subdomain → backend, no prefix strip
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod   # confirmed on project-05 — cert-manager issues the LE cert
+    # SignalR scaleout: the negotiate request and the follow-up WebSocket (?id=token)
+    # must reach the SAME backend pod. The Redis backplane fans out *messages* across
+    # pods but does NOT cover the handshake — so with >1 pod (incl. during rolling
+    # deploys) a WS landing on a different pod than its negotiate is killed with WS
+    # close 1011, producing a reconnect storm. Cookie affinity pins both to one pod;
+    # it is a harmless no-op while replicaCount is 1.
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/affinity-mode: "persistent"
+    nginx.ingress.kubernetes.io/session-cookie-name: "dashtab-affinity"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "172800"
+    # Keep long-lived idle KDS WebSockets open past nginx's 60s default.
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  tls:
+    enabled: true
+    secretName: api-project05-tls     # cert-manager creates this
+
+config:
+  ASPNETCORE_ENVIRONMENT: Production
+  ASPNETCORE_URLS: "http://+:5000"
+  # In-cluster (ClusterIP) endpoints — internal traffic, no TLS:
+  Storage__Endpoint: "http://dashtab-minio:9000"
+  Keycloak__Authority: "http://dashtab-keycloak/realms/dashtab"
+  Keycloak__Audience: "dashtab-api"        # token aud — required, else audience validation 401s
+  # Public URLs browsers use — must be the real https hostnames:
+  Storage__PublicBaseUrl: "https://storage.project-05.gjirafa.dev"
+  Keycloak__ValidIssuer: "https://auth.project-05.gjirafa.dev/realms/dashtab"
+  # CORS: the browser calls api.* from the app.* origin (cross-origin) → allow it.
+  Cors__AllowedOrigins__0: "https://app.project-05.gjirafa.dev"
+  # Ship logs to in-cluster Elasticsearch (Serilog ES sink activates when set).
+  Elasticsearch__Uri: "http://dashtab-elasticsearch:9200"
+  # Stripe redirect targets — must be the public app origin. {CHECKOUT_SESSION_ID}
+  # is a literal template Stripe substitutes into the URL on successful payment.
+  Stripe__SuccessUrl: "https://app.project-05.gjirafa.dev/subscribe/success?session_id={CHECKOUT_SESSION_ID}"
+  Stripe__CancelUrl: "https://app.project-05.gjirafa.dev/subscribe"
+  # In-cluster Python ML service for revenue forecasting (DO-12 aiops image).
+  Aiops__BaseUrl: "http://dashtab-aiops-triage:8080"
+
+# Connection strings keep the in-cluster service names from the base values
+# (dashtab-pgbouncer, dashtab-redis-master, …) — those resolve inside project-05.

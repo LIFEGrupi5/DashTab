@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashtab-kibana
+  labels:
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/part-of: dashtab
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kibana
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kibana
+        app.kubernetes.io/part-of: dashtab
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000         # kibana — elastic image's default user
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: kibana
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: ELASTICSEARCH_HOSTS
+              value: {{ .Values.elasticsearchUrl | quote }}
+            - name: SERVER_PUBLICBASEURL
+              value: "https://{{ .Values.ingress.host }}"
+            {{- if .Values.security.enabled }}
+            # Kibana authenticates to ES as the built-in `kibana_system` service user
+            # (NOT the elastic superuser). Its password is set by the kibana-setup Job.
+            - name: ELASTICSEARCH_USERNAME
+              value: "kibana_system"
+            - name: ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.security.credentialsSecret }}
+                  key: kibana-system-password
+            # Persistent encryption keys → user sessions and saved objects survive
+            # pod restarts (without these, Kibana mints a random key each boot and
+            # logs everyone out / warns on every start).
+            - name: XPACK_SECURITY_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.security.credentialsSecret }}
+                  key: kibana-encryption-key
+            - name: XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.security.credentialsSecret }}
+                  key: kibana-savedobjects-key
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 5601
+          readinessProbe:
+            httpGet:
+              path: /api/status
+              port: http
+            initialDelaySeconds: 40
+            periodSeconds: 15
+            failureThreshold: 12
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

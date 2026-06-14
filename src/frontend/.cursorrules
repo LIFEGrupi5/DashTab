@@ -1,0 +1,77 @@
+# DashTab Frontend — Cursor AI Rules
+
+## Project Context
+Restaurant operating system (POS, payments, inventory, analytics). Next.js 15 App Router + TypeScript + Tailwind. All pages currently use mock data — no real API calls yet.
+
+## Stack
+- Next.js 15 (App Router, Server Components by default)
+- TypeScript (strict mode)
+- Tailwind CSS + `tailwind-merge` + `clsx`
+- Radix UI primitives + Lucide icons
+- `react-hook-form` for forms
+- `sonner` for toasts, `next-themes` for theming
+- `recharts` for charts
+
+## File & Folder Conventions
+- Path alias `@/` maps to `src/frontend/` — always use it for internal imports
+- Components go in `components/` as plain `.tsx` files, no barrel `index.ts` files
+- Custom hooks go in `hooks/`, API clients and utilities in `lib/`, shared types in `types/`
+- Page files live under `app/` following Next.js App Router conventions
+
+## Components
+- Default to React Server Components; add `"use client"` only when you need interactivity or browser APIs
+- Props use TypeScript `interface`, not `type`, unless a union is needed
+- Variants and sizes use prop unions (`variant: "primary" | "secondary"`), not CVA
+- Never use inline styles or CSS modules — Tailwind only
+- Class names: `cn(...)` from `@/lib/utils` (uses `clsx` + `tailwind-merge`)
+
+## TypeScript
+- Strict mode is on — no `any`, no `@ts-ignore` without a comment explaining why
+- Define shared data shapes in `types/` and import from there
+- Prefer `unknown` over `any` for external/API data, then narrow with Zod when validation is added
+
+## Forms
+- Use `react-hook-form` for all form state — no raw `useState` for form fields
+- Validate with Zod schemas (resolver: `@hookform/resolvers/zod`) when Zod is added
+- Show inline field errors below each input using `formState.errors`
+- File inputs: controlled via RHF `Controller`, never uncontrolled
+
+## State Management (target state — not yet wired)
+- Server state: TanStack Query (`useQuery`, `useMutation`) — wrap pages in `QueryClientProvider`
+- Client/UI state: Zustand stores in `lib/store/`
+- No prop drilling beyond 2 levels — lift to Zustand or query cache
+
+## Data Fetching
+- Currently all pages use mock data — when replacing, put fetch logic in `lib/api/` modules
+- Server Components fetch directly (no useEffect); Client Components use TanStack Query
+- Never fetch in `useEffect` for data that belongs in the query cache
+
+## Styling
+- Mobile-first responsive design
+- Use `@tailwindcss/container-queries` (`@container`) for component-level responsiveness
+- Dark mode via `next-themes` — use `dark:` variants, never hardcode colors
+
+## Accessibility
+- All interactive elements must be keyboard-reachable (`tabIndex`, `onKeyDown` where needed)
+- Use Radix UI primitives (Dialog, DropdownMenu, etc.) for complex widgets — they handle a11y
+- Every `<img>` needs a meaningful `alt`; decorative images use `alt=""`
+- Form inputs must have associated `<label>` (via `htmlFor`) or `aria-label`
+- Use semantic HTML: `<nav>`, `<main>`, `<section>`, `<article>`, `<header>`, `<footer>`
+
+## Performance
+- Use `next/dynamic` with `{ ssr: false }` for heavy client-only components (charts, rich editors)
+- Images: always `next/image` with explicit `width`/`height` or `fill`
+- Keep page-level JS bundles lean — check with `@next/bundle-analyzer` before merging large deps
+
+## Testing (target — not yet configured)
+- Unit tests: Jest + React Testing Library in `tests/frontend/`
+- File naming: `ComponentName.test.tsx` co-located or under `tests/frontend/`
+- Test behavior, not implementation — query by role/label, not by class name
+- e2e: Playwright for critical flows (auth, place order)
+
+## Do Not
+- Do not use `pages/` router — this project uses App Router only
+- Do not install a second CSS framework or component library alongside Tailwind/Radix
+- Do not commit mock data as permanent fixtures — it lives in page files until API is wired
+- Do not add `console.log` statements in committed code
+- Do not use `export default` for anything except Next.js page/layout files

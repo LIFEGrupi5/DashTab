@@ -1,0 +1,31 @@
+# Values for the Bitnami MinIO subchart.
+# Verify options with:  helm show values oci://registry-1.docker.io/bitnamicharts/minio
+
+# Bitnami moved versioned images to docker.io/bitnamilegacy/ (2025).
+global:
+  security:
+    allowInsecureImages: true
+
+minio:
+  image:
+    repository: bitnamilegacy/minio
+  clientImage:                       # used by the defaultBuckets provisioning job
+    repository: bitnamilegacy/minio-client
+  fullnameOverride: dashtab-minio
+  mode: standalone
+
+  auth:
+    rootUser: dashtab
+    rootPassword: dashtabsecret   # DEV ONLY, must be >= 8 chars — see Lecture 7
+
+  # Pre-create the bucket the backend expects on first boot.
+  defaultBuckets: "dashtab"
+
+  persistence:
+    enabled: true
+    size: 5Gi
+
+  # MinIO exposes Prometheus metrics natively at /minio/v2/metrics/cluster.
+  metrics:
+    serviceMonitor:
+      enabled: false

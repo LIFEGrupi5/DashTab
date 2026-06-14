@@ -1,0 +1,14 @@
+apiVersion: v2
+name: postgresql
+description: DashTab PostgreSQL — thin wrapper over the Bitnami chart
+type: application
+version: 0.1.0
+appVersion: "17.6"   # Bitnami chart 16.x ships PostgreSQL 17.6
+
+# We don't template Postgres ourselves — we depend on Bitnami's chart and only
+# supply our own values.yaml. Run `helm dependency update devops/helm/postgresql`
+# to pull charts/postgresql-*.tgz before the first install.
+dependencies:
+  - name: postgresql
+    version: "16.x.x"
+    repository: oci://registry-1.docker.io/bitnamicharts

@@ -1,0 +1,13 @@
+# project-05 overlay. Secrets are injected at deploy time, NOT stored here:
+#   helm upgrade --install dashtab-aiops-triage devops/helm/aiops-triage \
+#     -n project-05 -f devops/helm/aiops-triage/values-project05.yaml \
+#     --set secret.GROQ_API_KEY="$GROQ_API_KEY" \
+#     --set secret.SLACK_WEBHOOK_URL="$SLACK_WEBHOOK_URL"
+config:
+  LLM_PROVIDER: groq
+  GROQ_MODEL: llama-3.3-70b-versatile
+
+# GHCR is private; the dedicated SA doesn't inherit the namespace pull secret, so
+# set it explicitly. The `ghcr-pull` secret already exists in project-05.
+imagePullSecrets:
+  - name: ghcr-pull

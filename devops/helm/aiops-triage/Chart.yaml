@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aiops-triage
+description: AIOps alert-triage webhook — Alertmanager → LLM (Gemini) → Slack (DO-12)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

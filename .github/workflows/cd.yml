@@ -1,0 +1,461 @@
+name: CD
+
+# Serialize CD per branch and DON'T cancel an in-flight run — killing a job
+# mid-`helm upgrade` could leave a release half-applied. New pushes queue behind
+# the running deploy instead.
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+# Continuous Delivery: build + push the app images to GHCR, then (Phase 2) deploy
+# to the project-05 namespace. CI (lint/test) lives in backend-ci.yml /
+# frontend-ci.yml — this workflow owns build → push → deploy (DO-4 / DO-13).
+#
+# Philosophy: images are artifacts and are published freely on every merge; the
+# *deploy* is the gated step (GitHub Environment + approval) — see the Phase 2 stub.
+on:
+  push:
+    branches: [main, development]
+    tags: ['v*']
+  workflow_dispatch:        # allow manual runs from the Actions tab
+
+jobs:
+  # Both build jobs run on every push to main/development (no path filter) — with
+  # the gha layer cache, the unchanged service rebuilds fast. Split per service
+  # because each has its own Dockerfile/context and its own GHCR package.
+  build-backend:
+    name: Build & Push Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write          # lets GITHUB_TOKEN push to the org's GHCR
+      security-events: write   # upload Trivy SARIF to the Security tab
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}   # built-in, no PAT needed
+
+      - name: Compute tags & labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/lifegrupi5/dashtab-backend
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: src/backend
+          file: src/backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Per-service cache scope so the 3 parallel builds don't evict each
+          # other from the shared 10 GB repo cache.
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Scan image with Trivy (DO-9)
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-backend@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+      - name: Trivy SARIF report (Security tab)
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-backend@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-backend.sarif
+          exit-code: '0'        # report-only; the gate above already fails the build
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend
+
+      - name: Generate SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ghcr.io/lifegrupi5/dashtab-backend@${{ steps.build.outputs.digest }}
+          format: cyclonedx
+          output: sbom-backend.cdx.json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-backend
+          path: sbom-backend.cdx.json
+
+  build-frontend:
+    name: Build & Push Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+      security-events: write   # upload Trivy SARIF to the Security tab
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags & labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/lifegrupi5/dashtab-frontend
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # NOTE: NEXT_PUBLIC_* are baked at build time. This image ships the
+      # Dockerfile/source defaults; pass --build-arg here once the cluster's real
+      # API/Keycloak URLs are known (requires matching ARGs in the Dockerfile).
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: src/frontend
+          file: src/frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # scope bumped to -v2 to evict a stale npm-ci layer: the cached deps
+          # layer held pre-override dep versions (cross-spawn 7.0.3, glob 10.4.2,
+          # tar 6.2.1, minimatch 9.0.5) and shipped them into the standalone image
+          # even though package-lock.json is patched — failing the Trivy gate.
+          # A fresh scope forces a cold `npm ci` against the clean lockfile.
+          cache-from: type=gha,scope=frontend-v2
+          cache-to: type=gha,mode=max,scope=frontend-v2
+          # Bake the project-05 API base into the bundle (NEXT_PUBLIC_* are
+          # build-time). The app reads only this var; the KDS hub URL derives
+          # from it. Change if the api.* hostname changes.
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=https://api.project-05.gjirafa.dev/api/v1
+            NEXT_PUBLIC_POSTHOG_KEY=${{ secrets.POSTHOG_KEY }}
+            NEXT_PUBLIC_UNLEASH_FRONTEND_URL=https://eu.app.getunleash.io/eull0783/api/frontend
+            NEXT_PUBLIC_UNLEASH_FRONTEND_TOKEN=${{ secrets.NEXT_PUBLIC_UNLEASH_FRONTEND_TOKEN }}
+
+      - name: Scan image with Trivy (DO-9)
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-frontend@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+      - name: Trivy SARIF report (Security tab)
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-frontend@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-frontend.sarif
+          exit-code: '0'        # report-only; the gate above already fails the build
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend
+          # Skip npm's own bundled packages — these are part of the base image's
+          # system npm, not our application code. Our app runs as `node server.js`
+          # and never invokes npm at runtime.
+          skip-dirs: /usr/local/lib/node_modules/npm
+
+      - name: Generate SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ghcr.io/lifegrupi5/dashtab-frontend@${{ steps.build.outputs.digest }}
+          format: cyclonedx
+          output: sbom-frontend.cdx.json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-frontend
+          path: sbom-frontend.cdx.json
+
+  # AIOps alert-triage service (DO-12). Small Python webhook image.
+  build-aiops:
+    name: Build & Push AIOps Triage
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+      security-events: write   # upload Trivy SARIF to the Security tab
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute tags & labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/lifegrupi5/dashtab-aiops-triage
+          tags: |
+            type=sha,prefix=sha-
+            type=ref,event=branch
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: devops/aiops
+          file: devops/aiops/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=aiops
+          cache-to: type=gha,mode=max,scope=aiops
+
+      - name: Scan image with Trivy (DO-9)
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-aiops-triage@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          format: table
+
+      - name: Trivy SARIF report (Security tab)
+        uses: aquasecurity/trivy-action@v0.36.0
+        env:
+          TRIVY_USERNAME: ${{ github.actor }}
+          TRIVY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          image-ref: ghcr.io/lifegrupi5/dashtab-aiops-triage@${{ steps.build.outputs.digest }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-aiops.sarif
+          exit-code: '0'        # report-only; the gate above already fails the build
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-aiops.sarif
+          category: trivy-aiops
+
+      - name: Generate SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ghcr.io/lifegrupi5/dashtab-aiops-triage@${{ steps.build.outputs.digest }}
+          format: cyclonedx
+          output: sbom-aiops.cdx.json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-aiops
+          path: sbom-aiops.cdx.json
+
+  # ── Phase 2: DEPLOY (gated) ────────────────────────────────────────────────
+  # Deploys the freshly-built app images to the project-05 namespace, pinned to
+  # the immutable sha tag (NOT the mutable 'development' tag) so every deploy is
+  # a real, traceable rollout that's trivial to roll back.
+  #
+  # GATE: this job targets the `project-05` GitHub Environment. Add a required
+  # reviewer to that Environment (repo Settings → Environments → project-05) and
+  # the run pauses for a one-click approval before anything touches the cluster.
+  # The scoped kubeconfig lives there too as the KUBECONFIG_PROJECT05 secret.
+  deploy:
+    name: Deploy to project-05
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build-backend, build-frontend, build-aiops]
+    if: github.ref == 'refs/heads/development'   # only the integration branch deploys
+    environment: project-05                       # ← approval gate + scoped secret
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Configure kubeconfig
+        run: |
+          install -m 600 /dev/null "$RUNNER_TEMP/kubeconfig"
+          echo "${{ secrets.KUBECONFIG_PROJECT05 }}" > "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+
+      - name: Resolve immutable image tag
+        run: echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+
+      # ── Azure Key Vault secret fetch (DO-9) ───────────────────────────────────
+      # Pulls all runtime secrets from the vault so nothing sensitive lives in
+      # values.yaml or GitHub repo secrets. ::add-mask:: redacts each value from
+      # the Actions log before it's written to $GITHUB_ENV.
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Fetch secrets from Azure Key Vault (DO-9)
+        run: |
+          VAULT=kv-dashtab-p05
+          get() { az keyvault secret show --vault-name "$VAULT" -n "$1" --query value -o tsv; }
+
+          echo "::add-mask::$(get backend-conn-default)"
+          echo "BACKEND_CONN_DEFAULT=$(get backend-conn-default)"     >> "$GITHUB_ENV"
+          echo "::add-mask::$(get backend-conn-redis)"
+          echo "BACKEND_CONN_REDIS=$(get backend-conn-redis)"         >> "$GITHUB_ENV"
+          echo "::add-mask::$(get backend-conn-rabbitmq)"
+          echo "BACKEND_CONN_RABBITMQ=$(get backend-conn-rabbitmq)"   >> "$GITHUB_ENV"
+          echo "::add-mask::$(get backend-storage-accesskey)"
+          echo "BACKEND_STORAGE_ACCESSKEY=$(get backend-storage-accesskey)" >> "$GITHUB_ENV"
+          echo "::add-mask::$(get backend-storage-secretkey)"
+          echo "BACKEND_STORAGE_SECRETKEY=$(get backend-storage-secretkey)" >> "$GITHUB_ENV"
+          echo "::add-mask::$(get backend-openai-apikey)"
+          echo "BACKEND_OPENAI_APIKEY=$(get backend-openai-apikey)"         >> "$GITHUB_ENV"
+          echo "::add-mask::$(get unleash-server-api-token)"
+          echo "BACKEND_UNLEASH_API_TOKEN=$(get unleash-server-api-token)"  >> "$GITHUB_ENV"
+
+      - name: Deploy backend
+        run: |
+          # helm --set treats commas as value separators. The Redis connection
+          # string is comma-delimited (host,password=...,abortConnect=...), so its
+          # commas MUST be backslash-escaped — otherwise everything after the first
+          # comma (including password=) is silently dropped and the backend connects
+          # to Redis with no auth → NOAUTH at runtime (cache + SignalR backplane down).
+          REDIS_ESC="${BACKEND_CONN_REDIS//,/\\,}"
+          helm upgrade --install dashtab-backend devops/helm/backend \
+            -n project-05 -f devops/helm/backend/values-project05.yaml \
+            --set image.tag="$IMAGE_TAG" \
+            --set "secrets.ConnectionStrings__Default=$BACKEND_CONN_DEFAULT" \
+            --set-string "secrets.ConnectionStrings__Redis=$REDIS_ESC" \
+            --set "secrets.ConnectionStrings__RabbitMQ=$BACKEND_CONN_RABBITMQ" \
+            --set "secrets.Storage__AccessKey=$BACKEND_STORAGE_ACCESSKEY" \
+            --set "secrets.Storage__SecretKey=$BACKEND_STORAGE_SECRETKEY" \
+            --set "secrets.OpenAI__ApiKey=$BACKEND_OPENAI_APIKEY" \
+            --set "secrets.Unleash__ServerApiToken=$BACKEND_UNLEASH_API_TOKEN" \
+            --atomic --timeout 5m
+
+      - name: Deploy frontend
+        run: |
+          helm upgrade --install dashtab-frontend devops/helm/frontend \
+            -n project-05 -f devops/helm/frontend/values-project05.yaml \
+            --set image.tag="$IMAGE_TAG" \
+            --atomic --timeout 5m
+
+      # Belt-and-suspenders: helm --wait already blocks on readiness, but an
+      # explicit rollout status fails the run loudly if a new pod crashloops
+      # (e.g. a bad migration) instead of silently leaving the old pod serving.
+      # AIOps triage service (DO-12). Secrets come from the project-05 GitHub
+      # Environment (add GROQ_API_KEY + SLACK_WEBHOOK_URL there), never the repo.
+      - name: Deploy aiops-triage
+        run: |
+          helm upgrade --install dashtab-aiops-triage devops/helm/aiops-triage \
+            -n project-05 -f devops/helm/aiops-triage/values-project05.yaml \
+            --set image.tag="$IMAGE_TAG" \
+            --set secret.GROQ_API_KEY="${{ secrets.GROQ_API_KEY }}" \
+            --set secret.SLACK_WEBHOOK_URL="${{ secrets.SLACK_WEBHOOK_URL }}" \
+            --atomic --timeout 5m
+
+      # ── Observability config (DO-5) ────────────────────────────────────────
+      # These ship upstream images (no per-commit build); CD just re-applies
+      # their repo-managed config (alert rules, alertmanager routing, dashboards).
+      # Run UNCONDITIONALLY: `helm upgrade` is a near-instant no-op when the chart
+      # is unchanged, and the charts' ConfigMap `checksum/config` annotations roll
+      # the pod automatically when config does change. This replaces the previous
+      # paths-filter (which silently dropped a change when a queued run was
+      # superseded — cancel-in-progress:false keeps only the latest pending run)
+      # and `--reuse-values` (which ignored edits to the charts' own values.yaml).
+      # NOTE: stateful infra (postgres, redis, rabbitmq, minio, elasticsearch,
+      # keycloak) is intentionally NOT auto-deployed here — deploy it manually.
+      - name: Deploy prometheus + alertmanager
+        run: |
+          helm upgrade --install dashtab-prometheus devops/helm/prometheus \
+            -n project-05 --atomic --timeout 5m
+
+      - name: Deploy grafana
+        run: |
+          helm upgrade --install dashtab-grafana devops/helm/grafana \
+            -n project-05 --atomic --timeout 5m
+
+      - name: Verify rollout
+        run: |
+          kubectl -n project-05 rollout status deploy/dashtab-backend --timeout=120s
+          kubectl -n project-05 rollout status deploy/dashtab-frontend --timeout=120s
+          kubectl -n project-05 rollout status deploy/dashtab-aiops-triage --timeout=120s
+
+      # Functional smoke test through the PUBLIC ingress — rollout status only
+      # proves pods are Running, not that the app actually serves. Exercises the
+      # real path: DNS → ingress → TLS → pod → readiness (+ a frontend fetch).
+      - name: Smoke test
+        run: |
+          set -euo pipefail
+          echo "Backend readiness via https://api.project-05.gjirafa.dev/health/ready"
+          for i in $(seq 1 10); do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 \
+              https://api.project-05.gjirafa.dev/health/ready || true)
+            [ "$code" = "200" ] && { echo "backend OK"; break; }
+            echo "attempt $i: backend returned $code, retrying…"; sleep 6
+            [ "$i" = "10" ] && { echo "::error::backend /health/ready never returned 200"; exit 1; }
+          done
+          echo "Frontend via https://app.project-05.gjirafa.dev/"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 10 \
+            https://app.project-05.gjirafa.dev/ || true)
+          [ "$code" = "200" ] || { echo "::error::frontend returned $code"; exit 1; }
+          echo "Smoke test passed."

@@ -1,0 +1,37 @@
+# ── DashTab Kibana ────────────────────────────────────────────────────────────
+image:
+  repository: docker.elastic.co/kibana/kibana
+  tag: "8.15.3"
+  pullPolicy: IfNotPresent
+
+# In-cluster Elasticsearch (from the elasticsearch chart).
+elasticsearchUrl: "http://dashtab-elasticsearch:9200"
+
+# ── Native (X-Pack) security ──────────────────────────────────────────────────
+# Must match the elasticsearch chart. When enabled, Kibana logs in as kibana_system
+# and the kibana-setup hook Job provisions that user's password.
+security:
+  enabled: true
+  credentialsSecret: dashtab-elastic-credentials
+  # Image used by the one-shot Job that sets the kibana_system password via the ES API.
+  setupImage: curlimages/curl:8.10.1
+
+service:
+  port: 5601
+
+ingress:
+  enabled: true
+  className: nginx
+  host: kibana.project-05.gjirafa.dev
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod   # confirmed on project-05 — cert-manager issues the LE cert
+  tls:
+    enabled: true
+    secretName: kibana-project05-tls
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 1Gi
+  limits:
+    memory: 1.5Gi

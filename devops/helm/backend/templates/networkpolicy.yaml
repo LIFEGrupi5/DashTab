@@ -1,0 +1,46 @@
+{{- if .Values.networkPolicy.enabled }}
+# Default-deny for the backend pods + explicit allow-list. Selecting the pods at
+# all flips them to "deny everything not listed below" for Ingress and Egress.
+# NOTE: only enforced on a CNI that implements NetworkPolicy — verify on-cluster.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "backend.fullname" . }}
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "backend.selectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Same-namespace pods (e.g. frontend → backend).
+    - from:
+        - podSelector: {}
+    {{- with .Values.networkPolicy.ingressNamespaceSelector }}
+    # The ingress controller's namespace (external traffic arriving via Ingress).
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml . | nindent 14 }}
+    {{- end }}
+  egress:
+    # DNS resolution (kube-dns lives in any namespace; allow 53 UDP+TCP).
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+    # Same-namespace dependencies: pgbouncer, redis, rabbitmq, minio, keycloak, ES.
+    - to:
+        - podSelector: {}
+    {{- if .Values.networkPolicy.egressInternet }}
+    # Public internet on TLS (external APIs), excluding cluster-private ranges.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+      ports:
+        - { protocol: TCP, port: 443 }
+    {{- end }}
+{{- end }}

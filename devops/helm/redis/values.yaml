@@ -1,0 +1,31 @@
+# Values for the Bitnami Redis subchart.
+# Verify options with:  helm show values oci://registry-1.docker.io/bitnamicharts/redis
+
+# Bitnami moved versioned images to docker.io/bitnamilegacy/ (2025).
+global:
+  security:
+    allowInsecureImages: true
+
+redis:
+  image:
+    repository: bitnamilegacy/redis
+  fullnameOverride: dashtab-redis
+  # Single node is plenty for dev. The primary Service is `dashtab-redis-master`.
+  architecture: standalone
+
+  auth:
+    enabled: true
+    password: dashtab          # DEV ONLY — see Lecture 7
+
+  master:
+    persistence:
+      enabled: true
+      size: 1Gi
+
+  # redis_exporter sidecar on :9121.
+  metrics:
+    enabled: true
+    image:
+      repository: bitnamilegacy/redis-exporter
+    serviceMonitor:
+      enabled: false

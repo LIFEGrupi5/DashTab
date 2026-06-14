@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashtab-grafana
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: dashtab
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: grafana
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http

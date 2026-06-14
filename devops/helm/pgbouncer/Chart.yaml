@@ -1,0 +1,15 @@
+apiVersion: v2
+name: pgbouncer
+description: DashTab PgBouncer — connection pooler in front of PostgreSQL (icoretech chart)
+type: application
+version: 0.2.0
+appVersion: "1.25"
+
+# Uses the icoretech pgbouncer chart from GHCR (chart + image both on ghcr.io →
+# no Docker Hub rate-limit, no bitnamilegacy image swap). Version pinned exact so
+# `helm dependency update` pulls the tag directly without a tags/list call.
+# Install AFTER postgresql.
+dependencies:
+  - name: pgbouncer
+    version: "4.1.7"
+    repository: oci://ghcr.io/icoretech/charts

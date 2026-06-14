@@ -1,0 +1,42 @@
+name: Release
+
+# Serialize release-please per branch without cancelling an in-flight run
+# (a half-run release that creates a tag/commit shouldn't be interrupted).
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# DO-13 — automated semantic versioning + changelog.
+#
+# release-please reads the Conventional Commits merged into the branch, then keeps
+# a "release PR" open that bumps the version and regenerates CHANGELOG.md. Merging
+# that PR cuts a GitHub Release and pushes a `vX.Y.Z` git tag — which in turn
+# triggers cd.yml (tags: ['v*']) to build & push semver-tagged images. So the
+# whole chain is: Conventional Commits → changelog + version tag → semver images.
+#
+# Runs on `development` only — the active integration branch where releases are
+# actually cut (main is dormant: ~8 weeks/100s of commits behind). Running on both
+# branches would let each independently compute the same vX.Y.Z from the same
+# commits and collide on the repo-global tag.
+on:
+  push:
+    branches: [development]
+  workflow_dispatch:
+
+permissions:
+  contents: write          # create the release commit, tag, and GitHub Release
+  pull-requests: write     # open/update the release PR
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          # Operate on whichever branch triggered the run (defaults to the repo's
+          # default branch otherwise, which would ignore development pushes).
+          target-branch: ${{ github.ref_name }}

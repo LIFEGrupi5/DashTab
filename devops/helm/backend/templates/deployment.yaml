@@ -1,0 +1,140 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "backend.fullname" . }}
+  labels:
+    {{- include "backend.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+
+  # ── Rolling deployment ──────────────────────────────────────────────────────
+  # maxUnavailable: 0 + maxSurge: 1  → bring the NEW pod up and wait for its
+  # readiness probe BEFORE killing the old one ⇒ zero-downtime even at 1 replica.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+
+  selector:
+    matchLabels:
+      {{- include "backend.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "backend.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Roll pods when config/secret content changes (checksum forces a new
+        # pod template hash, so `helm upgrade` actually restarts them).
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      # Auth for pulling images from a private registry (e.g. GHCR once private).
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # Dedicated SA with no mounted API token — the app never calls the K8s API.
+      serviceAccountName: {{ include "backend.fullname" . }}
+      automountServiceAccountToken: false
+      # Pod-level hardening — the image already runs as the chiseled `app` user
+      # (UID 1654); this enforces it at the API-server level so a bad image can't
+      # silently fall back to root. (DO-2 / DO-9)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1654
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          # Container-level hardening: no privilege escalation, drop all Linux
+          # capabilities (the app needs none). readOnlyRootFilesystem is value-gated
+          # — when on, an emptyDir is mounted at /tmp for the runtime's temp writes.
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: {{ .Values.readOnlyRootFilesystem }}
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+          # Pull every key from the ConfigMap and Secret as env vars.
+          envFrom:
+            - configMapRef:
+                name: {{ include "backend.fullname" . }}-config
+            - secretRef:
+                name: {{ include "backend.fullname" . }}-secret
+          env:
+            - name: Keycloak__AdminUsername
+              value: "admin"
+            - name: Keycloak__AdminPassword
+              valueFrom:
+                secretKeyRef:
+                  name: dashtab-keycloak-admin
+                  key: admin-password
+            - name: Stripe__SecretKey
+              valueFrom:
+                secretKeyRef:
+                  name: dashtab-stripe
+                  key: secret-key
+          # Readiness gates traffic during rolling updates; liveness restarts hung pods.
+          # The app exposes /health/live + /health/ready (set probes.type: http in
+          # values to use them); type: tcp just checks the port is accepting.
+          {{- if eq .Values.probes.type "http" }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.path }}
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          {{- else }}
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          {{- end }}
+          {{- if .Values.startupProbe.enabled }}
+          # Holds liveness back until the (possibly slow) cold start finishes, so a
+          # slow boot isn't restart-looped. Uses the same check kind as the probes.
+          startupProbe:
+            {{- if eq .Values.probes.type "http" }}
+            httpGet:
+              path: {{ .Values.probes.readiness.path }}
+              port: http
+            {{- else }}
+            tcpSocket:
+              port: http
+            {{- end }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.readOnlyRootFilesystem }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          {{- end }}
+      {{- if .Values.readOnlyRootFilesystem }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- end }}

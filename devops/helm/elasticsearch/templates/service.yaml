@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashtab-elasticsearch
+  labels:
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/part-of: dashtab
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: elasticsearch
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: http

@@ -1,0 +1,48 @@
+global:
+  resolve_timeout: 5m
+
+# DO-12 (AIOps): instead of Alertmanager posting to Slack directly, route firing
+# alerts to the aiops-triage webhook service. That service asks an LLM to triage
+# each alert (root cause, severity, first action) and posts the analysis to Slack.
+# If the LLM is unavailable the service falls back to posting the raw alert, so
+# Slack delivery is never lost. (The Slack webhook URL now lives on the triage
+# service as SLACK_WEBHOOK_URL, not in this config.)
+#
+#   Prometheus → Alertmanager (this webhook) → aiops-triage → LLM → Slack
+#
+# The triage service makes ONE LLM call per firing alert, so this config is tuned
+# to keep call volume low: severity-gated routing keeps non-actionable alerts off
+# the LLM, and inhibit_rules collapse a root cause + its symptoms into one triage.
+route:
+  receiver: aiops
+  group_by: ["alertname", "job"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 3h
+  routes:
+    # Only warning/critical reach the LLM (and Slack). Anything else is dropped so
+    # it never costs an LLM call or a ping.
+    - matchers:
+        - severity =~ "warning|critical"
+      receiver: aiops
+    - receiver: "null"
+
+receivers:
+  - name: aiops
+    webhook_configs:
+      # In-cluster Service of the aiops-triage Helm release (dashtab-aiops-triage).
+      - url: http://dashtab-aiops-triage:8080/alert
+        send_resolved: false
+  # Black hole for non-actionable (e.g. info) alerts — no LLM, no Slack.
+  - name: "null"
+
+# Collapse related alerts so one incident = one LLM triage call, not a storm.
+inhibit_rules:
+  # The critical 5xx alert mutes its warning twin.
+  - source_matchers: [ 'alertname = "HighHttpErrorRateCritical"' ]
+    target_matchers: [ 'alertname = "HighHttpErrorRate"' ]
+
+  # A downed dependency inevitably causes app errors/latency and stalled queues.
+  # Mute those symptoms so the root-cause alert is the single thing triaged.
+  - source_matchers: [ 'alertname =~ "TargetDown|PostgresDown|RedisDown"' ]
+    target_matchers: [ 'alertname =~ "HighHttpErrorRate|HighHttpErrorRateCritical|HighHttpLatencyP99|OrderQueueBacklog|KitchenConsumerDown|RedisMemoryHigh|RedisEvicting|PostgresConnectionsHigh"' ]

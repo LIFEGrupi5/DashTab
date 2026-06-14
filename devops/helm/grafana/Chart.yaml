@@ -1,0 +1,7 @@
+apiVersion: v2
+name: grafana
+description: DashTab Grafana — dashboards over Prometheus (hand-written)
+type: application
+version: 0.1.0
+appVersion: "11.4.0"
+# Pairs with the prometheus chart; auto-provisions Prometheus as the datasource.

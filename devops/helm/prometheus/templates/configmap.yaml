@@ -1,0 +1,16 @@
+# Loads prometheus.yml + alerts.yml from files/ verbatim, so Helm does not try to
+# parse Prometheus's own Go-template alert annotation syntax.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashtab-prometheus-config
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: dashtab
+data:
+  prometheus.yml: |-
+{{ .Files.Get "files/prometheus.yml" | indent 4 }}
+  alerts.yml: |-
+{{ .Files.Get "files/alerts.yml" | indent 4 }}
+  recording-rules.yml: |-
+{{ .Files.Get "files/recording-rules.yml" | indent 4 }}

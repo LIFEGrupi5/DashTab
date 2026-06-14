@@ -1,0 +1,19 @@
+# Auto-provisions Prometheus as the default datasource (mounted into Grafana's
+# provisioning dir), so no manual setup after deploy.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashtab-grafana-datasources
+  labels:
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: dashtab
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        uid: prometheus          # fixed uid so provisioned dashboards bind to it
+        access: proxy
+        url: {{ .Values.prometheusUrl | quote }}
+        isDefault: true

@@ -1,0 +1,62 @@
+{{- if .Values.security.enabled }}
+{{- /*
+  Setting ELASTIC_PASSWORD only bootstraps the `elastic` superuser — the built-in
+  `kibana_system` user has no usable password until one is set via the security API.
+  This post-install/upgrade hook waits for ES, authenticates as `elastic`, and sets
+  the kibana_system password to the value Kibana reads from the shared Secret.
+
+  Idempotent: re-running just re-sets the same password. Kibana may crash-loop briefly
+  on first install until this Job completes, then recovers on its own.
+*/}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: dashtab-kibana-setup
+  labels:
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/part-of: dashtab
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 20
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kibana
+        app.kubernetes.io/part-of: dashtab
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: set-kibana-system-password
+          image: {{ .Values.security.setupImage | quote }}
+          env:
+            - name: ES_URL
+              value: {{ .Values.elasticsearchUrl | quote }}
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.security.credentialsSecret }}
+                  key: elastic-password
+            - name: KIBANA_SYSTEM_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.security.credentialsSecret }}
+                  key: kibana-system-password
+          command:
+            - sh
+            - -c
+            - |
+              set -eu
+              echo "Waiting for Elasticsearch at ${ES_URL} ..."
+              until curl -fsS -u "elastic:${ELASTIC_PASSWORD}" "${ES_URL}/_cluster/health" >/dev/null 2>&1; do
+                sleep 5
+              done
+              echo "Elasticsearch is up. Setting kibana_system password ..."
+              curl -fsS -X POST -u "elastic:${ELASTIC_PASSWORD}" \
+                -H 'Content-Type: application/json' \
+                "${ES_URL}/_security/user/kibana_system/_password" \
+                -d "{\"password\":\"${KIBANA_SYSTEM_PASSWORD}\"}"
+              echo "kibana_system password set."
+{{- end }}

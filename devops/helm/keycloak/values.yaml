@@ -1,0 +1,80 @@
+# Values for the Bitnami Keycloak subchart.
+# Verify options with:  helm show values oci://registry-1.docker.io/bitnamicharts/keycloak
+#
+# ⚠️  This is the fragile chart. Two things commonly need tuning:
+#   1. The token ISSUER must match the public URL clients use (see httpRelativePath
+#      + the backend's Keycloak__ValidIssuer). Mismatch = 401s on valid tokens.
+#   2. Realm import only runs on an EMPTY realm — re-importing a changed realm
+#      needs the keycloak PVC/db wiped first.
+# Bitnami moved versioned images to docker.io/bitnamilegacy/ (2025).
+# ── Admin credentials ─────────────────────────────────────────────────────────
+# This wrapper chart creates a Secret holding the Keycloak admin password (kept out
+# of git). The Bitnami subchart reads it via auth.existingSecret below.
+adminSecret:
+  enabled: true
+  name: dashtab-keycloak-admin
+  # Leave blank to auto-generate a strong random password on first install (reused on
+  # upgrade). Retrieve it with:
+  #   kubectl get secret dashtab-keycloak-admin \
+  #     -o jsonpath='{.data.admin-password}' | base64 -d
+  # NOTE: only takes effect when Keycloak bootstraps an EMPTY db. To rotate a live
+  # admin, see DEVOPS_HANDOFF.md → Keycloak admin (kcadm.sh).
+  password: ""
+
+global:
+  security:
+    allowInsecureImages: true
+
+keycloak:
+  image:
+    repository: bitnamilegacy/keycloak
+  fullnameOverride: dashtab-keycloak
+
+  # Dev mode: HTTP, no TLS, relaxed hostname checks. Do NOT use in prod.
+  production: false
+  proxy: edge                       # we terminate at the ingress
+
+  auth:
+    adminUser: admin
+    # Password comes from the Secret created above — no plaintext in git.
+    existingSecret: dashtab-keycloak-admin
+    passwordSecretKey: admin-password
+
+  # Serve under /auth so the ingress can route there and the issuer is stable.
+  httpRelativePath: "/auth/"
+
+  # Use the shared Postgres (the `keycloak` db created by the postgresql chart),
+  # not a bundled one.
+  postgresql:
+    enabled: false
+  externalDatabase:
+    host: dashtab-postgresql
+    port: 5432
+    user: dashtab
+    password: dashtab               # DEV ONLY — see Lecture 7
+    database: keycloak
+
+  # Import the realm on first boot from the ConfigMap created by this chart.
+  extraStartupArgs: "--import-realm"
+  extraVolumes:
+    - name: realm
+      configMap:
+        name: dashtab-keycloak-realm
+  extraVolumeMounts:
+    - name: realm
+      mountPath: /opt/bitnami/keycloak/data/import
+      readOnly: true
+
+  # Ingress: http://dashtab.local/auth  → Keycloak.
+  # (Backend talks to it in-cluster; browsers reach it via this ingress.)
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: dashtab.local
+    path: /auth
+    pathType: Prefix
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false

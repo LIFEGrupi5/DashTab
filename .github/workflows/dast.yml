@@ -1,0 +1,43 @@
+name: DAST (OWASP ZAP)
+
+# Only one scan at a time; a newer trigger supersedes an in-progress scan.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+# DO-9 — dynamic application security testing. Runs a PASSIVE baseline scan
+# against the deployed app: ZAP spiders the site and checks for common runtime
+# issues (missing security headers, cookie flags, outdated JS libs, info leaks)
+# WITHOUT active attacks — safe to run against the shared project-05 cluster.
+#
+# Scheduled weekly + manual. Non-gating (report-only): the HTML/JSON report is
+# uploaded as a run artifact. Override the target via workflow_dispatch input.
+on:
+  schedule:
+    - cron: '41 5 * * 1'   # weekly Mon 05:41 UTC
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target URL to scan'
+        default: 'https://app.project-05.gjirafa.dev'
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  zap-baseline:
+    name: ZAP baseline scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: ${{ github.event.inputs.target || 'https://app.project-05.gjirafa.dev' }}
+          # -a includes the (passive) alpha rules. Passive only — no active attacks.
+          cmd_options: '-a'
+          # Informational gate: don't fail the workflow on findings and don't
+          # auto-open GitHub issues; the report is uploaded as an artifact.
+          fail_action: false
+          allow_issue_writing: false

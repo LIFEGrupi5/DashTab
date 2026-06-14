@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "reviewer": "Arben K.",
+    "rating": 5,
+    "text": "Ordered via the QR code at the table — the AI suggestion was spot on. Asked for something light and the system recommended the grilled sea bass. Perfect choice. Will definitely use it again."
+  },
+  {
+    "id": 2,
+    "reviewer": "Blerta M.",
+    "rating": 2,
+    "text": "Waited 40 minutes for a simple pasta. The kitchen display was showing 'Preparing' the whole time but nothing came out. Staff seemed unaware. Disappointing for a Saturday lunch."
+  },
+  {
+    "id": 3,
+    "reviewer": "Driton H.",
+    "rating": 4,
+    "text": "Good food overall. The app recommendation worked nicely — I typed 'something hearty and warm' and it suggested the lamb stew which was excellent. Service was a bit slow at the start."
+  },
+  {
+    "id": 4,
+    "reviewer": "Vjosa R.",
+    "rating": 5,
+    "text": "Love the QR menu system. Super easy to use, no app download needed. The AI picked a vegetarian option that I would never have found on my own. Great experience."
+  },
+  {
+    "id": 5,
+    "reviewer": "Mentor G.",
+    "rating": 1,
+    "text": "Absolutely terrible wait time. Over an hour for two main courses. The staff kept saying the kitchen is busy but we could see other tables getting served faster. Never coming back."
+  },
+  {
+    "id": 6,
+    "reviewer": "Shqipe L.",
+    "rating": 3,
+    "text": "Food was decent, prices are fair. The digital ordering system is a nice touch but it felt a bit slow on my older phone. The AI recommendation just gave me something random and didn't match what I asked for."
+  },
+  {
+    "id": 7,
+    "reviewer": "Fatos B.",
+    "rating": 5,
+    "text": "Best dining experience in a while. Staff were attentive, food came quickly, and the AI suggestion for a 'spicy starter' was exactly right. The burek with chili sauce was amazing."
+  },
+  {
+    "id": 8,
+    "reviewer": "Edona Q.",
+    "rating": 2,
+    "text": "The food itself was fine but the prices don't match the quality. €18 for a small portion of pasta is too much. Also the AI feature just said 'AI warming up' every time I tried it."
+  },
+  {
+    "id": 9,
+    "reviewer": "Luan D.",
+    "rating": 4,
+    "text": "Really liked the concept. Scanned the QR, typed what I was in the mood for, and got a personalised recommendation in seconds. The staff were friendly. Minus one star for the slightly noisy environment."
+  },
+  {
+    "id": 10,
+    "reviewer": "Arta N.",
+    "rating": 5,
+    "text": "Impressive technology for a local restaurant. The recommendation engine understood 'something sweet but not too heavy' and suggested the panna cotta. My table was very happy. 10/10."
+  },
+  {
+    "id": 11,
+    "reviewer": "Gent M.",
+    "rating": 3,
+    "text": "Mixed experience. Food quality was good but we had to ask three times for the bill. The QR system is convenient but I noticed my order confirmation didn't come through until after the food arrived."
+  },
+  {
+    "id": 12,
+    "reviewer": "Teuta S.",
+    "rating": 1,
+    "text": "Wrong order delivered twice. The kitchen display system apparently confused our table number. Staff were apologetic but the experience was ruined. The food was cold by the time we got the right dish."
+  },
+  {
+    "id": 13,
+    "reviewer": "Kujtim P.",
+    "rating": 4,
+    "text": "Solid restaurant. The AI menu tool is a genuinely useful feature — I asked for something for a pescatarian and it filtered correctly without me having to read every item. Food arrived in about 20 minutes."
+  },
+  {
+    "id": 14,
+    "reviewer": "Mimoza A.",
+    "rating": 5,
+    "text": "Came here with a group of 8. The QR ordering made it so easy — everyone scanned individually and the kitchen got all orders at once. Zero confusion. The food was delicious too."
+  },
+  {
+    "id": 15,
+    "reviewer": "Fitim R.",
+    "rating": 2,
+    "text": "The AI recommendation feature doesn't work properly. It showed me items that were listed as unavailable on the actual menu. Seems like the system isn't synced with what's actually in stock."
+  },
+  {
+    "id": 16,
+    "reviewer": "Drita K.",
+    "rating": 4,
+    "text": "Pleasant meal. Staff were knowledgeable and the food quality is high. The digital system felt a bit impersonal at first but the AI suggestions saved us a lot of time choosing. Would recommend."
+  },
+  {
+    "id": 17,
+    "reviewer": "Besnik H.",
+    "rating": 5,
+    "text": "Used the recommendation feature both times I visited. It remembered nothing (no login needed which I appreciate) but the suggestions were different and both were great. Consistent food quality."
+  },
+  {
+    "id": 18,
+    "reviewer": "Leonora F.",
+    "rating": 3,
+    "text": "Decent place. The wait time was acceptable (25 minutes) and food was tasty. The AI tool gave one good recommendation and one that didn't make sense at all for what I asked. 50/50."
+  },
+  {
+    "id": 19,
+    "reviewer": "Ardian M.",
+    "rating": 1,
+    "text": "Waited 55 minutes, food arrived cold, and when I complained the staff pointed at a sign saying 'kitchen busy'. The QR system is a gimmick if the kitchen can't keep up. One star."
+  },
+  {
+    "id": 20,
+    "reviewer": "Hana B.",
+    "rating": 5,
+    "text": "Lovely experience from start to finish. The AI recommendation page was the highlight — scanned the QR at the table, described my craving, and got three perfect suggestions. The staff were warm and the food was fresh."
+  }
+]

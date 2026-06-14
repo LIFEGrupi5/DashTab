@@ -1,0 +1,126 @@
+# ── DashTab backend (.NET 10 API) ────────────────────────────────────────────
+replicaCount: 1
+
+image:
+  # Built + pushed by CI (Lecture 4). For local minikube you can instead build
+  # straight into the cluster — see devops/helm/README.md.
+  repository: ghcr.io/lifegrupi5/dashtab-backend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5000
+
+# Prometheus metrics port. Served by a dedicated in-process Kestrel server (see
+# Program.cs) and exposed only on the Service — never via the ingress — so /metrics
+# is scrapeable in-cluster but not public. Must match the app's Metrics:Port default.
+metrics:
+  port: 9100
+
+# Ingress: http://dashtab.local/api → backend. The rewrite annotation strips the
+# /api prefix (mirrors the old nginx `rewrite ^/api/(.*)$ /$1`).
+ingress:
+  enabled: true
+  className: nginx
+  host: dashtab.local
+  path: /                  # dedicated api.* host → route everything to the backend
+  annotations: {}
+  # TLS via cert-manager — off for local (dashtab.local has no cert). Enable in
+  # the per-env overlay and add the cert-manager.io/cluster-issuer annotation.
+  tls:
+    enabled: false
+    secretName: ""
+
+# Non-secret config → rendered into a ConfigMap, injected via envFrom.
+# In-cluster service names come from the infra charts' fullnameOverride values.
+config:
+  ASPNETCORE_ENVIRONMENT: Development
+  ASPNETCORE_URLS: "http://+:5000"
+  Storage__Endpoint: "http://dashtab-minio:9000"
+  # Public URL browsers use for presigned/object links — the ingress host.
+  Storage__PublicBaseUrl: "http://dashtab.local/s3"
+  # In-cluster authority for token validation calls...
+  Keycloak__Authority: "http://dashtab-keycloak/auth/realms/dashtab"
+  # ...and the issuer string that must MATCH what tokens carry (public URL).
+  Keycloak__ValidIssuer: "http://dashtab.local/auth/realms/dashtab"
+  Unleash__ServerApiUrl: "https://eu.app.getunleash.io/eull0783/api"
+
+# Secrets → rendered into a Secret, injected via envFrom. Connection strings
+# embed passwords, so they live here, not in the ConfigMap.
+# NOTE: backend talks to PgBouncer (:6432), not Postgres directly.
+# PROD: values are empty here — injected at deploy time from Azure Key Vault
+# (kv-dashtab-p05) via `helm --set` in cd.yml (DO-9). Local dev: use docker-compose.
+secrets:
+  ConnectionStrings__Default: ""
+  ConnectionStrings__Redis: ""
+  ConnectionStrings__RabbitMQ: ""
+  Storage__AccessKey: ""
+  Storage__SecretKey: ""
+  Unleash__ServerApiToken: ""
+
+# Probes. type: tcp (default) just checks the port is accepting connections —
+# correct while DashTab.API exposes NO health endpoints. Switch to type: http
+# (paths below) once ASP.NET health checks are added (a DO-5 item).
+probes:
+  type: http               # app now exposes /health/live + /health/ready
+  liveness:
+    path: /health/live
+  readiness:
+    path: /health/ready
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+
+# Horizontal Pod Autoscaler — off by default (needs metrics-server).
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 75
+
+# ── Production hardening ──────────────────────────────────────────────────────
+# Image pull secrets — needed once the GHCR images/repo are private. The secret
+# holds a PAT so it is NOT templated here; create it in the namespace first:
+#   kubectl -n project-05 create secret docker-registry ghcr-pull \
+#     --docker-server=ghcr.io --docker-username=<gh-user> \
+#     --docker-password=<PAT with read:packages>
+imagePullSecrets: []          # e.g. [{ name: ghcr-pull }]
+
+# PodDisruptionBudget — preserves capacity during voluntary disruptions (node
+# drains, cluster upgrades). maxUnavailable: 1 lets a drain proceed while keeping
+# the rest up. With a single replica a drain still evicts the pod (the rolling
+# strategy covers zero-downtime on deploys); raise replicaCount/HPA for real
+# drain protection.
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+# startupProbe — gives a slow cold start time to come up before the livenessProbe
+# starts counting, so a slow boot isn't killed mid-start.
+# failureThreshold * periodSeconds = max allowed startup time (here 150s).
+startupProbe:
+  enabled: true
+  failureThreshold: 30
+  periodSeconds: 5
+
+# readOnlyRootFilesystem — when true the root FS is read-only and an emptyDir is
+# mounted at /tmp. .NET writes to TMPDIR and (by default) DataProtection keys to
+# the home dir; verify those paths are covered before enabling in prod.
+readOnlyRootFilesystem: true
+
+# NetworkPolicy — default-deny for these pods + an explicit allow-list. Namespaced,
+# but only ENFORCED if the cluster CNI supports NetworkPolicy (on a non-enforcing
+# CNI it installs cleanly and silently does nothing — verify first). Off by default
+# so an incomplete allow-list can't take the app down.
+networkPolicy:
+  enabled: false
+  # Namespace label of the ingress controller (allows external ingress traffic in).
+  ingressNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx
+  # Allow egress to the public internet on 443 (backend talks only in-cluster).
+  egressInternet: false

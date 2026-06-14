@@ -1,0 +1,33 @@
+# Overlay for the project-05 cluster (values nested under `keycloak:` for the
+# Bitnami subchart).
+#   helm dependency update devops/helm/keycloak
+#   helm upgrade --install dashtab-keycloak devops/helm/keycloak \
+#     -n project-05 -f devops/helm/keycloak/values-project05.yaml
+keycloak:
+  # Behind a TLS-terminating ingress: dev server is fine, proxy=edge trusts the
+  # X-Forwarded-* headers from nginx.
+  production: false
+  proxy: edge
+
+  # It has its OWN subdomain now (auth.…), so serve at ROOT — drop the /auth
+  # relative path used for the local single-host setup.
+  httpRelativePath: "/"
+
+  # Pin the FULL public base URL (with https) so the token issuer is
+  # https://auth.project-05.gjirafa.dev/... even though the backend reaches
+  # Keycloak over internal http. Just the hostname leaves the scheme as http,
+  # which makes the token's `iss` mismatch the backend's ValidIssuer → 401s.
+  extraEnvVars:
+    - name: KC_HOSTNAME
+      value: https://auth.project-05.gjirafa.dev
+    - name: KC_HOSTNAME_STRICT
+      value: "false"
+
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    hostname: auth.project-05.gjirafa.dev
+    path: /
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod   # confirmed on project-05 — cert-manager issues the LE cert
+    tls: true        # Bitnami creates the tls block; cert-manager fills the secret

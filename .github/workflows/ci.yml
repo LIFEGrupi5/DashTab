@@ -1,0 +1,186 @@
+name: CI
+
+# One CI workflow for the whole monorepo. A `changes` job decides which areas
+# (backend / frontend / aiops) actually changed, the area jobs run only when
+# relevant, and a final `ci-pass` job aggregates their results into ONE status
+# check. Make branch protection require just `ci-pass`:
+#  - it ALWAYS reports on every PR (no path-filtered workflow can "never run"),
+#  - skipped areas count as a pass, a failed area fails the gate,
+#  - no polling, no duplicated path filters, no second runner idling.
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # Single source of truth for "what changed" — drives every area job below
+  # AND the gate, so the filters can never drift out of sync with each other.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      aiops: ${{ steps.filter.outputs.aiops }}
+      self: ${{ steps.filter.outputs.self }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'src/backend/**'
+            frontend:
+              - 'src/frontend/**'
+            aiops:
+              - 'devops/aiops/**'
+            self:
+              - '.github/workflows/ci.yml'
+
+  backend:
+    name: Backend Build & Test
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.self == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+      - name: Restore
+        run: dotnet restore src/backend/DashTab.sln
+      - name: Build
+        run: dotnet build src/backend/DashTab.sln --no-restore --configuration Release
+      - name: Test
+        run: dotnet test src/backend/DashTab.sln --no-build --configuration Release --verbosity minimal
+
+  frontend:
+    name: Frontend Lint, Build & Unit
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.self == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+      # Next.js incremental compiler cache — restore the latest, save a fresh
+      # entry each run. Cuts warm builds substantially.
+      - uses: actions/cache@v4
+        with:
+          path: src/frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('src/frontend/package-lock.json') }}-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-nextjs-${{ hashFiles('src/frontend/package-lock.json') }}-
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test -- --passWithNoTests
+      - name: Build
+        run: npm run build
+      # Lighthouse is advisory (all assertions are 'warn'); only spend the time
+      # on merges to a protected branch, not on every PR push.
+      - name: Lighthouse CI
+        if: github.event_name == 'push'
+        run: npx lhci autorun
+
+  frontend-e2e:
+    name: Frontend E2E
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.self == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('src/frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+  aiops:
+    name: AIOps Lint, Test & Build
+    needs: changes
+    if: needs.changes.outputs.aiops == 'true' || needs.changes.outputs.self == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: devops/aiops
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: devops/aiops/requirements.txt
+      - name: Install deps
+        run: pip install -r requirements.txt ruff pytest
+      - name: Lint
+        run: ruff check app.py
+      - name: Test
+        run: pytest -q
+      - name: Build image
+        run: docker build -t dashtab/aiops:ci .
+
+  # The single required check. Always runs; passes iff no area job failed or was
+  # cancelled (skipped = the area didn't change = pass). Require THIS in branch
+  # protection — never the per-area jobs (they don't run on unrelated PRs).
+  ci-pass:
+    name: ci-pass
+    needs: [changes, backend, frontend, frontend-e2e, aiops]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify required jobs passed
+        run: |
+          results="${{ join(needs.*.result, ' ') }}"
+          echo "Job results: $results"
+          for r in $results; do
+            if [ "$r" = "failure" ] || [ "$r" = "cancelled" ]; then
+              echo "::error::A required CI job did not pass ($r)"
+              exit 1
+            fi
+          done
+          echo "✅ All required CI jobs passed or were legitimately skipped."

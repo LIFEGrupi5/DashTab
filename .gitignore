@@ -137,3 +137,21 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# .NET build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+report.html
+zap.yaml
+src/frontend/test-results/
+
+# Python (aiops service)
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# JetBrains IDE
+.idea/

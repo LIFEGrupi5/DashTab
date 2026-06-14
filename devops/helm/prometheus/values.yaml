@@ -1,0 +1,29 @@
+# ── DashTab Prometheus ────────────────────────────────────────────────────────
+image:
+  repository: prom/prometheus
+  tag: v3.1.0
+  pullPolicy: IfNotPresent
+
+# Metrics history. emptyDir storage (ephemeral) keeps it simple for the cluster
+# demo; bump to a PVC (longhorn) if you want history to survive restarts.
+retention: 7d
+
+service:
+  port: 9090
+
+# Alertmanager — routes firing alerts to the AIOps triage webhook (see
+# files/alertmanager.yml), which enriches them via an LLM and posts to Slack.
+# There is no direct Slack receiver here, so no webhook secret is needed.
+alertmanager:
+  enabled: true
+  image:
+    repository: prom/alertmanager
+    tag: v0.27.0
+    pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi

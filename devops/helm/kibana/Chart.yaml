@@ -1,0 +1,7 @@
+apiVersion: v2
+name: kibana
+description: DashTab Kibana — log UI over Elasticsearch (hand-written)
+type: application
+version: 0.1.0
+appVersion: "8.15.3"
+# Pairs with the elasticsearch chart. Exposed at kibana.project-05.gjirafa.dev (TLS).
