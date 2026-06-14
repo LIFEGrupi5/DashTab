@@ -4,6 +4,7 @@ global:
 
 rule_files:
   - /etc/prometheus/alerts.yml
+  - /etc/prometheus/recording-rules.yml
 
 # Send firing alerts to Alertmanager (in-cluster service).
 alerting:
@@ -34,3 +35,10 @@ scrape_configs:
     metrics_path: /metrics
     static_configs:
       - targets: ["dashtab-keycloak-metrics:9000"]
+
+  # Backend app metrics (prometheus-net) on its dedicated metrics port. In-cluster
+  # only — not exposed via the ingress. Enables the dashtab-app RED alerts.
+  - job_name: backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["dashtab-backend:9100"]

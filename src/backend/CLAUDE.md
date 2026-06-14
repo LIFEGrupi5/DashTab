@@ -5,23 +5,26 @@
 ```
 src/backend/
   DashTab.Domain/
-    Entities/       # Restaurant, User, MenuCategory, MenuItem, Order, OrderItem, AuditLog, Subscription
-    Enums/          # OrderStatus, Role, SubscriptionStatus, Plan
+    Entities/       # Restaurant, User, MenuCategory, MenuItem (+ pgvector Embedding), Order, OrderItem,
+                    #   AuditLog, Subscription, WorkShift, ShiftRequest
+    Enums/          # OrderStatus, Role, SubscriptionStatus, Plan, ShiftRequestStatus, ShiftRequestType
   DashTab.Application/
-    Interfaces/     # Service interfaces (IOrderService, IUserService, IScheduleService, etc.)
-    Dtos/           # Request/response shapes
+    Interfaces/     # Service interfaces (IOrderService, IUserService, IScheduleService, IRecommendationService, etc.)
+    Dtos/           # Request/response shapes (incl. PagedResult<T>, RecommendationDtos)
     Mappings/       # Mapperly mappers (entity <-> DTO)
     Validators/     # FluentValidation request validators
     Events/         # Domain/integration event contracts
     Storage/        # Storage policy/bucket constants
   DashTab.Infrastructure/
-    Persistence/    # DashTabDbContext (EF Core 9, PostgreSQL, multi-tenant query filters) + Migrations
-    Services/       # Auth, User, Category, MenuItem, Order, Restaurant, Subscription, Email, Storage, Jobs
+    Persistence/    # DashTabDbContext (EF Core 9, PostgreSQL + pgvector, multi-tenant query filters) + Migrations
+    Services/       # Auth, User, Category, MenuItem, Order, Restaurant, Subscription, Schedule,
+                    #   Recommendation (OpenAI), Email, Storage, Jobs
     Caching/        # Redis-backed CacheService + CacheKeys
     Messaging/      # RabbitMQ publisher, consumers, KDS bridge
     Middleware/     # RestaurantContextMiddleware (tenant resolution + 402 subscription gate)
   DashTab.API/
-    Controllers/    # Auth, Users, MenuCategories, MenuItems, Orders, Restaurants, Subscriptions, Health
+    Controllers/    # Auth, Users, MenuCategories, MenuItems, Orders, Restaurants, Subscriptions,
+                    #   Schedule, Analytics, Public (anonymous AI recommend), Health
     Middleware/     # CorrelationIdMiddleware, DashTabExceptionHandler
     Realtime/       # SignalR KdsHub + KdsBroadcaster
     Mcp/            # MCP server tools (MenuTools, OrderTools, StaffTools) — read-only, auth-gated
@@ -68,9 +71,12 @@ dotnet build
 
 ## Current State
 
-- `DashTabDbContext` runs on EF Core 9 over PostgreSQL (Npgsql), with migrations, soft-delete query filters, and snake_case naming conventions
-- Authentication is live via Keycloak JWT bearer; roles `Owner,Manager,Kitchen` gate REST, SignalR, and MCP
-- Real business logic in place for auth, users, menu categories/items, and orders
+- `DashTabDbContext` runs on EF Core 9 over PostgreSQL (Npgsql) + the `pgvector` extension (menu-item embeddings), with migrations, soft-delete query filters, and snake_case naming conventions
+- Authentication is live via Keycloak JWT bearer; roles are `Owner, Manager, Waiter, Kitchen` and gate REST, SignalR, and MCP (most endpoints are `Owner` or `Owner,Manager`)
+- Real business logic in place for auth, users, menu categories/items, orders, subscriptions (Stripe), staff scheduling, and AI menu recommendations
+- List endpoints (orders, menu-items, users) are paginated via `?skip=&take=` returning `PagedResult<T>`
+- AI recommendation (`PublicController`, anonymous) uses OpenAI embeddings + pgvector cosine search + an LLM blurb; **fail-soft** — missing key / API error falls back to a plain menu listing, never throws
+- Subscriptions: period end is set app-side on confirm (`UtcNow + 1 month`); **Stripe webhooks are not wired**, so Stripe-side renewals are not tracked
 - Cross-cutting infra wired in `Program.cs`:
   - **Redis** cache (`Caching/`, falls back to in-memory when unavailable)
   - **RabbitMQ** messaging + consumers and the kitchen bridge (`Messaging/`)
@@ -93,6 +99,7 @@ dotnet build
 | `RabbitMQ.Client` | message broker |
 | `Minio` | object storage |
 | `Hangfire.AspNetCore` + `Hangfire.PostgreSql` | background jobs |
+| `Pgvector` + `Pgvector.EntityFrameworkCore` | menu-item embeddings + cosine search |
 | `MailKit` | SMTP email |
 | `Serilog.AspNetCore` | structured logging |
 | `ModelContextProtocol.AspNetCore` 1.3.0 | MCP server |

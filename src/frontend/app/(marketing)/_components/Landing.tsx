@@ -8,6 +8,7 @@ import {
   Check, ChevronDown, ArrowRight, Clock, Sparkles, Star,
 } from 'lucide-react';
 import { PLANS } from '@/lib/plans';
+import { useFeatureFlag } from '@/lib/experiment';
 
 // Warm "ember" palette — amber → orange, no pink. Used for emphasis + primary CTAs.
 const EMBER = 'bg-gradient-to-r from-amber-300 via-orange-400 to-orange-600';
@@ -261,6 +262,8 @@ function Features() {
 
 // ── Pricing ─────────────────────────────────────────────────────────────────
 function PricingTeaser() {
+  const variant = useFeatureFlag('pricing-highlight-variant');
+  const showHighlight = variant !== 'no-highlight';
   return (
     <section className="relative py-24 px-5 sm:px-6 bg-stone-950 text-white">
       <div className="max-w-5xl mx-auto">
@@ -273,9 +276,9 @@ function PricingTeaser() {
             <Reveal key={plan.key} delay={i}>
               <motion.div whileHover={{ y: -6 }}
                 className={`relative h-full p-6 rounded-2xl border flex flex-col transition ${
-                  plan.highlight ? 'border-orange-400/50 bg-gradient-to-b from-orange-500/15 to-stone-900 shadow-2xl shadow-orange-900/30' : 'border-white/10 bg-stone-900/60'
+                  showHighlight && plan.highlight ? 'border-orange-400/50 bg-gradient-to-b from-orange-500/15 to-stone-900 shadow-2xl shadow-orange-900/30' : 'border-white/10 bg-stone-900/60'
                 }`}>
-                {plan.highlight && (
+                {showHighlight && plan.highlight && (
                   <div className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full ${EMBER} text-white text-xs font-bold shadow-lg`}>Most popular</div>
                 )}
                 <p className="font-bold text-lg">{plan.name}</p>

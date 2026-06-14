@@ -51,6 +51,25 @@ const kitchenNavItems = [
   { href: '/schedule', label: 'My Schedule', icon: CalendarDays },
 ] as const;
 
+// Route authorization is an ALLOW-LIST, not a deny-list: each non-manager role is
+// confined to its own pages, and ANY other route (by URL, dashboard shortcut, the
+// double-click-to-home gesture, back button) bounces it to its home. Owners/managers
+// are unrestricted. Allow-list (vs deny-list) means a newly added page is locked
+// down by default until a role is explicitly granted it. The layout refuses to
+// RENDER a disallowed page (no post-render redirect window to race). Backend APIs
+// are role-gated too — this is the matching UI guard.
+const ROLE_ALLOWED_PREFIXES: Record<string, readonly string[]> = {
+  waiter: ['/dashboard', '/orders', '/schedule'],
+  kitchen: ['/kitchen', '/schedule'],
+};
+
+// Where to bounce a role that lands on a page it may not view. MUST be a path that
+// role IS allowed, or the redirect would loop (e.g. kitchen can't go to /dashboard).
+const ROLE_HOME: Record<string, string> = {
+  waiter: '/dashboard',
+  kitchen: '/kitchen',
+};
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -80,6 +99,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isWaiter = user?.role === 'waiter';
   const isKitchenStaff = user?.role === 'kitchen';
+  const isManager = user?.role === 'owner' || user?.role === 'manager';
+  // Owners/managers are unrestricted; every other role is confined to its
+  // allow-list. A non-manager on any path outside its list is blocked (the page
+  // is never rendered below). Unknown non-manager role → empty list → blocked.
+  const allowedPrefixes = (user && ROLE_ALLOWED_PREFIXES[user.role]) || [];
+  const pathBlocked =
+    !!user &&
+    !isManager &&
+    !allowedPrefixes.some(p => pathname === p || pathname.startsWith(`${p}/`));
   const hideShellSidebar = false;
   const showSidebarProfile = Boolean(user && sidebarOpen && roleShowsSidebarProfile(user.role));
 
@@ -104,6 +132,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.replace('/login');
     }
   }, [hydrated, user, router]);
+
+  // Bounce a disallowed role off a manager-only page. The render gate below is
+  // what actually protects the page (children never mount); this just cleans up
+  // the URL afterwards.
+  useEffect(() => {
+    if (hydrated && user && pathBlocked) {
+      router.replace(ROLE_HOME[user.role] ?? '/dashboard');
+    }
+  }, [hydrated, user, pathBlocked, router]);
 
   if (!hydrated || !user) {
     return (
@@ -249,7 +286,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           transition={{ duration: 0.18, ease: 'easeOut' }}
           className="flex-1 flex flex-col"
         >
-          {children}
+          {pathBlocked ? (
+            <div className="flex flex-1 items-center justify-center text-muted-foreground text-sm">
+              Redirecting…
+            </div>
+          ) : (
+            children
+          )}
         </m.div>
       </main>
       </div>
