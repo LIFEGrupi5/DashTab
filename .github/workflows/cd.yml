@@ -374,11 +374,17 @@ jobs:
 
       - name: Deploy backend
         run: |
+          # helm --set treats commas as value separators. The Redis connection
+          # string is comma-delimited (host,password=...,abortConnect=...), so its
+          # commas MUST be backslash-escaped — otherwise everything after the first
+          # comma (including password=) is silently dropped and the backend connects
+          # to Redis with no auth → NOAUTH at runtime (cache + SignalR backplane down).
+          REDIS_ESC="${BACKEND_CONN_REDIS//,/\\,}"
           helm upgrade --install dashtab-backend devops/helm/backend \
             -n project-05 -f devops/helm/backend/values-project05.yaml \
             --set image.tag="$IMAGE_TAG" \
             --set "secrets.ConnectionStrings__Default=$BACKEND_CONN_DEFAULT" \
-            --set "secrets.ConnectionStrings__Redis=$BACKEND_CONN_REDIS" \
+            --set-string "secrets.ConnectionStrings__Redis=$REDIS_ESC" \
             --set "secrets.ConnectionStrings__RabbitMQ=$BACKEND_CONN_RABBITMQ" \
             --set "secrets.Storage__AccessKey=$BACKEND_STORAGE_ACCESSKEY" \
             --set "secrets.Storage__SecretKey=$BACKEND_STORAGE_SECRETKEY" \
