@@ -32,6 +32,16 @@ public class SubscriptionServiceTests
             => Task.FromResult(SessionResult);
     }
 
+    private sealed class StubCacheService : ICacheService
+    {
+        public Task<T?> GetAsync<T>(string key, CancellationToken ct = default) where T : class => Task.FromResult<T?>(null);
+        public Task SetAsync<T>(string key, T value, TimeSpan ttl, CancellationToken ct = default) where T : class => Task.CompletedTask;
+        public Task RemoveAsync(string key, CancellationToken ct = default) => Task.CompletedTask;
+        public Task RemoveManyAsync(IEnumerable<string> keys, CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    private static readonly StubCacheService Cache = new();
+
     private static DashTabDbContext NewDb()
     {
         var db = new DashTabDbContext(new DbContextOptionsBuilder<DashTabDbContext>()
@@ -61,7 +71,7 @@ public class SubscriptionServiceTests
     {
         await using var db = NewDb();
         var stripe = new StubStripeService { CheckoutUrl = "https://pay.test/abc" };
-        var sut = new SubscriptionService(db, new StubCurrentUser(), stripe);
+        var sut = new SubscriptionService(db, new StubCurrentUser(), stripe, Cache);
 
         var response = await sut.CreateCheckoutAsync(new CreateCheckoutRequest("Basic"));
 
@@ -78,7 +88,7 @@ public class SubscriptionServiceTests
         SeedSubscription(db, SubscriptionStatus.Incomplete, Plan.Pro, periodEnd: null);
         await db.SaveChangesAsync();
         var stripe = new StubStripeService { SessionResult = new StripeSessionResult(true, "cus_1", "sub_1", null) };
-        var sut = new SubscriptionService(db, new StubCurrentUser(), stripe);
+        var sut = new SubscriptionService(db, new StubCurrentUser(), stripe, Cache);
 
         var now = DateTime.UtcNow;
         var dto = await sut.ConfirmAsync(new ConfirmCheckoutRequest("sess_1"));
@@ -96,7 +106,7 @@ public class SubscriptionServiceTests
         SeedSubscription(db, SubscriptionStatus.Incomplete, Plan.Basic, periodEnd: null);
         await db.SaveChangesAsync();
         var stripe = new StubStripeService { SessionResult = new StripeSessionResult(false, null, null, null) };
-        var sut = new SubscriptionService(db, new StubCurrentUser(), stripe);
+        var sut = new SubscriptionService(db, new StubCurrentUser(), stripe, Cache);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => sut.ConfirmAsync(new ConfirmCheckoutRequest("sess_1")));
     }
@@ -107,7 +117,7 @@ public class SubscriptionServiceTests
         await using var db = NewDb();
         SeedSubscription(db, SubscriptionStatus.Active, Plan.Basic, periodEnd: DateTime.UtcNow.AddDays(5));
         await db.SaveChangesAsync();
-        var sut = new SubscriptionService(db, new StubCurrentUser(), new StubStripeService());
+        var sut = new SubscriptionService(db, new StubCurrentUser(), new StubStripeService(), Cache);
 
         Assert.True(await sut.IsActiveAsync(TenantId));
     }
@@ -118,7 +128,7 @@ public class SubscriptionServiceTests
         await using var db = NewDb();
         SeedSubscription(db, SubscriptionStatus.Active, Plan.Basic, periodEnd: DateTime.UtcNow.AddDays(-1));
         await db.SaveChangesAsync();
-        var sut = new SubscriptionService(db, new StubCurrentUser(), new StubStripeService());
+        var sut = new SubscriptionService(db, new StubCurrentUser(), new StubStripeService(), Cache);
 
         Assert.False(await sut.IsActiveAsync(TenantId));
     }
@@ -129,7 +139,7 @@ public class SubscriptionServiceTests
         await using var db = NewDb();
         SeedSubscription(db, SubscriptionStatus.Incomplete, Plan.Basic, periodEnd: null);
         await db.SaveChangesAsync();
-        var sut = new SubscriptionService(db, new StubCurrentUser(), new StubStripeService());
+        var sut = new SubscriptionService(db, new StubCurrentUser(), new StubStripeService(), Cache);
 
         Assert.False(await sut.IsActiveAsync(TenantId));
     }
@@ -142,7 +152,7 @@ public class SubscriptionServiceTests
         SeedUser(db);
         SeedUser(db);
         await db.SaveChangesAsync();
-        var sut = new SubscriptionService(db, new StubCurrentUser(), new StubStripeService());
+        var sut = new SubscriptionService(db, new StubCurrentUser(), new StubStripeService(), Cache);
 
         var dto = await sut.GetCurrentAsync();
 
@@ -156,7 +166,7 @@ public class SubscriptionServiceTests
     public async Task GetCurrentAsync_null_when_no_subscription()
     {
         await using var db = NewDb();
-        var sut = new SubscriptionService(db, new StubCurrentUser(), new StubStripeService());
+        var sut = new SubscriptionService(db, new StubCurrentUser(), new StubStripeService(), Cache);
 
         Assert.Null(await sut.GetCurrentAsync());
     }

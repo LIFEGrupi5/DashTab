@@ -2,6 +2,7 @@ using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
 using DashTab.Domain.Entities;
 using DashTab.Domain.Enums;
+using DashTab.Infrastructure.Caching;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,7 +11,8 @@ namespace DashTab.Infrastructure.Services;
 public class SubscriptionService(
     DashTabDbContext db,
     ICurrentUser currentUser,
-    IStripeService stripe) : ISubscriptionService
+    IStripeService stripe,
+    ICacheService cache) : ISubscriptionService
 {
     public async Task<CreateCheckoutResponse> CreateCheckoutAsync(
         CreateCheckoutRequest request, CancellationToken ct = default)
@@ -66,6 +68,13 @@ public class SubscriptionService(
         sub.CurrentPeriodEnd     = result.CurrentPeriodEnd ?? now.AddMonths(1);
         sub.UpdatedAt            = now;
         await db.SaveChangesAsync(ct);
+
+        // Bust the per-user tenant cache so the next dashboard request sees HasActiveSub=true
+        // immediately instead of waiting up to 5 minutes for the TTL to expire.
+        var userId = currentUser.Id.ToString();
+        await cache.RemoveAsync(CacheKeys.TenantContextForUser(userId), ct);
+        if (currentUser.Email is { } email)
+            await cache.RemoveAsync(CacheKeys.TenantContextForUser(email), ct);
 
         return await ToDto(sub, rid, ct);
     }
