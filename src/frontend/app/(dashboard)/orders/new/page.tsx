@@ -1,16 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Minus, Plus } from 'lucide-react';
 import Button from '@/components/Button';
 import { useAppStore } from '@/stores/useAppStore';
 import { useStoreHydrated } from '@/hooks/useStoreHydrated';
-import { useMenu } from '@/hooks/useMenu';
+import { useMenu, useCategories } from '@/hooks/useMenu';
 import { useCreateOrder } from '@/hooks/useCreateOrder';
-
-const CATEGORIES = ['All Items', 'Main Course', 'Appetizer', 'Salad', 'Dessert', 'Beverage'] as const;
 
 function MenuSkeleton() {
   return (
@@ -30,10 +28,19 @@ export default function NewOrderPage() {
   const hydrated = useStoreHydrated();
   const role = useAppStore(s => s.user?.role);
   const { data: menuItems = [], isLoading } = useMenu();
+  const { data: categoryOptions = [] } = useCategories();
   const createOrder = useCreateOrder();
 
+  // Chips come from the restaurant's real categories (with "All Items" prepended),
+  // the same source the menu page uses. The old hard-coded list silently matched
+  // nothing whenever a restaurant's categories were named differently.
+  const categories = useMemo(
+    () => ['All Items', ...categoryOptions.map(c => c.name)],
+    [categoryOptions],
+  );
+
   const [tableNumber, setTableNumber] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<(typeof CATEGORIES)[number]>('All Items');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All Items');
   const [cart, setCart] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
 
@@ -115,7 +122,7 @@ export default function NewOrderPage() {
           <section className="bg-white dark:bg-card border border-neutral-200 dark:border-border rounded-2xl p-4">
             <h2 className="text-xl font-bold text-neutral-900 dark:text-foreground mb-4">Select Items</h2>
             <div className="flex flex-wrap gap-2 mb-5">
-              {CATEGORIES.map(category => (
+              {categories.map(category => (
                 <button
                   key={category}
                   type="button"
