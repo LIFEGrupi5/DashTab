@@ -1,5 +1,149 @@
 # Changelog
 
+## [0.4.0](https://github.com/LIFEGrupi5/DashTab/compare/v0.3.0...v0.4.0) (2026-06-14)
+
+
+### Features
+
+* add empty states to orders, menu, and staff pages ([ca748de](https://github.com/LIFEGrupi5/DashTab/commit/ca748dec833ff9db2812cb8dc72543ae3ace7206))
+* **ai:** Phase 1B customer menu recommendation (RAG + pgvector + OpenAI) + project docs ([#165](https://github.com/LIFEGrupi5/DashTab/issues/165)) ([7949a4d](https://github.com/LIFEGrupi5/DashTab/commit/7949a4df2ec17ec4886ae05d892f657d5a356cb3))
+* **analytics:** define and track North Star Metric (M6.2) ([c449549](https://github.com/LIFEGrupi5/DashTab/commit/c4495498c0874592d6adb463ad3f94e41fc02375))
+* **analytics:** M6.4 A/B test design — pricing page experiment + restaurant group identification ([#154](https://github.com/LIFEGrupi5/DashTab/issues/154)) ([9559daa](https://github.com/LIFEGrupi5/DashTab/commit/9559daa285779ce9966a9780e60f50896d10bbfa))
+* **analytics:** track subscription_checkout_completed to close onboarding funnel ([6e5f5f4](https://github.com/LIFEGrupi5/DashTab/commit/6e5f5f4c2414ea41523f16ae11fd81857f9a0527))
+* **authz:** let managers manage staff, except the Owner role ([a416231](https://github.com/LIFEGrupi5/DashTab/commit/a41623107eb8a00ee83dd63a8f603ad6f8c3cc4e))
+* **authz:** managers manage staff (except Owner) + frontend Trivy fix ([a269597](https://github.com/LIFEGrupi5/DashTab/commit/a2695978fe1a2fba54a338e6be74b610d77ed8b6))
+* **backend:** add pagination (?skip=&take=) to menu-items, orders, and users endpoints (BE-2) ([#103](https://github.com/LIFEGrupi5/DashTab/issues/103)) ([db72787](https://github.com/LIFEGrupi5/DashTab/commit/db72787e04cd415aff49e368dc093ab46729e2ac))
+* **backend:** wire MediatR + FluentValidation pipeline behavior ([50953e7](https://github.com/LIFEGrupi5/DashTab/commit/50953e76a65a91ceb8f5c614ed4a1c4ee49b547a))
+* **branding:** add chef-hat favicon ([4ee676b](https://github.com/LIFEGrupi5/DashTab/commit/4ee676b0d4e119eb5889459c3c6114879bb9096b))
+* **cd:** bake NEXT_PUBLIC_POSTHOG_KEY into frontend image at build time ([7670c7c](https://github.com/LIFEGrupi5/DashTab/commit/7670c7c29c1b2cce99f03c6c34cff21ff6988892))
+* **devops:** add Trivy image scanning as a CI gate (DO-9) ([807ae8e](https://github.com/LIFEGrupi5/DashTab/commit/807ae8eb31ae5a902e6a62ac60f3d59c5034351a))
+* **devops:** add Trivy image scanning as a CI gate (DO-9) ([6a54eec](https://github.com/LIFEGrupi5/DashTab/commit/6a54eec5c7102dba751105ebab53dcf554671606))
+* **devops:** add uptime-kuma helm chart for project-05 (DO-7) ([a215d9d](https://github.com/LIFEGrupi5/DashTab/commit/a215d9df5a5d8162746809b5b94a8f7a1645c22a))
+* **devops:** add uptime-kuma to observability compose profile (DO-7) ([ba45d0f](https://github.com/LIFEGrupi5/DashTab/commit/ba45d0f2c580d1c471d6278ddc1923571571574b))
+* **devops:** fetch backend secrets from Azure Key Vault at deploy; scrub plaintext (DO-9) ([af35be4](https://github.com/LIFEGrupi5/DashTab/commit/af35be485471179b6a4ae1642b6898d813b26353))
+* **devops:** observability + security hardening ([f0fec4c](https://github.com/LIFEGrupi5/DashTab/commit/f0fec4c505593a7e378f6bafbaada36079243845))
+* dynamic menu categories, owner/manager add-category button, middleware perf fix ([#96](https://github.com/LIFEGrupi5/DashTab/issues/96)) ([5d2b472](https://github.com/LIFEGrupi5/DashTab/commit/5d2b47225dcde056986f0c48ef8417f4aee707b7))
+* **frontend:** integrate PostHog analytics ([0e03aa2](https://github.com/LIFEGrupi5/DashTab/commit/0e03aa2f7ec5e4aa23e43cd4064c93a645d468b7))
+* **marketing:** add AI recommendation section with scan-to-try QR code ([#173](https://github.com/LIFEGrupi5/DashTab/issues/173)) ([7ab73c5](https://github.com/LIFEGrupi5/DashTab/commit/7ab73c5fd3f57cdd7f82ca83180984a6c3652427))
+* ML revenue forecast (per-restaurant) ([63b5f9a](https://github.com/LIFEGrupi5/DashTab/commit/63b5f9abb8e6f9b49f8b12431061dfd3d420ff89))
+* move auth tokens from localStorage to httpOnly cookies ([#99](https://github.com/LIFEGrupi5/DashTab/issues/99)) ([5eae4df](https://github.com/LIFEGrupi5/DashTab/commit/5eae4df1b80e9d7cff79ae8b4843deaea0f17f81))
+* multi-tenancy foundation — Restaurant entity, tenant isolation, scoped caches and SignalR ([332bf86](https://github.com/LIFEGrupi5/DashTab/commit/332bf86029cc929d1697d8cf86e5038e0a92ce45))
+* multi-tenancy foundation — Restaurant entity, tenant isolation,… ([264f58d](https://github.com/LIFEGrupi5/DashTab/commit/264f58d547911d70365063ddb0e2479528662c75))
+* redesign login page and add restaurant registration page ([2c723f2](https://github.com/LIFEGrupi5/DashTab/commit/2c723f24f779cf4ea0906752080e449e5967bfd6))
+* refactor Button className with twMerge and add full-form validation on MultiStepForm submit ([18df915](https://github.com/LIFEGrupi5/DashTab/commit/18df915f2c41447242c8071d2017a3a6e2ca0f86))
+* restaurant onboarding endpoint — POST /api/restaurants/register ([2a006fd](https://github.com/LIFEGrupi5/DashTab/commit/2a006fdeed9493d66aa0e25fb5b3aab3d005a5d5))
+* restaurant settings page + onboarding checklist ([224ac31](https://github.com/LIFEGrupi5/DashTab/commit/224ac31976a74ce8409d82dcd69d98bb9b7f9f4a))
+* restaurant settings page + onboarding checklist ([877b75e](https://github.com/LIFEGrupi5/DashTab/commit/877b75e631201240534eafee8692092d1bbc0c8c))
+* staff Keycloak integration + empty states ([9f431b1](https://github.com/LIFEGrupi5/DashTab/commit/9f431b1ea3c1ccb7c35fabd37a5009906b641449))
+* subscription plans with Stripe checkout + staff-limit gating ([e48e1ed](https://github.com/LIFEGrupi5/DashTab/commit/e48e1ed7a49af72f58e109954c73f3d88adcb6c7))
+* subscription plans with Stripe checkout + staff-limit gating ([04a7eff](https://github.com/LIFEGrupi5/DashTab/commit/04a7effd3b57daf7b25a221795c969d5b9bdeb5a))
+* wire staff creation/deactivation through Keycloak — extract KeycloakAdminService, add temporary password to staff form ([fc28bc0](https://github.com/LIFEGrupi5/DashTab/commit/fc28bc096d91835f1b51ea3eb310cadecc1ffd74))
+
+
+### Bug Fixes
+
+* add /v1 prefix to restaurants controller route ([0fc3108](https://github.com/LIFEGrupi5/DashTab/commit/0fc310867335b4ac6ff8c6d2410b7dcf2dc9cd0f))
+* add /v1 prefix to restaurants controller route ([e50b5c3](https://github.com/LIFEGrupi5/DashTab/commit/e50b5c3b4b1e35140cf157322a54b4541aa5da13))
+* add Password arg to CreateStaffRequest in UserMapperTests ([25548e2](https://github.com/LIFEGrupi5/DashTab/commit/25548e202536bd5583ff06c7352ef7e38cf12efe))
+* add Password arg to CreateStaffRequest in UserMapperTests ([276e1dd](https://github.com/LIFEGrupi5/DashTab/commit/276e1dd7d9b61ef33ab234a4648d1c5637c658ab))
+* **analytics:** guard PostHog init and calls when key is absent ([fb38f12](https://github.com/LIFEGrupi5/DashTab/commit/fb38f12adf043ff89d3af085ecaf98b4bd3ff541))
+* **auth:** link the brand logo to the landing page ([c3bd315](https://github.com/LIFEGrupi5/DashTab/commit/c3bd315ca1d6ddad89d8d211084fd7d12fe28289))
+* **auth:** read roles from the Keycloak "roles" claim ([c12dac8](https://github.com/LIFEGrupi5/DashTab/commit/c12dac8835169893afe460d69b23f46fbc5ff012))
+* **backend:** fail-fast Redis so a misconfigured cache can't stall every request ([e02c4fd](https://github.com/LIFEGrupi5/DashTab/commit/e02c4fd5b3b62b04ef03c11956a81e577af8cd42))
+* **backend:** fail-fast Redis so a misconfigured cache can't stall every request ([5c82f97](https://github.com/LIFEGrupi5/DashTab/commit/5c82f974f70467bafc3b561e649e37f3f3fc253f))
+* **backend:** forward Keycloak admin creds to backend in compose for local registration parity ([f79c555](https://github.com/LIFEGrupi5/DashTab/commit/f79c555c6f55d7e8fee16292b5cd3b830c3710d1))
+* **cd:** escape commas in Redis connection string for helm --set ([#172](https://github.com/LIFEGrupi5/DashTab/issues/172)) ([3751abd](https://github.com/LIFEGrupi5/DashTab/commit/3751abd75ba6126aad940e35ac602bd8d6fc51b3))
+* **ci:** bust stale frontend build cache (Trivy gate failure) ([7be9843](https://github.com/LIFEGrupi5/DashTab/commit/7be9843f67da3c092270d84b74e993dcb07f3b53))
+* **ci:** drop npm from frontend runtime image (Trivy gate) ([2eb126d](https://github.com/LIFEGrupi5/DashTab/commit/2eb126d39e8682d3565ae4b1ca0ca4636f6f0309))
+* clear MessagePack CVE and clean up marketing copy ([61278cb](https://github.com/LIFEGrupi5/DashTab/commit/61278cb01a23c806b7dd0ebe38e592908229a4a1))
+* clear MessagePack CVE and clean up marketing copy ([3aa29bf](https://github.com/LIFEGrupi5/DashTab/commit/3aa29bf5e9f8d78c67f61f22b58d3aa32d972432))
+* clear query cache on account switch + restore GHCR pull secret ([4aae9df](https://github.com/LIFEGrupi5/DashTab/commit/4aae9df7c1fe61c4fe5c209e990caddbb51ca678))
+* close more multi-tenancy holes (FindAsync bypass, global category index, auth lookup) ([ad5dfea](https://github.com/LIFEGrupi5/DashTab/commit/ad5dfeabb5bcdb2378d57a4f848f8baa728987c9))
+* construct StripeService lazily so the gate middleware resolves without a Stripe key ([69c747f](https://github.com/LIFEGrupi5/DashTab/commit/69c747f794dc36b5196c33e991bcf4ccb2a64df3))
+* **devops:** post-review hardening — helm/security, aiops, docs, IaC ([6238a41](https://github.com/LIFEGrupi5/DashTab/commit/6238a41527a908351245e4ea7d9f8766461c95dd))
+* **devops:** restore GHCR pull secret on project-05 pods ([d31e9b5](https://github.com/LIFEGrupi5/DashTab/commit/d31e9b5bed4b52da64833cf2f9a1f6bd7cc17909))
+* **devops:** skip npm internal modules in frontend Trivy scan ([2516e96](https://github.com/LIFEGrupi5/DashTab/commit/2516e968ae9eb192eb84f4d5afdf28acff5ba0bd))
+* **devops:** skip npm internal modules in frontend Trivy scan ([654aa4f](https://github.com/LIFEGrupi5/DashTab/commit/654aa4f94b22dc17f58b866aa12cc8628e5c24e7))
+* **devops:** update trivy-action to v0.36.0 (0.28.0 does not exist) ([f5c04aa](https://github.com/LIFEGrupi5/DashTab/commit/f5c04aa14fd1ffae354487eea91659e69a18b236))
+* **devops:** update trivy-action to v0.36.0 (0.28.0 does not exist) ([70df643](https://github.com/LIFEGrupi5/DashTab/commit/70df64384faf98a7d6a007dbb1a98c80af1833cd))
+* **docker:** declare ARG NEXT_PUBLIC_POSTHOG_KEY in Dockerfile so ([9355527](https://github.com/LIFEGrupi5/DashTab/commit/93555274988c8c6f4526dd6ff53e777d25397f96))
+* **docker:** declare ARG NEXT_PUBLIC_POSTHOG_KEY in Dockerfile so ([3c94670](https://github.com/LIFEGrupi5/DashTab/commit/3c9467031c28670896e9ffadf6520a89a1d53245))
+* enforce strict tenant isolation (close cross-restaurant data leak) ([fb5ccb1](https://github.com/LIFEGrupi5/DashTab/commit/fb5ccb1a482744885948062a5dc20e6ae9d19b9f))
+* **fonts:** self-host Space Grotesk and JetBrains Mono to fix CI build ([7f55ef7](https://github.com/LIFEGrupi5/DashTab/commit/7f55ef7f98c1a7c05ad4ec0eda71515116c2a18f))
+* frontend build-cache (Trivy) + block waiter/kitchen from manager pages ([6676f7b](https://github.com/LIFEGrupi5/DashTab/commit/6676f7b90db32d1bfe78d1d2f5c6d66a3b304b66))
+* **frontend:** harden security headers ([728de11](https://github.com/LIFEGrupi5/DashTab/commit/728de114fd677d3a814af209a65fac4a008c9acf))
+* **frontend:** harden security headers ([4e31d52](https://github.com/LIFEGrupi5/DashTab/commit/4e31d52f16012e8624c03f456acc6fce47de123f))
+* **frontend:** patch base-image OpenSSL CVE failing the Trivy gate ([8acc6ec](https://github.com/LIFEGrupi5/DashTab/commit/8acc6ece9b4989e0aca0e43a80871ff018c35b14))
+* **frontend:** re-derive user role from new token on refresh so Keycloak role changes propagate without re-login ([#98](https://github.com/LIFEGrupi5/DashTab/issues/98)) ([a4e637f](https://github.com/LIFEGrupi5/DashTab/commit/a4e637f4b7031b1be3443579f93ef494d623f5a6))
+* **frontend:** remove minimatch override — breaks eslint default import ([17d8c9a](https://github.com/LIFEGrupi5/DashTab/commit/17d8c9ada89ffbe54beab051657eff1a8b14afb1))
+* **frontend:** restore pre-filled demo credentials and show emails in demo buttons to fix E2E tests ([c8ecd21](https://github.com/LIFEGrupi5/DashTab/commit/c8ecd2126d55b4dee69ab75737934657c6df9084))
+* **frontend:** upgrade next to 15.5.19 and override vulnerable transitive deps ([dc02d7b](https://github.com/LIFEGrupi5/DashTab/commit/dc02d7ba5d179bdfee67a7a1017dd6f29a4188c7))
+* **kds:** probe Redis before enabling SignalR backplane ([9044e27](https://github.com/LIFEGrupi5/DashTab/commit/9044e2751f3e23498a5e8aebf9a3c2f7849af8f6))
+* **kds:** stop SignalR 1011 reconnect storm ([6f0f298](https://github.com/LIFEGrupi5/DashTab/commit/6f0f2981bd67ba01586dee5c3acbd67570408390))
+* **orders:** derive new-order category chips from real categories ([4268107](https://github.com/LIFEGrupi5/DashTab/commit/426810724e9ec567f87e2a5d321cb7dd75bb30c0))
+* read Keycloak admin password from cluster secret instead of values.yaml ([0b145b0](https://github.com/LIFEGrupi5/DashTab/commit/0b145b083608fc8a64870d9fbcaff7413c11fdeb))
+* remove duplicate recommend page from marketing route group ([5232968](https://github.com/LIFEGrupi5/DashTab/commit/5232968db8d577f1099ce5eb04101762fa8b6d30))
+* **security:** clear query cache on account switch (cross-tenant leak) ([656f633](https://github.com/LIFEGrupi5/DashTab/commit/656f633c06e346e73e4e81075b403d6b2540c0df))
+* **security:** confine each role to its own pages (route allow-list) ([2ea052b](https://github.com/LIFEGrupi5/DashTab/commit/2ea052b9bb69646ececbb5fd00104cc3819221e7))
+* set correct Keycloak admin password for registration flow ([0e5b02d](https://github.com/LIFEGrupi5/DashTab/commit/0e5b02db00670139b3f285abe33ee5a455b13a0d))
+* simplify aiops CI to lint, deps, and docker build only ([61180c8](https://github.com/LIFEGrupi5/DashTab/commit/61180c8f058307304eca4703f59a68c9e35b7549))
+* smoke test aiops via in-cluster curl pod instead of local container ([56c7b0a](https://github.com/LIFEGrupi5/DashTab/commit/56c7b0a313e22fed0da3ed6a6117df5932abe939))
+* **subscriptions:** invalidate Redis tenant cache after Stripe payment confirms ([#171](https://github.com/LIFEGrupi5/DashTab/issues/171)) ([6b80233](https://github.com/LIFEGrupi5/DashTab/commit/6b80233641e9c3824612e51bf69f90eb7f094d86))
+
+
+### Performance
+
+* **backend:** cache per-user tenant context to skip DB lookup on eve… ([28bfdaa](https://github.com/LIFEGrupi5/DashTab/commit/28bfdaa756dacda1c16826ae64a48d9accccbe02))
+* **backend:** cache per-user tenant context to skip DB lookup on every request ([368e336](https://github.com/LIFEGrupi5/DashTab/commit/368e336b8a7dc27361d2033fccc84c40b0e742b0))
+* **frontend:** cut first-load JS 30-36% by lazy-loading PostHog & framer-motion ([5d1070d](https://github.com/LIFEGrupi5/DashTab/commit/5d1070d6e6d987d468187c4945f44da25ef56c1f))
+
+
+### CI/CD
+
+* add AIOps CI pipeline (lint, deps, docker build + smoke test) ([57c7f98](https://github.com/LIFEGrupi5/DashTab/commit/57c7f98996ef690225896bbc53b06c730c7cf94b))
+* add CI Gate aggregator (single required check) ([6bc8181](https://github.com/LIFEGrupi5/DashTab/commit/6bc818149d4273453341593ec75340703e39d889))
+* add gitleaks secret scanning ([cbf0a5a](https://github.com/LIFEGrupi5/DashTab/commit/cbf0a5aa576d86c68edc6cef72fa3bdc6f98b2e6))
+* add scheduled OWASP ZAP baseline DAST ([38a03c5](https://github.com/LIFEGrupi5/DashTab/commit/38a03c51787ad6bef2444cf59ac7cd55309cdacb))
+* add Trivy filesystem scan + per-image SBOMs ([55352e6](https://github.com/LIFEGrupi5/DashTab/commit/55352e61b927e7649a0f711987c8478041af7fdf))
+* cancel superseded runs + cache Playwright browsers ([3c85d39](https://github.com/LIFEGrupi5/DashTab/commit/3c85d39cbccff6aaea4af9372b3d89b9411154ba))
+* **cd:** atomic helm deploys with auto-rollback ([7788cfd](https://github.com/LIFEGrupi5/DashTab/commit/7788cfd276b88b6a85e35956fbe750588f7d9cdd))
+* **cd:** per-image cache scopes, fix obs deploy race, add timeouts ([25f51cf](https://github.com/LIFEGrupi5/DashTab/commit/25f51cfe1acba27b074514fbd202c457c9c01228))
+* move Trivy filesystem scan from cd.yml to secret-scan.yml ([98424cb](https://github.com/LIFEGrupi5/DashTab/commit/98424cb814906b60655d282a9b6a371734796f33))
+* scope release to development, trim redundant scans, add timeouts ([607bbf4](https://github.com/LIFEGrupi5/DashTab/commit/607bbf49cb425ab8eae8113d67f28394b6f289b4))
+* **security:** add CodeQL, secret scanning, and Dependabot (DO-9/FS-5/M5.5) ([4536396](https://github.com/LIFEGrupi5/DashTab/commit/453639699bd251e7a9d4cc1a64def344601dedc7))
+* **security:** CodeQL + secret scanning + Dependabot (DO-9 / FS-5 / M5.5) ([4da76ec](https://github.com/LIFEGrupi5/DashTab/commit/4da76ec0f6db0f726cc7597e5cc8e8393da5157b))
+* unify backend/frontend/aiops CI into one workflow with native ci-pass gate ([c5f8b05](https://github.com/LIFEGrupi5/DashTab/commit/c5f8b05eaf7c5a7f17371e93cf048e571f50d507))
+
+
+### Refactors
+
+* **backend:** make MediatR ValidationBehavior the sole validation path ([858e3a3](https://github.com/LIFEGrupi5/DashTab/commit/858e3a30231c3f0c5453f371edc2854085e27a9e))
+* **backend:** move Analytics/Forecast to CQRS handler ([4438183](https://github.com/LIFEGrupi5/DashTab/commit/44381831ff5696163ed18bc6dc6e8fcc7c2ceebd))
+* **backend:** move Auth to CQRS handlers ([e0f7822](https://github.com/LIFEGrupi5/DashTab/commit/e0f7822fcd9a00a66e080ff6cb130b61701336ca))
+* **backend:** move Categories to CQRS handlers ([0548dbe](https://github.com/LIFEGrupi5/DashTab/commit/0548dbe207b55a6f4f83be2dad22ad67a0637166))
+* **backend:** move MenuItems to CQRS handlers ([1051948](https://github.com/LIFEGrupi5/DashTab/commit/1051948a8105432bbfc3613837dd675813ed3395))
+* **backend:** move Orders to CQRS handlers ([dbaa5fd](https://github.com/LIFEGrupi5/DashTab/commit/dbaa5fd762306c35173b228373d0ec7139902734))
+* **backend:** move Restaurants to CQRS handlers ([340b7ae](https://github.com/LIFEGrupi5/DashTab/commit/340b7ae6980d0a20b2230f5afdebc000719c3e0a))
+* **backend:** move Subscriptions to CQRS handlers ([3ef581b](https://github.com/LIFEGrupi5/DashTab/commit/3ef581b7642420ddc6bca5b1777bd38be9ac0d5e))
+* **backend:** move Users (Staff) to CQRS handlers ([f4c9518](https://github.com/LIFEGrupi5/DashTab/commit/f4c95185994db31befa9a4cc6e199c43302f4fdc))
+
+
+### Documentation
+
+* **devops:** log pipeline optimization (ai-logs [#149](https://github.com/LIFEGrupi5/DashTab/issues/149)) ([33c64e2](https://github.com/LIFEGrupi5/DashTab/commit/33c64e2da67e7e6a8a13c79369572cad4f27db1d))
+* **devops:** record security + infra hardening ([a1d28e8](https://github.com/LIFEGrupi5/DashTab/commit/a1d28e8dcfeee6c1dc08f72600638f6099763971))
+* foundation (PM-1/PM-5), performance audit (FS-4), security DAST writeup (FS-5) ([#169](https://github.com/LIFEGrupi5/DashTab/issues/169)) ([eef6967](https://github.com/LIFEGrupi5/DashTab/commit/eef6967961fde49ed2032172583f6b277e2c59e2))
+* session notes and AI log for Jun 14 fixes ([cca4526](https://github.com/LIFEGrupi5/DashTab/commit/cca4526d0315d954f5d777e8bbee809224421396))
+* sync README + CLAUDE.md files with current state ([da9359b](https://github.com/LIFEGrupi5/DashTab/commit/da9359b9558f8185f897c340b2c9f0f54962f8d3))
+
+
+### Chores
+
+* **devops:** remove empty k8s kustomize stubs ([376ef35](https://github.com/LIFEGrupi5/DashTab/commit/376ef35158bd8734cef0d963e4d96f118ce4a68c))
+* **docs:** update root CLAUDE.md with full project context ([45feca9](https://github.com/LIFEGrupi5/DashTab/commit/45feca9245fb5edde4e6db261b7a50fb5dd21e8f))
+* **merge:** merge development into feat/posthog-analytics ([1063848](https://github.com/LIFEGrupi5/DashTab/commit/10638482f5d91f26b80dfc0c294b9726b68348c5))
+* rewrite README and remove stale scaffolding ([feee2a0](https://github.com/LIFEGrupi5/DashTab/commit/feee2a0c0a7be744e2e62a0221c0f7bce8e765e7))
+
 ## [0.3.0](https://github.com/LIFEGrupi5/DashTab/compare/v0.2.0...v0.3.0) (2026-06-03)
 
 
