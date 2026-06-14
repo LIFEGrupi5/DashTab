@@ -541,6 +541,35 @@ Implemented FS-6 end-to-end: gated the AI menu recommendations feature behind an
 
 ---
 
+### Session — Jun 5–8, 2026 (DO-7 Uptime Kuma + DO-9 Trivy/Key Vault + httpOnly cookies + dynamic categories + marketing site; Claude Code) — Olti
+
+Five deliverables landed in this block: uptime monitoring (DO-7), security hardening (DO-9), auth cookie migration, dynamic menu categories, and a full marketing site redesign.
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 124 | Claude Code | DevOps | **DO-7 Uptime Kuma:** added Uptime Kuma to `docker-compose` (port 3002, SQLite persisted) + Helm chart for project-05 (`uptime.project-05.gjirafa.dev`); configured 6 monitors (backend health, frontend, Keycloak, Postgres, Redis, MinIO), public status page, Slack + MailHog notification channels; verified with a real down→alert→recover cycle | Good | ~2h | Uptime Kuma's "push" monitor type is better than HTTP for background jobs — the job posts a heartbeat on a schedule and the monitor alerts if the heartbeat is missed, avoiding firewall issues |
+| 125 | Claude Code | DevOps | **DO-9 Trivy gate + Azure Key Vault:** added Trivy image-scan CI gate (fails on HIGH/CRITICAL CVEs) with a SARIF upload to GitHub Security; wired Azure Key Vault into the CD pipeline — secrets fetched at deploy-time via `az keyvault secret show` + masked, never stored in git or env files; `backend-openai-apikey` added to Key Vault and injected into the Helm deploy | Good | ~3h | `az keyvault secret show --output none` is mandatory — without it the secret value prints to the runner log even when masked. Always mask immediately after fetch: `echo "::add-mask::$(get <secret>)"` before using the value |
+| 126 | Claude Code | Backend + Frontend | **httpOnly cookie auth migration:** moved token storage from `localStorage` to httpOnly cookies — `POST /auth/login` and `/auth/refresh` set `Set-Cookie` headers (SameSite=Strict, Secure in prod); `client.ts` switched to `credentials:'include'`; Zustand store removed token fields; auto-refresh on 401 preserved | Good | ~2.5h | httpOnly cookies are invisible to JavaScript — XSS cannot steal them. The tradeoff is that CSRF tokens are needed for state-mutating endpoints; `SameSite=Strict` is the pragmatic fix for a single-origin SPA without a separate CSRF token implementation |
+| 127 | Claude Code | Frontend | **Dynamic menu categories:** replaced hardcoded category tabs with categories fetched from the API; chip-style category selector with "All" default; category CRUD wired to admin menu management; empty-state handling per category | Good | ~1.5h | Keep the "All" option as a client-side filter (not a separate API call) — it avoids an extra round-trip and the full menu is already fetched |
+| 128 | Claude Code | Frontend | **Marketing site redesign (ember palette):** multiple iterations — dark-first → kinetic → clean → warm "ember" stone base + orange/amber accents; framer-motion hero, features, pricing, FAQ, CTA sections; mobile-first responsive pass; `(marketing)` route group kept separate from auth/dashboard | Needed 4 rounds | ~3h | Give the AI a colour palette name + one reference word ("ember," "warm stone") rather than hex codes — it constrains the design language better than six hex values. Accept the first round as a structural skeleton and iterate the palette separately |
+
+---
+
+### Session — Jun 8–13, 2026 (pagination + staff scheduling + AI recommendation + MCP OrderTools + security fixes; Claude Code) — Olti
+
+The main Phase 1B delivery plus two supporting features.
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 139 | Claude Code | Backend | **Pagination — `PagedResult<T>`:** generic `PagedResult<T>` wrapper (`Items`, `TotalCount`, `Page`, `PageSize`, `TotalPages`); applied to `/menu`, `/orders`, `/users` endpoints (page + pageSize query params, deterministic `OrderBy` on `CreatedAt desc`); frontend updated to paginate menu and orders lists | Good | ~1.5h | Always add a deterministic `OrderBy` when paginating — without it, page boundaries shift between requests as Postgres chooses its own row order |
+| 140 | Claude Code | Backend + Frontend | **Staff scheduling — shifts + rest-day/swap requests:** `WorkShift` and `ShiftRequest` domain entities + EF migrations; `ScheduleService` (create/publish weekly shifts, approve/reject requests); manager weekly-builder UI (grid by day/employee, drag-friendly slot assignment); worker view (own schedule + submit rest-day/swap requests); manager approval queue | Good | ~4h | Model rest-day as a `WorkShift` with `IsDayOff=true` rather than absence of a shift — it makes the weekly grid always full and avoids null-checking on every cell render |
+| 141 | Claude Code | Backend + Frontend | **AI customer menu recommendation (Phase 1B RAG):** `IRecommendationService` + `RecommendationService` — `EmbedAsync` (OpenAI `text-embedding-3-small`), `RecommendAsync` (pgvector cosine search → `gpt-4o-mini` blurb), `BackfillAsync`; `MenuItem.Embedding` column (`vector(1536)`, HNSW cosine index); `PublicController` anonymous endpoint; public `/r/{restaurantId}` page (no auth); graceful degradation when key absent | Good | ~5h | Scope the pgvector cosine search with an explicit `WHERE restaurant_id = @id` even when using `IgnoreQueryFilters()` — global query filters are off for anonymous requests, so tenant isolation must be enforced explicitly in the query |
+| 142 | Claude Code | Backend | **MCP OrderTools:** added `list_orders`, `get_order`, and `list_kitchen_queue` tools to the existing in-process MCP server inside `DashTab.API`; tenant-scoped, read-only; smoke-tested via Claude Code as the MCP client | Good | ~1h | MCP tool results must be serialisable to JSON — EF navigation properties cause cycles; project to a DTO before returning |
+| 143 | Claude Code | CI / Backend | **Mapperly + pgvector CI fix:** Mapperly generated a mapping for `MenuItem.Embedding` (`Vector` type) which it couldn't resolve — added `[MapperIgnore]` on the property; in-memory EF provider doesn't support `vector` column type — wrapped the HNSW index migration in `if (Database.ProviderName == "Npgsql...")` so unit tests pass against the in-memory provider | Good | ~45min | Always check if a new domain property needs a mapper ignore attribute when using source-generation mappers — the compiler error surfaces in CI, not locally if you're running only unit tests |
+| 144 | Claude Code | DevOps | **Trivy gate + Key Vault secret injection (prod):** wired the OpenAI API key from Azure Key Vault (`backend-openai-apikey`) into the CD pipeline and backend Helm deploy; confirmed the recommendation endpoint works end-to-end in the project-05 cluster | Good | ~1h | Azure Key Vault fetch order matters — mask immediately with `::add-mask::` before any echo or env assignment, otherwise the value leaks into the step summary |
+
+---
+
 ## M6.7 — Final Cumulative Summary
 
 > **Rubric:** M6.7 · Compiled: 2026-06-14 · Covers the full project lifecycle: Mar 27 → Jun 14, 2026 (~11 weeks)
