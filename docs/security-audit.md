@@ -4,9 +4,9 @@
 > Satisfies **DO-9** (security hardening), **FS-5** (security audit), and **M5.5**
 > (audit report) — one body of work, three tracking labels.
 
-## 1. Posture — the four shift-left layers
+## 1. Posture — the five shift-left layers
 
-DashTab scans at every layer from source code to running container:
+DashTab scans at every layer from source code to the running application:
 
 | Layer            | Tool                                   | Where                                  | Gate?                          |
 |------------------|----------------------------------------|----------------------------------------|--------------------------------|
@@ -14,6 +14,7 @@ DashTab scans at every layer from source code to running container:
 | Secrets          | **TruffleHog** + GitHub native scanning| `.github/workflows/secret-scan.yml` + repo settings | PR + push-protection gate |
 | Dependencies     | **Dependabot**                         | `.github/dependabot.yml`               | Alerts + update PRs            |
 | Container image  | **Trivy** (HIGH/CRITICAL)              | `.github/workflows/cd.yml`             | Hard gate (`exit-code: 1`)     |
+| Running app (DAST) | **OWASP ZAP** baseline scan          | `.github/workflows/dast.yml` (`zap.yaml` rules) | Reports to Security tab (advisory) |
 
 Supporting controls already in place:
 
@@ -24,12 +25,31 @@ Supporting controls already in place:
 > The repository is **public**, so CodeQL code scanning, native secret scanning,
 > and push protection are all free — no GitHub Advanced Security licence.
 
+## 1a. DAST — OWASP ZAP penetration scan
+
+The `dast.yml` workflow runs an **OWASP ZAP baseline scan** against the running
+application (spun up via Docker Compose in CI), exercising the live HTTP surface
+rather than the source. Rules are tuned in `zap.yaml` (false positives such as
+informational headers are suppressed; real findings are kept).
+
+- **What it covers:** OWASP-style passive + active baseline checks — missing
+  security headers, cookie flags, reflected inputs, CSP, etc., against the
+  actually-served pages and API.
+- **Run cadence:** on the DAST workflow trigger; the HTML report (`report.html`)
+  is produced as the scan artifact (kept out of git via `.gitignore`).
+- **Notable investigation:** a flagged `/login?demo=1` reflected-input case was
+  investigated and confirmed **not exploitable** — the demo parameter only
+  pre-fills a known demo credential into a controlled React state value; it is
+  not rendered as raw HTML (React escapes it) and carries no privileged token.
+- **Headers in place** (verified by the scan): CSP nonce middleware, HSTS via
+  Nginx TLS, httpOnly + SameSite cookies for auth.
+
 ## 2. Label mapping
 
 | Label | Meaning                | Satisfied by                                                       |
 |-------|------------------------|--------------------------------------------------------------------|
 | DO-9  | Security hardening     | CodeQL + secret scanning + Dependabot land (alongside existing Trivy / Key Vault) |
-| FS-5  | Security audit         | Findings surfaced in the **Security** tab (Code scanning + secret scanning + Dependabot alerts) |
+| FS-5  | Security audit         | Static (CodeQL) + secrets (TruffleHog) + deps (Dependabot) + image (Trivy) + **DAST (OWASP ZAP)** — findings in the **Security** tab + ZAP report artifact |
 | M5.5  | Security audit report  | This document + the exported findings snapshot below               |
 
 ## 3. How findings flow
