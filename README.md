@@ -87,6 +87,27 @@ DashTab/
 └── docs/                            # AI development log, architecture docs, session notes
 ```
 
+## Documentation
+
+| Area | Document |
+|---|---|
+| Product definition (problem, users, JTBD, competitive) | [`docs/product-definition.md`](docs/product-definition.md) |
+| Product Requirements Document (PRD) | [`docs/prd.md`](docs/prd.md) |
+| System architecture (components, flows, decisions) | [`docs/architecture.md`](docs/architecture.md) |
+| Database ERD (crow's foot, 3NF) | [`docs/erd.md`](docs/erd.md) |
+| Performance audit (frontend / Redis / SQL) | [`docs/performance-audit.md`](docs/performance-audit.md) |
+| Security audit (CodeQL / secrets / deps / Trivy / ZAP) | [`docs/security-audit.md`](docs/security-audit.md) |
+| AI development log (cumulative, M6.7) | [`docs/ai-log.md`](docs/ai-log.md) |
+| AI debugging session | [`docs/ai-debug-session-hnsw-migration.md`](docs/ai-debug-session-hnsw-migration.md) |
+| AI PR review | [`docs/ai-pr-review-customer-recommendation.md`](docs/ai-pr-review-customer-recommendation.md) |
+| AI-generated postmortem | [`docs/postmortem-openai-quota-exhausted.md`](docs/postmortem-openai-quota-exhausted.md) |
+| Quarterly OKRs (AI-assisted) | [`docs/okrs-2026.md`](docs/okrs-2026.md) |
+| Customer feedback sentiment analysis | [`docs/feedback-analysis.md`](docs/feedback-analysis.md) |
+| A/B test design | [`docs/ab-test-pricing-highlight.md`](docs/ab-test-pricing-highlight.md) |
+| MCP integration | [`docs/mcp-integration.md`](docs/mcp-integration.md) |
+
+> Wireframes / mockups (PM-4) live in the team Figma; the built UI screenshots in the demo stand in as the implemented equivalent.
+
 ## Contributing
 
 - Branch from `development`, PR back to `development`
