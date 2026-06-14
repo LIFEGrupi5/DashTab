@@ -387,7 +387,7 @@ const FAQS = [
   { q: 'Is each restaurant\'s data isolated?', a: 'Completely. DashTab is multi-tenant — every restaurant has its own isolated data space.' },
   { q: 'How does real-time work?', a: 'Orders push instantly to the kitchen — no polling, no page refresh. Status changes flow back just as fast.' },
   { q: 'Can I change my plan later?', a: 'Yes. Upgrade or downgrade any time from your settings. Changes take effect immediately.' },
-  { q: 'Is there a free trial?', a: 'Every plan starts with a 14-day free trial — no credit card required.' },
+  { q: 'Is there a free trial?', a: 'There is no free trial at this time. Choose a plan and subscribe to get started.' },
 ];
 
 function FAQ() {
@@ -410,26 +410,6 @@ function FAQ() {
   );
 }
 
-// ── Final CTA ───────────────────────────────────────────────────────────────
-function FinalCTA() {
-  return (
-    <section className="relative py-28 px-6 bg-stone-950 overflow-hidden">
-      <motion.div aria-hidden className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] rounded-full blur-[120px] bg-orange-500/15"
-        animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0.9, 0.6] }} transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }} />
-      <Reveal className="relative max-w-3xl mx-auto text-center">
-        <h2 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-4">Ready to run your restaurant <span className={EMBER_TEXT}>smarter</span>?</h2>
-        <p className="text-stone-400 mb-8 text-lg">Start a 14-day free trial — no credit card required.</p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link href="/register" className={`group inline-flex items-center gap-2 px-8 py-3.5 rounded-xl ${BTN} font-bold transition`}>
-            Get started free <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition" />
-          </Link>
-          <Link href="/login?demo=1" className="inline-flex px-8 py-3.5 rounded-xl border border-white/15 hover:border-white/40 hover:bg-white/5 text-white font-semibold transition">Explore the demo</Link>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
 export default function Landing() {
   return (
     <>
@@ -440,7 +420,6 @@ export default function Landing() {
       <PricingTeaser />
       <SocialProof />
       <FAQ />
-      <FinalCTA />
     </>
   );
 }
