@@ -5,6 +5,7 @@ using DashTab.Application.Storage;
 using DashTab.Domain.Entities;
 using DashTab.Infrastructure.Caching;
 using DashTab.Infrastructure.Persistence;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.Infrastructure.Services;
@@ -15,7 +16,8 @@ public class MenuItemService(
     MenuItemMapper mapper,
     IStorageService storage,
     ICurrentUser currentUser,
-    IRecommendationService recommendation) : IMenuItemService
+    IRecommendationService recommendation,
+    IBackgroundJobClient backgroundJobs) : IMenuItemService
 {
     private static readonly TimeSpan ItemTtl = TimeSpan.FromMinutes(5);
 
@@ -97,9 +99,10 @@ public class MenuItemService(
             CacheKeys.MenuItemsByCategory(rid, item.CategoryId),
         });
 
-        // Fire-and-forget: generate the embedding so the item is immediately
-        // searchable by the AI recommendation feature. Never blocks the response.
-        _ = recommendation.EmbedItemAsync(item.Id);
+        // Enqueue embedding as a Hangfire job — avoids using the request-scoped
+        // DbContext in a fire-and-forget task that outlives the HTTP request.
+        backgroundJobs.Enqueue<IRecommendationService>(
+            s => s.EmbedItemAsync(item.Id, CancellationToken.None));
 
         return ToDto(item);
     }
@@ -129,8 +132,8 @@ public class MenuItemService(
             keys.Add(CacheKeys.MenuItemsByCategory(rid, oldCategoryId));
         await cache.RemoveManyAsync(keys);
 
-        // Re-embed when name or description changes so the vector stays accurate.
-        _ = recommendation.EmbedItemAsync(item.Id);
+        backgroundJobs.Enqueue<IRecommendationService>(
+            s => s.EmbedItemAsync(item.Id, CancellationToken.None));
 
         return ToDto(item);
     }
