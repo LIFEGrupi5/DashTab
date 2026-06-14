@@ -30,39 +30,52 @@ Each review was passed individually to `gpt-4o-mini` with a structured prompt as
 
 | Sentiment | Count | % |
 |---|---|---|
-| Positive | <!-- fill --> | <!-- fill -->% |
-| Neutral  | <!-- fill --> | <!-- fill -->% |
-| Negative | <!-- fill --> | <!-- fill -->% |
+| Positive | 11 | 55% |
+| Neutral  | 3  | 15% |
+| Negative | 6  | 30% |
 
 ### Topic frequency
 
 | Topic | Mentions | % of reviews |
 |---|---|---|
-| `food_quality` | <!-- fill --> | <!-- fill -->% |
-| `wait_time`    | <!-- fill --> | <!-- fill -->% |
-| `service`      | <!-- fill --> | <!-- fill -->% |
-| `ai_feature`   | <!-- fill --> | <!-- fill -->% |
-| `price`        | <!-- fill --> | <!-- fill -->% |
-| `tech_app`     | <!-- fill --> | <!-- fill -->% |
+| `ai_feature`   | 14 | 70% |
+| `food_quality` | 14 | 70% |
+| `tech_app`     | 9  | 45% |
+| `service`      | 9  | 45% |
+| `wait_time`    | 8  | 40% |
+| `price`        | 2  | 10% |
 
 ### AI feature reviews specifically
 
 | Reviewer | Rating | Sentiment | Summary |
 |---|---|---|---|
-| <!-- fill from results.json where topics contains "ai_feature" --> | | | |
+| Arben K.   | ⭐5 | positive | AI suggestion for grilled sea bass was perfect and highly appreciated |
+| Vjosa R.   | ⭐5 | positive | Great experience with easy-to-use QR menu and AI recommendations |
+| Shqipe L.  | ⭐3 | neutral  | Decent food and fair prices, but tech features need improvement |
+| Fatos B.   | ⭐5 | positive | Excellent food and service with helpful AI suggestions |
+| Edona Q.   | ⭐2 | negative | High prices for small portions and a malfunctioning AI feature |
+| Luan D.    | ⭐4 | positive | Great personalised recommendations and friendly staff, but noisy environment |
+| Arta N.    | ⭐5 | positive | Restaurant tech provided excellent dessert recommendations |
+| Kujtim P.  | ⭐4 | positive | AI menu tool is helpful and food arrived promptly |
+| Mimoza A.  | ⭐5 | positive | Easy QR ordering and delicious food made for a great group experience |
+| Fitim R.   | ⭐2 | negative | AI feature fails to show available menu items |
+| Drita K.   | ⭐4 | positive | High food quality and knowledgeable staff, with helpful AI suggestions |
+| Besnik H.  | ⭐5 | positive | Great food quality and helpful recommendation feature during both visits |
+| Leonora F. | ⭐3 | neutral  | Acceptable wait time and tasty food, but mixed AI recommendations |
+| Hana B.    | ⭐5 | positive | Great experience with helpful AI recommendations and warm service |
 
 ---
 
 ## Representative quotes
 
 **Most positive:**
-> <!-- fill: highest-rated reviewer quote -->
+> "Ordered via the QR code at the table — the AI suggestion was spot on. Asked for something light and the system recommended the grilled sea bass. Perfect choice. Will definitely use it again." — Arben K. (⭐5)
 
 **Most negative:**
-> <!-- fill: lowest-rated reviewer quote -->
+> "Waited 55 minutes, food arrived cold, and when I complained the staff pointed at a sign saying 'kitchen busy'. The QR system is a gimmick if the kitchen can't keep up. One star." — Ardian M. (⭐1)
 
 **On the AI recommendation feature:**
-> <!-- fill: a quote specifically about the AI feature -->
+> "Love the QR menu system. Super easy to use, no app download needed. The AI picked a vegetarian option that I would never have found on my own. Great experience." — Vjosa R. (⭐5)
 
 ---
 
