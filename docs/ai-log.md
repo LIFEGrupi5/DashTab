@@ -538,3 +538,52 @@ Implemented FS-6 end-to-end: gated the AI menu recommendations feature behind an
 | # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
 |---|---|---|---|---|---|---|
 | 158 | Claude Code | Backend + Frontend + DevOps | **FS-6 Unleash feature flags — full-stack `menu-recommendations` gate:** installed `Unleash.Client 6.2.1` into `DashTab.Infrastructure`; created `IFeatureFlags` interface in `Application/Interfaces/` (single `IsEnabled(string flag)` method — thin enough to mock in tests); created `UnleashFeatureFlags` (wraps `DefaultUnleash` with `AppName`, `UnleashApi`, `CustomHttpHeaders: {Authorization: token}`) and `NullFeatureFlags` (fail-open: returns `true` for all flags — used when Unleash credentials are absent in local dev) both in `Infrastructure/Services/`; registered the correct implementation in `Program.cs` based on `Unleash:ServerApiUrl`/`Unleash:ServerApiToken` presence; injected `IFeatureFlags` into `PublicController` and gated `Recommend` with a 503 when `menu-recommendations` is off; moved `[AllowAnonymous]` from the class to only the `Recommend` action so `[Authorize(Roles="Owner,Manager")]` on `Backfill` is no longer silently overridden (ASP0026 warning resolved). On the frontend: created `lib/unleash.ts` — a server-only `isFeatureEnabled(flag)` fetch against the Unleash Frontend API (`NEXT_PUBLIC_UNLEASH_FRONTEND_URL`) with `next: { revalidate: 30 }` ISR caching and fail-open fallback; extracted the interactive AI assistant UI into `app/r/[restaurantId]/_components/RecommendClient.tsx` (client component, unchanged logic); converted `app/r/[restaurantId]/page.tsx` to a server component that checks the flag and either renders `<RecommendClient>` or a static "Coming Soon" page — flag-off users see the correct page immediately on first byte with no client-side flicker. Added `Unleash__ServerApiUrl`/`Unleash__ServerApiToken` to `docker-compose.yml` (wired from `.env` via `${...:-}` pattern matching existing secrets) and to `helm/backend/values.yaml` (URL in `config`, token in `secrets` — injected from Azure Key Vault at deploy time alongside the other secrets). | Good | ~2h | `[AllowAnonymous]` on a controller class silently wins over `[Authorize]` on individual methods (ASP0026) — if a controller has mixed auth requirements, put `[AllowAnonymous]` only on the methods that need it, not the class. Server-component flag check + `next: { revalidate: 30 }` is the right pattern for feature gates on customer-facing pages: the check is cached (no per-request Unleash round-trip), the correct page is served on first byte (no loading state), and it degrades gracefully (fail-open) when Unleash is unreachable. `NullFeatureFlags` returning `true` is the correct fail-open default — fail-closed would break local dev for everyone who doesn't have Unleash credentials. `Unleash.Client` 6.x `UnleashSettings` does not have a `DisableMetrics` property (removed in v6) — compile first to discover missing/renamed API members. The Unleash Frontend API token (`NEXT_PUBLIC_UNLEASH_FRONTEND_TOKEN`) is intentionally public — client tokens are designed to be exposed in the browser. |
+
+---
+
+## M6.7 — Final Cumulative Summary
+
+> **Rubric:** M6.7 · Compiled: 2026-06-14 · Covers the full project lifecycle: Mar 27 → Jun 14, 2026 (~11 weeks)
+
+### Overall stats
+
+| Metric | Value |
+|---|---|
+| **Total AI log entries** | 158 |
+| **Est. total time saved** | ~146h |
+| **Project span** | Mar 27 → Jun 14, 2026 (78 days) |
+| **Primary tool** | Claude Code (dominant from May onward) |
+| **Secondary tool** | Cursor Agent (early M2 frontend sessions) |
+
+### Per-person contribution
+
+| Person | Git commits | Log entries (approx.) | Primary areas |
+|---|---|---|---|
+| **Enes Drejta** | ~194 | ~30 | DevOps (Helm, CI/CD, Prometheus, ELK, Trivy, gitleaks, ZAP, CodeQL, SBOM), AIOps (DO-12), multi-tenancy, Stripe subscriptions, MinIO, LCP bundle optimisation |
+| **Olti Ramadani** | ~156 | ~70 | Backend Clean Architecture scaffold, all domain entities + endpoints, Keycloak JWT/RBAC, auth, scheduling, pagination, DO-7 (Uptime Kuma), DO-9 (Trivy gate + Azure Key Vault), AI customer recommendation (RAG, Phase 1B), MCP OrderTools, marketing redesign, dark-mode-first |
+| **Jeta Fazliu** | ~51 | ~20 | PostHog analytics (M6.1), North Star Metric (M6.2), stakeholder dashboard (M6.3), A/B test (M6.4), E2E Playwright stabilisation, FS-6 Unleash feature flags |
+| **Team / early sessions** | — | ~38 | M1 PM setup, M2 frontend MVP (multi-step forms, CI, tests, a11y, Lighthouse, Docker) |
+
+### Entries by area
+
+| Area | Approx. entries | Notes |
+|---|---|---|
+| Backend (.NET / EF Core / domain) | ~45 | Entities, endpoints, auth, migrations, integrations (Hangfire, Redis, MinIO, RabbitMQ, SignalR) |
+| Frontend (Next.js / React) | ~45 | M2 MVP, kitchen board, dark-mode, analytics, A/B test, recommend page |
+| DevOps (CI/CD / Helm / observability) | ~30 | Helm charts, GitHub Actions, Prometheus, ELK, Trivy, AIOps, LCP bundle |
+| AI features (RAG, MCP, feature flags) | ~18 | Phase 1B recommendation, OrderTools, Unleash FS-6, M6.4 A/B test |
+| PM / analytics / docs | ~20 | Project setup, CLAUDE.md, session writeups, PostHog, OKRs |
+
+### Top 3 lessons learned (team-wide)
+
+1. **Cascade failures hide behind graceful degradation.** The KDS SignalR outage (entry #155) showed that a single missing `password=` in a Redis connection string silently turned into "realtime is broken AND the app is slow" — `AbortOnConnectFail=false` masked the real cause. Always trace the root data dependency, not the symptom closest to the user.
+
+2. **Framework edges are where AI needs the most correction.** Next.js 15 App Router boundaries (`ssr:false` inside Server Components, `[AllowAnonymous]` class-vs-method precedence ASP0026, React Hook Form + `<form>` tag accidental submissions) all needed correction after the first AI attempt. Give the AI the framework version upfront; it steers away from deprecated patterns.
+
+3. **Documenting design decisions in the same commit prevents the next session from re-asking why.** The MinIO session (entry #101), RabbitMQ session (#107), and Redis/KDS session (#155) each produced a dedicated `session-*.md` — the first time a teammate asked "why two MinIO URLs?" the answer was already committed. AI-generated session docs earn their keep on the second read.
+
+### Reflection
+
+AI tools saved the most time on three categories of work: **scaffolding** (Clean Architecture layers, entity models, migration files, Helm chart boilerplate — days of repetitive setup collapsed to hours), **debugging** (tracing non-obvious cascade failures, reading stack traces, suggesting fix candidates), and **documentation** (session writeups, architecture decisions, AI log maintenance itself). The 158-entry log spans every layer of the stack and records a genuine shift in how the team works: by milestone 3 onward, the workflow was "describe intent → AI drafts → human verifies + adjusts" rather than "human writes → AI reviews."
+
+Where AI needed the most correction: multi-step form logic (React Hook Form subtleties that change behaviour between Next.js versions), EF Core/pgvector column mapping (Mapperly silently skipping the `Vector` property, in-memory test provider not supporting pgvector types), and Kubernetes/Helm value precedence (where `--reuse-values` silently ignores chart edits). In all cases the pattern was the same: the AI produced a plausible-but-wrong first draft and a well-targeted follow-up prompt with the specific error message got to the correct fix in one round. installed `Unleash.Client 6.2.1` into `DashTab.Infrastructure`; created `IFeatureFlags` interface in `Application/Interfaces/` (single `IsEnabled(string flag)` method — thin enough to mock in tests); created `UnleashFeatureFlags` (wraps `DefaultUnleash` with `AppName`, `UnleashApi`, `CustomHttpHeaders: {Authorization: token}`) and `NullFeatureFlags` (fail-open: returns `true` for all flags — used when Unleash credentials are absent in local dev) both in `Infrastructure/Services/`; registered the correct implementation in `Program.cs` based on `Unleash:ServerApiUrl`/`Unleash:ServerApiToken` presence; injected `IFeatureFlags` into `PublicController` and gated `Recommend` with a 503 when `menu-recommendations` is off; moved `[AllowAnonymous]` from the class to only the `Recommend` action so `[Authorize(Roles="Owner,Manager")]` on `Backfill` is no longer silently overridden (ASP0026 warning resolved). On the frontend: created `lib/unleash.ts` — a server-only `isFeatureEnabled(flag)` fetch against the Unleash Frontend API (`NEXT_PUBLIC_UNLEASH_FRONTEND_URL`) with `next: { revalidate: 30 }` ISR caching and fail-open fallback; extracted the interactive AI assistant UI into `app/r/[restaurantId]/_components/RecommendClient.tsx` (client component, unchanged logic); converted `app/r/[restaurantId]/page.tsx` to a server component that checks the flag and either renders `<RecommendClient>` or a static "Coming Soon" page — flag-off users see the correct page immediately on first byte with no client-side flicker. Added `Unleash__ServerApiUrl`/`Unleash__ServerApiToken` to `docker-compose.yml` (wired from `.env` via `${...:-}` pattern matching existing secrets) and to `helm/backend/values.yaml` (URL in `config`, token in `secrets` — injected from Azure Key Vault at deploy time alongside the other secrets). | Good | ~2h | `[AllowAnonymous]` on a controller class silently wins over `[Authorize]` on individual methods (ASP0026) — if a controller has mixed auth requirements, put `[AllowAnonymous]` only on the methods that need it, not the class. Server-component flag check + `next: { revalidate: 30 }` is the right pattern for feature gates on customer-facing pages: the check is cached (no per-request Unleash round-trip), the correct page is served on first byte (no loading state), and it degrades gracefully (fail-open) when Unleash is unreachable. `NullFeatureFlags` returning `true` is the correct fail-open default — fail-closed would break local dev for everyone who doesn't have Unleash credentials. `Unleash.Client` 6.x `UnleashSettings` does not have a `DisableMetrics` property (removed in v6) — compile first to discover missing/renamed API members. The Unleash Frontend API token (`NEXT_PUBLIC_UNLEASH_FRONTEND_TOKEN`) is intentionally public — client tokens are designed to be exposed in the browser. |
