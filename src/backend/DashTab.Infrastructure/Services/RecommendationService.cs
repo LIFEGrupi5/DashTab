@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
 using DashTab.Application.Dtos;
 using DashTab.Application.Interfaces;
+using DashTab.Application.Storage;
 using DashTab.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -16,9 +16,14 @@ public class RecommendationService(
     DashTabDbContext db,
     IHttpClientFactory httpFactory,
     IConfiguration config,
+    IStorageService storage,
     ILogger<RecommendationService> logger) : IRecommendationService
 {
     private static readonly JsonSerializerOptions JsonOpts = new() { PropertyNameCaseInsensitive = true };
+
+    private RecommendedItemDto ToDto(Domain.Entities.MenuItem m) => new(
+        m.Name, m.Description, m.Price,
+        m.ImageObjectKey is null ? null : storage.GetPublicUrl(StorageBuckets.MenuImages, m.ImageObjectKey));
 
     // ── Public API ────────────────────────────────────────────────────────────
 
@@ -31,13 +36,13 @@ public class RecommendationService(
         // 2a. No vector (key missing / call failed) → return top 4 available items as fallback.
         if (queryVector is null)
         {
-            var fallback = await db.MenuItems
+            var fallback = (await db.MenuItems
                 .IgnoreQueryFilters()
                 .Where(m => m.RestaurantId == restaurantId && m.IsAvailable && !m.IsDeleted)
                 .OrderBy(m => m.Name)
                 .Take(4)
-                .Select(m => new RecommendedItemDto(m.Name, m.Description, m.Price, m.ImageObjectKey))
-                .ToListAsync(ct);
+                .ToListAsync(ct))
+                .Select(ToDto).ToList();
 
             return new RecommendationResponse(
                 "AI recommendations are warming up. Here are some items from our menu:",
@@ -46,9 +51,7 @@ public class RecommendationService(
 
         // 2b. Cosine similarity search — explicitly scoped to this restaurant's menu.
         // IgnoreQueryFilters because CurrentTenantId is null for anonymous requests.
-        // Take top 3 closest — the LLM decides which to actually recommend from those.
-        // With rich menu descriptions, irrelevant items naturally rank much lower.
-        var matches = await db.MenuItems
+        var matches = (await db.MenuItems
             .IgnoreQueryFilters()
             .Where(m => m.RestaurantId == restaurantId
                         && m.IsAvailable
@@ -56,19 +59,19 @@ public class RecommendationService(
                         && m.Embedding != null)
             .OrderBy(m => m.Embedding!.CosineDistance(queryVector))
             .Take(5)
-            .Select(m => new RecommendedItemDto(m.Name, m.Description, m.Price, m.ImageObjectKey))
-            .ToListAsync(ct);
+            .ToListAsync(ct))
+            .Select(ToDto).ToList();
 
         // If no items have embeddings yet, fall back to the full available menu.
         if (matches.Count == 0)
         {
-            var noEmbeddingFallback = await db.MenuItems
+            var noEmbeddingFallback = (await db.MenuItems
                 .IgnoreQueryFilters()
                 .Where(m => m.RestaurantId == restaurantId && m.IsAvailable && !m.IsDeleted)
                 .OrderBy(m => m.Name)
                 .Take(4)
-                .Select(m => new RecommendedItemDto(m.Name, m.Description, m.Price, m.ImageObjectKey))
-                .ToListAsync(ct);
+                .ToListAsync(ct))
+                .Select(ToDto).ToList();
 
             return new RecommendationResponse(
                 "Here are some items from our menu — semantic search will be ready shortly.",
@@ -78,7 +81,9 @@ public class RecommendationService(
         // 3. Ask the LLM to write a friendly recommendation from the matched items.
         var blurb = await GenerateBlurbAsync(query, matches, ct);
 
-        return new RecommendationResponse(blurb, matches);
+        return new RecommendationResponse(
+            blurb ?? "Here are the closest dishes to your craving:",
+            matches);
     }
 
     public async Task BackfillEmbeddingsAsync(Guid restaurantId, CancellationToken ct = default)
@@ -95,11 +100,10 @@ public class RecommendationService(
             var text = BuildEmbeddingText(item.Name, item.Description);
             var vector = await EmbedTextAsync(text, ct);
             if (vector is not null)
-            {
                 item.Embedding = vector;
-                await db.SaveChangesAsync(ct);
-            }
         }
+
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task EmbedItemAsync(Guid menuItemId, CancellationToken ct = default)

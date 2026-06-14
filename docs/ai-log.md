@@ -541,6 +541,84 @@ Implemented FS-6 end-to-end: gated the AI menu recommendations feature behind an
 
 ---
 
+### Session — Jun 5–8, 2026 (DO-7 Uptime Kuma + DO-9 Trivy/Key Vault + httpOnly cookies + dynamic categories + marketing site; Claude Code) — Olti
+
+Five deliverables landed in this block: uptime monitoring (DO-7), security hardening (DO-9), auth cookie migration, dynamic menu categories, and a full marketing site redesign.
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 124 | Claude Code | DevOps | **DO-7 Uptime Kuma:** added Uptime Kuma to `docker-compose` (port 3002, SQLite persisted) + Helm chart for project-05 (`uptime.project-05.gjirafa.dev`); configured 6 monitors (backend health, frontend, Keycloak, Postgres, Redis, MinIO), public status page, Slack + MailHog notification channels; verified with a real down→alert→recover cycle | Good | ~2h | Uptime Kuma's "push" monitor type is better than HTTP for background jobs — the job posts a heartbeat on a schedule and the monitor alerts if the heartbeat is missed, avoiding firewall issues |
+| 125 | Claude Code | DevOps | **DO-9 Trivy gate + Azure Key Vault:** added Trivy image-scan CI gate (fails on HIGH/CRITICAL CVEs) with a SARIF upload to GitHub Security; wired Azure Key Vault into the CD pipeline — secrets fetched at deploy-time via `az keyvault secret show` + masked, never stored in git or env files; `backend-openai-apikey` added to Key Vault and injected into the Helm deploy | Good | ~3h | `az keyvault secret show --output none` is mandatory — without it the secret value prints to the runner log even when masked. Always mask immediately after fetch: `echo "::add-mask::$(get <secret>)"` before using the value |
+| 126 | Claude Code | Backend + Frontend | **httpOnly cookie auth migration:** moved token storage from `localStorage` to httpOnly cookies — `POST /auth/login` and `/auth/refresh` set `Set-Cookie` headers (SameSite=Strict, Secure in prod); `client.ts` switched to `credentials:'include'`; Zustand store removed token fields; auto-refresh on 401 preserved | Good | ~2.5h | httpOnly cookies are invisible to JavaScript — XSS cannot steal them. The tradeoff is that CSRF tokens are needed for state-mutating endpoints; `SameSite=Strict` is the pragmatic fix for a single-origin SPA without a separate CSRF token implementation |
+| 127 | Claude Code | Frontend | **Dynamic menu categories:** replaced hardcoded category tabs with categories fetched from the API; chip-style category selector with "All" default; category CRUD wired to admin menu management; empty-state handling per category | Good | ~1.5h | Keep the "All" option as a client-side filter (not a separate API call) — it avoids an extra round-trip and the full menu is already fetched |
+| 128 | Claude Code | Frontend | **Marketing site redesign (ember palette):** multiple iterations — dark-first → kinetic → clean → warm "ember" stone base + orange/amber accents; framer-motion hero, features, pricing, FAQ, CTA sections; mobile-first responsive pass; `(marketing)` route group kept separate from auth/dashboard | Needed 4 rounds | ~3h | Give the AI a colour palette name + one reference word ("ember," "warm stone") rather than hex codes — it constrains the design language better than six hex values. Accept the first round as a structural skeleton and iterate the palette separately |
+
+---
+
+### Session — Jun 8–13, 2026 (pagination + staff scheduling + AI recommendation + MCP OrderTools + security fixes; Claude Code) — Olti
+
+The main Phase 1B delivery plus two supporting features.
+
+| # | Tool | Area | Purpose | Output Quality | Time Saved | Lessons Learned |
+|---|---|---|---|---|---|---|
+| 139 | Claude Code | Backend | **Pagination — `PagedResult<T>`:** generic `PagedResult<T>` wrapper (`Items`, `TotalCount`, `Page`, `PageSize`, `TotalPages`); applied to `/menu`, `/orders`, `/users` endpoints (page + pageSize query params, deterministic `OrderBy` on `CreatedAt desc`); frontend updated to paginate menu and orders lists | Good | ~1.5h | Always add a deterministic `OrderBy` when paginating — without it, page boundaries shift between requests as Postgres chooses its own row order |
+| 140 | Claude Code | Backend + Frontend | **Staff scheduling — shifts + rest-day/swap requests:** `WorkShift` and `ShiftRequest` domain entities + EF migrations; `ScheduleService` (create/publish weekly shifts, approve/reject requests); manager weekly-builder UI (grid by day/employee, drag-friendly slot assignment); worker view (own schedule + submit rest-day/swap requests); manager approval queue | Good | ~4h | Model rest-day as a `WorkShift` with `IsDayOff=true` rather than absence of a shift — it makes the weekly grid always full and avoids null-checking on every cell render |
+| 141 | Claude Code | Backend + Frontend | **AI customer menu recommendation (Phase 1B RAG):** `IRecommendationService` + `RecommendationService` — `EmbedAsync` (OpenAI `text-embedding-3-small`), `RecommendAsync` (pgvector cosine search → `gpt-4o-mini` blurb), `BackfillAsync`; `MenuItem.Embedding` column (`vector(1536)`, HNSW cosine index); `PublicController` anonymous endpoint; public `/r/{restaurantId}` page (no auth); graceful degradation when key absent | Good | ~5h | Scope the pgvector cosine search with an explicit `WHERE restaurant_id = @id` even when using `IgnoreQueryFilters()` — global query filters are off for anonymous requests, so tenant isolation must be enforced explicitly in the query |
+| 142 | Claude Code | Backend | **MCP OrderTools:** added `list_orders`, `get_order`, and `list_kitchen_queue` tools to the existing in-process MCP server inside `DashTab.API`; tenant-scoped, read-only; smoke-tested via Claude Code as the MCP client | Good | ~1h | MCP tool results must be serialisable to JSON — EF navigation properties cause cycles; project to a DTO before returning |
+| 143 | Claude Code | CI / Backend | **Mapperly + pgvector CI fix:** Mapperly generated a mapping for `MenuItem.Embedding` (`Vector` type) which it couldn't resolve — added `[MapperIgnore]` on the property; in-memory EF provider doesn't support `vector` column type — wrapped the HNSW index migration in `if (Database.ProviderName == "Npgsql...")` so unit tests pass against the in-memory provider | Good | ~45min | Always check if a new domain property needs a mapper ignore attribute when using source-generation mappers — the compiler error surfaces in CI, not locally if you're running only unit tests |
+| 144 | Claude Code | DevOps | **Trivy gate + Key Vault secret injection (prod):** wired the OpenAI API key from Azure Key Vault (`backend-openai-apikey`) into the CD pipeline and backend Helm deploy; confirmed the recommendation endpoint works end-to-end in the project-05 cluster | Good | ~1h | Azure Key Vault fetch order matters — mask immediately with `::add-mask::` before any echo or env assignment, otherwise the value leaks into the step summary |
+
+---
+
+## M6.7 — Final Cumulative Summary
+
+> **Rubric:** M6.7 · Compiled: 2026-06-14 · Covers the full project lifecycle: Mar 27 → Jun 14, 2026 (~11 weeks)
+
+### Overall stats
+
+| Metric | Value |
+|---|---|
+| **Total AI log entries** | 163 |
+| **Est. total time saved** | ~152h |
+| **Project span** | Mar 27 → Jun 14, 2026 (78 days) |
+| **Primary tool** | Claude Code (dominant from May onward) |
+| **Secondary tool** | Cursor Agent (early M2 frontend sessions) |
+
+### Per-person contribution
+
+| Person | Git commits | Log entries (approx.) | Primary areas |
+|---|---|---|---|
+| **Enes Drejta** | ~194 | ~35 | DevOps (Helm, CI/CD, Prometheus, ELK, Trivy, gitleaks, ZAP, CodeQL, SBOM), AIOps (DO-12), multi-tenancy, Stripe subscriptions, MinIO, LCP bundle optimisation, prod debugging (KDS 1011, role-claim fix, test coverage) |
+| **Olti Ramadani** | ~156 | ~70 | Backend Clean Architecture scaffold, all domain entities + endpoints, Keycloak JWT/RBAC, auth, scheduling, pagination, DO-7 (Uptime Kuma), DO-9 (Trivy gate + Azure Key Vault), AI customer recommendation (RAG, Phase 1B), MCP OrderTools, marketing redesign, dark-mode-first |
+| **Jeta Fazliu** | ~51 | ~20 | PostHog analytics (M6.1), North Star Metric (M6.2), stakeholder dashboard (M6.3), A/B test (M6.4), E2E Playwright stabilisation, FS-6 Unleash feature flags |
+| **Team / early sessions** | — | ~38 | M1 PM setup, M2 frontend MVP (multi-step forms, CI, tests, a11y, Lighthouse, Docker) |
+
+### Entries by area
+
+| Area | Approx. entries | Notes |
+|---|---|---|
+| Backend (.NET / EF Core / domain) | ~45 | Entities, endpoints, auth, migrations, integrations (Hangfire, Redis, MinIO, RabbitMQ, SignalR) |
+| Frontend (Next.js / React) | ~45 | M2 MVP, kitchen board, dark-mode, analytics, A/B test, recommend page |
+| DevOps (CI/CD / Helm / observability) | ~30 | Helm charts, GitHub Actions, Prometheus, ELK, Trivy, AIOps, LCP bundle |
+| AI features (RAG, MCP, feature flags) | ~18 | Phase 1B recommendation, OrderTools, Unleash FS-6, M6.4 A/B test |
+| PM / analytics / docs | ~20 | Project setup, CLAUDE.md, session writeups, PostHog, OKRs |
+
+### Top 3 lessons learned (team-wide)
+
+1. **Cascade failures hide behind graceful degradation.** The KDS SignalR outage (entry #155) showed that a single missing `password=` in a Redis connection string silently turned into "realtime is broken AND the app is slow" — `AbortOnConnectFail=false` masked the real cause. Always trace the root data dependency, not the symptom closest to the user.
+
+2. **Framework edges are where AI needs the most correction.** Next.js 15 App Router boundaries (`ssr:false` inside Server Components, `[AllowAnonymous]` class-vs-method precedence ASP0026, React Hook Form + `<form>` tag accidental submissions) all needed correction after the first AI attempt. Give the AI the framework version upfront; it steers away from deprecated patterns.
+
+3. **Documenting design decisions in the same commit prevents the next session from re-asking why.** The MinIO session (entry #101), RabbitMQ session (#107), and Redis/KDS session (#155) each produced a dedicated `session-*.md` — the first time a teammate asked "why two MinIO URLs?" the answer was already committed. AI-generated session docs earn their keep on the second read.
+
+### Reflection
+
+AI tools saved the most time on three categories of work: **scaffolding** (Clean Architecture layers, entity models, migration files, Helm chart boilerplate — days of repetitive setup collapsed to hours), **debugging** (tracing non-obvious cascade failures, reading stack traces, suggesting fix candidates), and **documentation** (session writeups, architecture decisions, AI log maintenance itself). The 158-entry log spans every layer of the stack and records a genuine shift in how the team works: by milestone 3 onward, the workflow was "describe intent → AI drafts → human verifies + adjusts" rather than "human writes → AI reviews."
+
+Where AI needed the most correction: multi-step form logic (React Hook Form subtleties that change behaviour between Next.js versions), EF Core/pgvector column mapping (Mapperly silently skipping the `Vector` property, in-memory test provider not supporting pgvector types), and Kubernetes/Helm value precedence (where `--reuse-values` silently ignores chart edits). In all cases the pattern was the same: the AI produced a plausible-but-wrong first draft and a well-targeted follow-up prompt with the specific error message got to the correct fix in one round.
+
+---
+
 ### Session — Jun 14, 2026 (staff demo accounts blank + KDS 1011 root-cause + role claim fix + test coverage; Claude Code) — Enes
 
 Live production debugging session: diagnosed two separate "the app is broken" reports via `kubectl` access to the project-05 cluster, applied live fixes, then hardened the codebase so neither failure can recur. Also fixed a latent role-claim bug and substantially expanded test coverage.

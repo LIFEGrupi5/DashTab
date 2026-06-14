@@ -5,6 +5,7 @@ using DashTab.Application.Storage;
 using DashTab.Domain.Entities;
 using DashTab.Infrastructure.Persistence;
 using DashTab.Infrastructure.Services;
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 
 namespace DashTab.UnitTests.Services;
@@ -88,7 +89,14 @@ public class MenuItemServiceImageTests
     }
 
     private static MenuItemService NewSut(DashTabDbContext db, FakeStorageService storage)
-        => new(db, new NoopCacheService(), new MenuItemMapper(), storage, new StubCurrentUser(), new NoopRecommendationService());
+        => new(db, new NoopCacheService(), new MenuItemMapper(), storage, new StubCurrentUser(),
+               new NoopRecommendationService(), new NoopBackgroundJobClient());
+
+    private sealed class NoopBackgroundJobClient : IBackgroundJobClient
+    {
+        public string Create(Hangfire.Common.Job job, Hangfire.States.IState state) => string.Empty;
+        public bool ChangeState(string jobId, Hangfire.States.IState state, string? expectedStateName) => true;
+    }
 
     private sealed class NoopRecommendationService : DashTab.Application.Interfaces.IRecommendationService
     {

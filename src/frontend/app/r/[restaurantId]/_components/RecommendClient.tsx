@@ -75,10 +75,6 @@ export default function RecommendClient({
     setTimeout(() => inputRef.current?.focus(), 50);
   };
 
-  const visibleItems = items.filter(
-    item => !message || message.toLowerCase().includes(item.name.toLowerCase()),
-  );
-
   return (
     <div className="min-h-screen bg-stone-950 text-white flex flex-col">
 
@@ -167,12 +163,12 @@ export default function RecommendClient({
               </div>
             )}
 
-            {visibleItems.length > 0 && (
+            {items.length > 0 && (
               <div className="space-y-3">
                 <p className="text-xs font-semibold text-stone-500 uppercase tracking-widest mb-4">
                   Recommended for you
                 </p>
-                {visibleItems.map((item, i) => <ItemCard key={i} item={item} index={i} />)}
+                {items.map((item, i) => <ItemCard key={i} item={item} index={i} />)}
               </div>
             )}
 
