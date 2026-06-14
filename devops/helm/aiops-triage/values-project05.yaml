@@ -6,3 +6,8 @@
 config:
   LLM_PROVIDER: groq
   GROQ_MODEL: llama-3.3-70b-versatile
+
+# GHCR is private; the dedicated SA doesn't inherit the namespace pull secret, so
+# set it explicitly. The `ghcr-pull` secret already exists in project-05.
+imagePullSecrets:
+  - name: ghcr-pull

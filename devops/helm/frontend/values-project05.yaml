@@ -5,6 +5,11 @@ image:
   tag: development
   pullPolicy: Always
 
+# GHCR is private; the dedicated SA doesn't inherit the namespace pull secret, so
+# set it explicitly. The `ghcr-pull` secret already exists in project-05.
+imagePullSecrets:
+  - name: ghcr-pull
+
 ingress:
   host: app.project-05.gjirafa.dev
   annotations:
