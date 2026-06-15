@@ -348,7 +348,7 @@ jobs:
       # values.yaml or GitHub repo secrets. ::add-mask:: redacts each value from
       # the Actions log before it's written to $GITHUB_ENV.
       - name: Azure login
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
