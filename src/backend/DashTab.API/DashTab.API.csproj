@@ -15,7 +15,7 @@
     <!-- Pin patched MessagePack to override the vulnerable 2.5.187 pulled transitively by
          SignalR.StackExchangeRedis (CVE-2026-48109, fixed in 2.5.301) -->
     <PackageReference Include="MessagePack" Version="2.5.301" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="9.0.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4">
