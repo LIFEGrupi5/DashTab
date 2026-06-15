@@ -54,7 +54,7 @@ jobs:
       # CodeQL build behaves identically to the known-green CI build.
       - name: Set up .NET
         if: matrix.language == 'csharp'
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.x
 
